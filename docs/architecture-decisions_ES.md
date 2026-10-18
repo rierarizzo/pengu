@@ -350,10 +350,12 @@ leer/escribir/borrar vive una sola vez.
   fondo del detalle, el reproductor y las puertas de onboarding/perfil pintan
   tras las barras mientras sus controles se sientan debajo; y el billboard de
   Home se desplaza con el contenido (nunca se fija) en un `Column` +
-  `verticalScroll` plano, no un `LazyColumn`: el número de filas es pequeño y
-  acotado, y el reciclado lazy recompone cada fila (y libera el hero) al cruzar
-  el viewport, lo que cuesta más de lo que ahorra. En desktop el artwork abarca
-  el 75% del ancho de la ventana, anclado a la esquina superior derecha de un
+  `verticalScroll` plano, no un `LazyColumn`: el reciclado lazy recompone cada
+  fila (y libera el hero) al cruzar el viewport, lo que cuesta más de lo que
+  ahorra, así que Home mantiene una fila por cada catálogo navegable que
+  declaran los addons en vez de limitar el número (el límite está en los ítems
+  por fila, no en las filas). En desktop el artwork abarca el 75% del ancho de la
+  ventana, anclado a la esquina superior derecha de un
   marco de altura fija, y se recorta (`Crop`, alineado arriba); ensanchar la
   ventana revela más artwork en lugar de estirar el billboard, así que las
   secciones de abajo mantienen su sitio. Lo lavan degradados de

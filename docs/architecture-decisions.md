@@ -330,10 +330,12 @@ so the atomic read/write/delete logic lives once.
   player and the onboarding/profile gates paint behind the bars while their
   controls sit below them; and the Home billboard scrolls with the content (it
   is never pinned) in a plain `Column` + `verticalScroll`, not a `LazyColumn`:
-  the row count is small and bounded, and lazy recycling re-composes each row
-  (and disposes the hero) as it crosses the viewport, which costs more than it
-  saves. On desktop the artwork spans 75% of the window width,
-  pinned to the top-right corner of a frame with a fixed height, and cropped
+  lazy recycling re-composes each row (and disposes the hero) as it crosses the
+  viewport, which costs more than it saves, so Home keeps a row for every
+  browsable catalog the addons declare instead of capping the count (the cap
+  lives on the items per row, not on the rows). On desktop the artwork spans 75%
+  of the window width, pinned to the top-right corner of a frame with a fixed
+  height, and cropped
   (`Crop`, top-aligned); widening the window reveals more artwork instead of
   stretching the billboard taller, so the sections below keep their place. It is
   washed by

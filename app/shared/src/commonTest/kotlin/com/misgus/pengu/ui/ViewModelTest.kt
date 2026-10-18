@@ -131,6 +131,37 @@ class HomeViewModelTest {
         }
 
     @Test
+    fun keepsARowForEveryBrowsableCatalog() =
+        runTest(dispatcher) {
+            val refs =
+                (1..7).map { index ->
+                    CatalogRef(
+                        addonName = "Addon",
+                        addonBaseUrl = "https://addon",
+                        type = ContentType("movie"),
+                        id = "top$index",
+                        name = "Top $index",
+                    )
+                }
+            val items =
+                refs.associate { ref ->
+                    ref.key to listOf(MetaPreview(id = ref.id, type = ContentType("movie"), name = ref.name))
+                }
+            val viewModel =
+                HomeViewModel(
+                    account = FakeAccountRepository(),
+                    catalogs = FakeCatalogRepository(refs, items),
+                    library = FakeLibraryRepository(),
+                    progress = FakeProgressRepository(),
+                    badges = WatchedBadgeResolver(FakeProgressRepository(), FakeMetadataRepository()),
+                )
+            viewModel.load()
+            advanceUntilIdle()
+
+            assertEquals(7, viewModel.state.value.rows.size)
+        }
+
+    @Test
     fun fillsTheFeaturedArtworkFromTmdb() =
         runTest(dispatcher) {
             val ref =

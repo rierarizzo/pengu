@@ -70,7 +70,8 @@ data class HomeUiState(
  *
  * Catalogs come from the addons; continue watching comes from the backend
  * (watch progress joined with the library). The watched badges are resolved in
- * the background, so the content paints first.
+ * the background, so the content paints first. Every browsable catalog gets a
+ * row; only the items per row are capped.
  */
 class HomeViewModel(
     account: AccountRepository,
@@ -121,7 +122,7 @@ class HomeViewModel(
                 coroutineScope {
                     val progressDeferred = async { progress.all() }
                     val libraryDeferred = async { library.all() }
-                    val catalogsDeferred = async { catalogs.catalogs().filter { it.browsable }.take(MAX_ROWS) }
+                    val catalogsDeferred = async { catalogs.catalogs().filter { it.browsable } }
                     Triple(progressDeferred.await(), libraryDeferred.await(), catalogsDeferred.await())
                 }
             progressEntries = entries
@@ -315,7 +316,6 @@ class HomeViewModel(
     }
 
     private companion object {
-        const val MAX_ROWS = 5
         const val MAX_ITEMS_PER_ROW = 20
         const val MAX_CONTINUE = 12
         const val MAX_FEATURED = 6
