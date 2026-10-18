@@ -20,11 +20,11 @@ import kotlinx.coroutines.coroutineScope
  * Catalogs are read from the enabled addons' manifests, so any addon that
  * declares catalogs shows up without a hardcoded provider.
  */
-class StremioCatalogRepository(
+class StremioCatalogRepository internal constructor(
     private val addons: AddonRepository,
-    private val client: HttpClient,
+    private val clients: AddonClientPool,
 ) : CatalogRepository {
-    private val clients = AddonClientPool(client)
+    constructor(addons: AddonRepository, client: HttpClient) : this(addons, AddonClientPool(client))
 
     override suspend fun catalogs(): List<CatalogRef> {
         val installed: List<Addon> = runCatchingCancellable { addons.all() }.getOrDefault(emptyList())

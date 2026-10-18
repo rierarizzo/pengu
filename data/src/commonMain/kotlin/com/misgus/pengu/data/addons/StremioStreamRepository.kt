@@ -18,11 +18,11 @@ import kotlinx.coroutines.coroutineScope
  * parallel, and the results are grouped by addon. An addon that fails or has no
  * streams for the title is skipped.
  */
-class StremioStreamRepository(
+class StremioStreamRepository internal constructor(
     private val addons: AddonRepository,
-    private val client: HttpClient,
+    private val clients: AddonClientPool,
 ) : StreamRepository {
-    private val clients = AddonClientPool(client)
+    constructor(addons: AddonRepository, client: HttpClient) : this(addons, AddonClientPool(client))
 
     override suspend fun all(
         type: ContentType,

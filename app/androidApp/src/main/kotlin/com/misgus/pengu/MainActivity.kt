@@ -7,17 +7,16 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.misgus.pengu.data.BackendBundle
 import com.misgus.pengu.data.BackendKind
-import com.misgus.pengu.data.addons.StremioCatalogRepository
-import com.misgus.pengu.data.addons.StremioMetadataRepository
-import com.misgus.pengu.data.addons.StremioStreamRepository
-import com.misgus.pengu.data.addons.StremioSubtitleRepository
+import com.misgus.pengu.data.addons.StremioAddonRepositories
 import com.misgus.pengu.data.createBackend
 import com.misgus.pengu.data.platform.createHttpClient
 import com.misgus.pengu.data.platform.initPlatform
-import com.misgus.pengu.data.store.FileSessionStore
 import com.misgus.pengu.data.store.AppPaths
+import com.misgus.pengu.data.store.FileSessionStore
+import com.misgus.pengu.data.store.FileWatchedSeriesCache
 import com.misgus.pengu.data.store.JsonMapStore
 import com.misgus.pengu.data.store.JsonSettingsRepository
+import com.misgus.pengu.data.store.LocalRatingRepository
 import com.misgus.pengu.data.tmdb.TmdbMetadataRepository
 import com.misgus.pengu.player.MediampPlayerService
 import com.misgus.pengu.ui.PenguApp
@@ -59,20 +58,28 @@ class MainActivity : ComponentActivity() {
         )
         val addons = backend.addons
         val settings = JsonSettingsRepository(JsonMapStore(AppPaths.settingsFile, pretty = true))
-        val services = AppServices(
-            account = backend.account,
-            settings = settings,
-            library = backend.library,
-            progress = backend.progress,
-            metadata = StremioMetadataRepository(addons, httpClient),
-            streams = StremioStreamRepository(addons, httpClient),
-            catalogs = StremioCatalogRepository(addons, httpClient),
-            subtitles = StremioSubtitleRepository(addons, httpClient),
-            tmdb = TmdbMetadataRepository(httpClient, settings),
-            player = player,
-            window = NoopWindowController(),
-            addons = addons,
-        )
+        // One client pool for the four Stremio repositories, so an addon's
+        // manifest is fetched once per process instead of once per repository.
+        val stremio = StremioAddonRepositories(addons, httpClient)
+        val services =
+            AppServices(
+                account = backend.account,
+                settings = settings,
+                library = backend.library,
+                progress = backend.progress,
+                metadata = stremio.metadata,
+                streams = stremio.streams,
+                catalogs = stremio.catalogs,
+                subtitles = stremio.subtitles,
+                tmdb = TmdbMetadataRepository(httpClient, settings),
+                player = player,
+                window = NoopWindowController(),
+                addons = addons,
+                // Same persistence as desktop: the watched-series cache and the
+                // local ratings both live in the app's config directory.
+                watchedCache = FileWatchedSeriesCache(),
+                ratings = LocalRatingRepository(JsonMapStore(AppPaths.ratingsFile)),
+            )
 
         setContent {
             PenguApp(services = services)

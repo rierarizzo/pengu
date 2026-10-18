@@ -17,11 +17,11 @@ import kotlinx.coroutines.coroutineScope
  * Subtitles are aggregated from every enabled addon, in parallel, and deduped
  * by URL. An addon that fails or has no subtitles for the title is skipped.
  */
-class StremioSubtitleRepository(
+class StremioSubtitleRepository internal constructor(
     private val addons: AddonRepository,
-    private val client: HttpClient,
+    private val clients: AddonClientPool,
 ) : SubtitleRepository {
-    private val clients = AddonClientPool(client)
+    constructor(addons: AddonRepository, client: HttpClient) : this(addons, AddonClientPool(client))
 
     override suspend fun all(
         type: ContentType,

@@ -22,10 +22,7 @@ import androidx.compose.ui.window.rememberWindowState
 import com.misgus.pengu.core.model.Addon
 import com.misgus.pengu.core.repository.SignInRequest
 import com.misgus.pengu.data.BackendKind
-import com.misgus.pengu.data.addons.StremioCatalogRepository
-import com.misgus.pengu.data.addons.StremioMetadataRepository
-import com.misgus.pengu.data.addons.StremioStreamRepository
-import com.misgus.pengu.data.addons.StremioSubtitleRepository
+import com.misgus.pengu.data.addons.StremioAddonRepositories
 import com.misgus.pengu.data.createBackend
 import com.misgus.pengu.data.platform.createHttpClient
 import com.misgus.pengu.data.store.AppPaths
@@ -67,10 +64,9 @@ fun main(args: Array<String>) {
 
     // One addon list shared by every Stremio repository.
     val addons = backend.addons
-    val metadata = StremioMetadataRepository(addons, httpClient)
-    val streams = StremioStreamRepository(addons, httpClient)
-    val catalogs = StremioCatalogRepository(addons, httpClient)
-    val subtitles = StremioSubtitleRepository(addons, httpClient)
+    // One client pool for the four repositories, so an addon's manifest is
+    // fetched once per process instead of once per repository.
+    val stremio = StremioAddonRepositories(addons, httpClient)
     val ratings = LocalRatingRepository(JsonMapStore(AppPaths.ratingsFile))
     val settings = JsonSettingsRepository(JsonMapStore(AppPaths.settingsFile, pretty = true))
     val watchedCache = FileWatchedSeriesCache()
@@ -92,10 +88,10 @@ fun main(args: Array<String>) {
                     settings = settings,
                     library = backend.library,
                     progress = backend.progress,
-                    metadata = metadata,
-                    streams = streams,
-                    catalogs = catalogs,
-                    subtitles = subtitles,
+                    metadata = stremio.metadata,
+                    streams = stremio.streams,
+                    catalogs = stremio.catalogs,
+                    subtitles = stremio.subtitles,
                     ratings = ratings,
                     tmdb = TmdbMetadataRepository(httpClient, settings),
                     watchedCache = watchedCache,

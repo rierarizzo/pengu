@@ -20,11 +20,11 @@ import kotlinx.coroutines.coroutineScope
  * Metadata is always resolved from the account's enabled addons, in their
  * order, and the first one that returns a meta wins. No provider is baked in.
  */
-class StremioMetadataRepository(
+class StremioMetadataRepository internal constructor(
     private val addons: AddonRepository,
-    private val client: HttpClient,
+    private val clients: AddonClientPool,
 ) : MetadataRepository {
-    private val clients = AddonClientPool(client)
+    constructor(addons: AddonRepository, client: HttpClient) : this(addons, AddonClientPool(client))
 
     override suspend fun detail(
         type: ContentType,

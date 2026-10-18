@@ -104,8 +104,10 @@ Existen para no reimplementar la misma preocupación en cada pantalla:
 - **`WatchedBadgeSync`** (`ui/common`) — resuelve los badges de "visto" y
   descarta resultados obsoletos, para que Home y Library no dupliquen la lógica
   de ticket de petición.
-- **`AddonClientPool`** (`data/addons`) — un `StremioAddonClient` cacheado por URL
-  de addon, compartido por los repos de catálogos, metadata, streams y subtítulos.
+- **`StremioAddonRepositories`** (`data/addons`) — construye los repos de
+  catálogos, metadata, streams y subtítulos sobre un único `AddonClientPool`, así
+  un `StremioAddonClient` cacheado (y su manifiesto) se comparte en vez de
+  reconstruirse por repositorio.
 - **`ProfileScope`** (`data/backend`) — `AccountRepository.requireProfileId()` /
   `requireActiveProfile()`, usado por cada repositorio Nuvio con scope de perfil.
 - **`VideoOutput`** (`core/player`) — marcador tipado de la salida de plataforma

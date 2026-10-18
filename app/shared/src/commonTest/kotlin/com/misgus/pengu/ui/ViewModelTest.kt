@@ -15,6 +15,7 @@ import com.misgus.pengu.ui.support.FakeLibraryRepository
 import com.misgus.pengu.ui.support.FakeMetadataRepository
 import com.misgus.pengu.ui.support.FakeProgressRepository
 import com.misgus.pengu.ui.support.FakeTmdbRepository
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -159,6 +160,73 @@ class HomeViewModelTest {
             advanceUntilIdle()
 
             assertEquals(7, viewModel.state.value.rows.size)
+        }
+
+    @Test
+    fun publishesEachRowWhileTheSlowestCatalogIsStillLoading() =
+        runTest(dispatcher) {
+            val slow =
+                CatalogRef(
+                    addonName = "Addon",
+                    addonBaseUrl = "https://addon",
+                    type = ContentType("movie"),
+                    id = "slow",
+                    name = "Slow",
+                )
+            val fast =
+                CatalogRef(
+                    addonName = "Addon",
+                    addonBaseUrl = "https://addon",
+                    type = ContentType("movie"),
+                    id = "fast",
+                    name = "Fast",
+                )
+            val gate = CompletableDeferred<Unit>()
+            val viewModel =
+                HomeViewModel(
+                    account = FakeAccountRepository(),
+                    catalogs =
+                        FakeCatalogRepository(
+                            refs = listOf(slow, fast),
+                            items =
+                                mapOf(
+                                    slow.key to listOf(MetaPreview(id = "tt-slow", type = ContentType("movie"), name = "Slow")),
+                                    fast.key to listOf(MetaPreview(id = "tt-fast", type = ContentType("movie"), name = "Fast")),
+                                ),
+                            gates = mapOf(slow.key to gate),
+                        ),
+                    library = FakeLibraryRepository(),
+                    progress = FakeProgressRepository(),
+                    badges = WatchedBadgeResolver(FakeProgressRepository(), FakeMetadataRepository()),
+                )
+            viewModel.load()
+            advanceUntilIdle()
+
+            // The fast catalog is on screen, and already leads the billboard,
+            // while the slow one has not answered.
+            assertEquals(
+                listOf("fast"),
+                viewModel.state.value.rows
+                    .map { it.ref.id },
+            )
+            assertEquals(
+                "tt-fast",
+                viewModel.state.value.featured
+                    .single()
+                    .id,
+            )
+            assertTrue(viewModel.state.value.isLoading)
+
+            gate.complete(Unit)
+            advanceUntilIdle()
+
+            // Rows keep the catalog order even though they arrived out of order.
+            assertEquals(
+                listOf("slow", "fast"),
+                viewModel.state.value.rows
+                    .map { it.ref.id },
+            )
+            assertTrue(viewModel.state.value.hasLoaded)
         }
 
     @Test

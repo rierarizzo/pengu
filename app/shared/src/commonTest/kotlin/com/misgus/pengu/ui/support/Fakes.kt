@@ -26,6 +26,7 @@ import com.misgus.pengu.core.repository.StreamRepository
 import com.misgus.pengu.core.repository.TmdbLookup
 import com.misgus.pengu.core.repository.TmdbRepository
 import com.misgus.pengu.core.repository.TmdbVerifyResult
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -135,13 +136,18 @@ class FakeCatalogRepository(
     private val refs: List<CatalogRef> = emptyList(),
     private val items: Map<String, List<MetaPreview>> = emptyMap(),
     private val detailed: Map<String, List<MetaDetail>> = emptyMap(),
+    /** Optional per-catalog gate a test completes to control when a row resolves. */
+    private val gates: Map<String, CompletableDeferred<Unit>> = emptyMap(),
 ) : CatalogRepository {
     override suspend fun catalogs(): List<CatalogRef> = refs
 
     override suspend fun items(
         ref: CatalogRef,
         extra: Map<String, String>?,
-    ): List<MetaPreview> = items[ref.key].orEmpty()
+    ): List<MetaPreview> {
+        gates[ref.key]?.await()
+        return items[ref.key].orEmpty()
+    }
 
     override suspend fun detailedItems(
         ref: CatalogRef,

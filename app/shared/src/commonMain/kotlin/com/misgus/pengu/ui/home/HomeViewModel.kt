@@ -23,6 +23,7 @@ import com.misgus.pengu.core.watched.WatchedCandidate
 import com.misgus.pengu.ui.common.AccountScopedViewModel
 import com.misgus.pengu.ui.common.WatchedBadgeSync
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -69,9 +70,11 @@ data class HomeUiState(
  * Loads Home: a featured set, "Continue watching" and catalog rows.
  *
  * Catalogs come from the addons; continue watching comes from the backend
- * (watch progress joined with the library). The watched badges are resolved in
- * the background, so the content paints first. Every browsable catalog gets a
- * row; only the items per row are capped.
+ * (watch progress joined with the library). Continue watching and the rows are
+ * published as they arrive, so Home paints without waiting for the slowest
+ * catalog, and the watched badges and the TMDB enrichment are resolved after
+ * the paint. Every browsable catalog gets a row; only the items per row are
+ * capped.
  */
 class HomeViewModel(
     account: AccountRepository,
@@ -86,6 +89,9 @@ class HomeViewModel(
     val state: StateFlow<HomeUiState> = _state.asStateFlow()
 
     private val watchedSync = WatchedBadgeSync(badges, account)
+
+    /** In-flight load, so the screen effect and the account observer cannot double-load. */
+    private var loadJob: Job? = null
 
     init {
         // A save or a remove made elsewhere (the detail screen, the library)
@@ -107,8 +113,12 @@ class HomeViewModel(
             clear()
             return
         }
-        if (_state.value.isLoading || (_state.value.hasLoaded && !force)) return
-        viewModelScope.launch { doLoad() }
+        // The job is tracked, not just the `isLoading` flag: the flag is set
+        // inside the coroutine, so a second call arriving before it starts (the
+        // screen's effect and the account observer both fire on entry) would slip
+        // past a state check and load twice.
+        if (loadJob?.isActive == true || (_state.value.hasLoaded && !force)) return
+        loadJob = viewModelScope.launch { doLoad() }
     }
 
     private suspend fun doLoad() {
@@ -141,49 +151,90 @@ class HomeViewModel(
                     }.sortedByDescending { it.progress.lastWatched ?: Instant.fromEpochMilliseconds(0) }
                     .take(MAX_CONTINUE)
 
-            val rows = loadRows(refs)
-            // Enriched before the first paint, so the billboard never shows the
-            // catalog artwork and then swaps to TMDB's. A title TMDB has no match
-            // for keeps its catalog artwork, and with no key the set is unchanged.
-            val featured = enrichFeatured(pickFeatured(rows, MAX_FEATURED, random))
+            // Continue watching and the saved set do not depend on the catalogs,
+            // so they are published before the rows: Home paints while the
+            // catalogs stream in instead of waiting for the slowest one.
             _state.update {
                 it.copy(
-                    isLoading = false,
                     hasLoaded = true,
                     continueWatching = continueWatching,
-                    rows = rows,
-                    featured = featured,
                     savedIds = libraryItems.map { item -> item.contentId }.toSet(),
                 )
             }
             loaded = true
+
+            // Each catalog is fetched behind a small semaphore, so a phone with
+            // many addons does not open one socket per catalog at once. Each row
+            // is published as it arrives and the featured set grows from the rows
+            // already on screen, so the billboard never waits for the last one.
+            val order = refs.mapIndexed { index, ref -> ref.key to index }.toMap()
+            val permits = Semaphore(MAX_ROW_CONCURRENCY)
+            coroutineScope {
+                refs
+                    .map { ref ->
+                        async {
+                            val row = permits.withPermit { loadRow(ref) }
+                            if (row != null) publishRow(row, order)
+                        }
+                    }.awaitAll()
+            }
+
+            // Enrichment runs after the paint, like the detail screen: the
+            // billboard shows the catalog artwork first and swaps to TMDB's when
+            // the lookup lands, instead of holding the whole screen back for it.
+            // A title TMDB has no match for keeps its catalog artwork, and with no
+            // key the set is unchanged.
+            val featured = _state.value.featured
+            if (featured.isNotEmpty()) {
+                _state.update { it.copy(featured = enrichFeatured(featured)) }
+            }
+            _state.update { it.copy(isLoading = false) }
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (error: Throwable) {
             _state.update { it.copy(isLoading = false, error = error) }
+            loaded = false
         }
         // Home paints without waiting for the watch history; the checks fill in
         // when the lookup finishes.
         if (loaded) syncWatched(progressEntries)
     }
 
-    private suspend fun loadRows(refs: List<CatalogRef>): List<HomeRow> =
-        coroutineScope {
-            refs
-                .map { ref ->
-                    async {
-                        runCatchingCancellable {
-                            val items = catalogs.items(ref)
-                            if (items.isEmpty()) {
-                                null
-                            } else {
-                                HomeRow(ref, ref.name, items.take(MAX_ITEMS_PER_ROW))
-                            }
-                        }.getOrNull()
-                    }
-                }.awaitAll()
-                .filterNotNull()
+    /** Loads one catalog row, or `null` when it is empty or fails. */
+    private suspend fun loadRow(ref: CatalogRef): HomeRow? =
+        runCatchingCancellable {
+            val items = catalogs.items(ref)
+            if (items.isEmpty()) null else HomeRow(ref, ref.name, items.take(MAX_ITEMS_PER_ROW))
+        }.getOrNull()
+
+    /**
+     * Adds [row] to the state and grows the featured set from the rows known so
+     * far.
+     *
+     * Rows keep the addon's order even though they arrive in completion order:
+     * the list is re-sorted against [order] on every insert. The featured set is
+     * only appended to, never re-picked, so a row that arrives late does not
+     * reshuffle the billboard that is already on screen.
+     */
+    private fun publishRow(
+        row: HomeRow,
+        order: Map<String, Int>,
+    ) {
+        _state.update { state ->
+            val rows = (state.rows + row).sortedBy { order[it.ref.key] ?: Int.MAX_VALUE }
+            state.copy(rows = rows, featured = growFeatured(state.featured, rows))
         }
+    }
+
+    /** Appends up to [MAX_FEATURED] items picked from [rows], skipping [current]. */
+    private fun growFeatured(
+        current: List<MetaPreview>,
+        rows: List<HomeRow>,
+    ): List<MetaPreview> {
+        if (current.size >= MAX_FEATURED) return current
+        val exclude = current.mapTo(mutableSetOf()) { it.type to it.id }
+        return current + pickFeatured(rows, MAX_FEATURED - current.size, random, exclude)
+    }
 
     private suspend fun syncWatched(progressEntries: List<WatchProgress>) {
         val candidates =
@@ -311,6 +362,8 @@ class HomeViewModel(
     }
 
     private fun clear() {
+        loadJob?.cancel()
+        loadJob = null
         watchedSync.invalidate()
         _state.value = HomeUiState()
     }
@@ -320,6 +373,14 @@ class HomeViewModel(
         const val MAX_CONTINUE = 12
         const val MAX_FEATURED = 6
         const val MAX_ENRICH_CONCURRENCY = 4
+
+        /**
+         * Catalogs fetched at once. Small on purpose: a phone's HTTP engine
+         * opens a bounded number of connections per host, so a wider fan-out
+         * would only build a queue. The semaphore keeps the concurrency
+         * explicit and portable across both engines.
+         */
+        const val MAX_ROW_CONCURRENCY = 6
     }
 }
 

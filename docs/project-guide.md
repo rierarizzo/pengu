@@ -102,8 +102,10 @@ These exist so the same concern is not re-implemented per screen:
   rule; subclasses implement `onAccountReady()` / `onAccountCleared()`.
 - **`WatchedBadgeSync`** (`ui/common`) — resolves watched badges and drops stale
   results, so Home and Library do not duplicate the request-ticket logic.
-- **`AddonClientPool`** (`data/addons`) — one cached `StremioAddonClient` per
-  addon URL, shared by the catalog, metadata, stream and subtitle repositories.
+- **`StremioAddonRepositories`** (`data/addons`) — builds the catalog, metadata,
+  stream and subtitle repositories over one `AddonClientPool`, so a cached
+  `StremioAddonClient` (and its addon manifest) is shared instead of rebuilt per
+  repository.
 - **`ProfileScope`** (`data/backend`) — `AccountRepository.requireProfileId()` /
   `requireActiveProfile()`, used by every profile-scoped Nuvio repository.
 - **`VideoOutput`** (`core/player`) — typed marker for the player's platform

@@ -10,10 +10,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -142,16 +142,18 @@ private fun HomeContent(
 ) {
     val windowSize = LocalWindowSize.current
     when {
-        state.isLoading && !state.hasLoaded ->
-            // No placeholder skeleton; the sections paint when the data arrives.
-            Box(Modifier.fillMaxSize())
         state.error != null && state.rows.isEmpty() && state.continueWatching.isEmpty() ->
             Message(
                 icon = FluentIcons.Error,
                 title = stringResource(Res.string.home_error_title),
                 message = stringResource(state.error.toUserMessage()),
             )
-        state.rows.isEmpty() && state.continueWatching.isEmpty() ->
+        // Nothing is known yet: the first load has not resolved continue
+        // watching, the library and the catalog list. No placeholder skeleton;
+        // the sections paint as soon as the data arrives.
+        !state.hasLoaded ->
+            Box(Modifier.fillMaxSize())
+        state.rows.isEmpty() && state.continueWatching.isEmpty() && !state.isLoading ->
             Message(
                 icon = FluentIcons.Compass,
                 title = stringResource(Res.string.empty_nothing_to_show),
@@ -175,51 +177,59 @@ private fun HomeContent(
                 } else {
                     HOME_HERO_MIN_HEIGHT
                 }
-            // Pull the rows up over the hero's faded bottom, so the first section
-            // does not sit a full header gap below it.
+            // Pull the first section up over the hero's faded bottom, so it does
+            // not sit a full header gap below it.
             val liftPx = with(LocalDensity.current) { HOME_CONTENT_LIFT.roundToPx() }
-            Column(
-                modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
-            ) {
-                when {
-                    state.featured.isNotEmpty() && !compact ->
-                        WideHero(
-                            items = state.featured,
-                            savedIds = savedIds,
-                            busyIds = busyIds,
-                            onOpen = onOpenPreview,
-                            onPlay = onPlayPreview,
-                            onToggleSaved = onToggleSaved,
-                            height = heroHeight,
-                        )
-                    state.featured.isNotEmpty() ->
-                        Hero(
-                            items = state.featured,
-                            savedIds = savedIds,
-                            busyIds = busyIds,
-                            onOpen = onOpenPreview,
-                            onPlay = onPlayPreview,
-                            onToggleSaved = onToggleSaved,
-                        )
-                    compact ->
-                        // No billboard to tuck under the status bar: reserve its height.
-                        Spacer(Modifier.height(safeTopInset))
+            val hasContinue = state.continueWatching.isNotEmpty()
+            // Virtualized: a phone with many addons composes only the sections on
+            // screen instead of every rail at once. Lifting the first section
+            // shifts every later one up by the same amount.
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                item(key = "home-hero") {
+                    when {
+                        state.featured.isNotEmpty() && !compact ->
+                            WideHero(
+                                items = state.featured,
+                                savedIds = savedIds,
+                                busyIds = busyIds,
+                                onOpen = onOpenPreview,
+                                onPlay = onPlayPreview,
+                                onToggleSaved = onToggleSaved,
+                                height = heroHeight,
+                            )
+                        state.featured.isNotEmpty() ->
+                            Hero(
+                                items = state.featured,
+                                savedIds = savedIds,
+                                busyIds = busyIds,
+                                onOpen = onOpenPreview,
+                                onPlay = onPlayPreview,
+                                onToggleSaved = onToggleSaved,
+                            )
+                        compact ->
+                            // No billboard to tuck under the status bar: reserve its height.
+                            Spacer(Modifier.height(safeTopInset))
+                    }
                 }
-                Column(modifier = Modifier.pullUp(liftPx)) {
-                    if (state.continueWatching.isNotEmpty()) {
-                        SectionHeader(title = stringResource(Res.string.home_continue_watching))
-                        LazyRow(
-                            modifier = Modifier.heightIn(min = if (compact) CompactContinueHeight else ContinueHeight),
-                            contentPadding = PaddingValues(horizontal = windowSize.screenPadding),
-                            horizontalArrangement = Arrangement.spacedBy(windowSize.gridSpacing),
-                        ) {
-                            items(state.continueWatching) { entry ->
-                                val cardWidth = if (compact) CompactContinueWidth else ContinueWidth
-                                ContinueCard(entry, cardWidth) { onOpenDetail(entry.item) }
+                if (hasContinue) {
+                    item(key = "home-continue") {
+                        Column(Modifier.pullUp(liftPx)) {
+                            SectionHeader(title = stringResource(Res.string.home_continue_watching))
+                            LazyRow(
+                                modifier = Modifier.heightIn(min = if (compact) CompactContinueHeight else ContinueHeight),
+                                contentPadding = PaddingValues(horizontal = windowSize.screenPadding),
+                                horizontalArrangement = Arrangement.spacedBy(windowSize.gridSpacing),
+                            ) {
+                                items(state.continueWatching) { entry ->
+                                    val cardWidth = if (compact) CompactContinueWidth else ContinueWidth
+                                    ContinueCard(entry, cardWidth) { onOpenDetail(entry.item) }
+                                }
                             }
                         }
                     }
-                    state.rows.forEach { row ->
+                }
+                itemsIndexed(state.rows, key = { _, row -> "row:${row.ref.key}" }) { index, row ->
+                    Column(Modifier.pullUp(if (index == 0 && !hasContinue) liftPx else 0)) {
                         SectionHeader(
                             title = row.title,
                             subtitle = contentTypeLabel(row.ref.type),
@@ -243,7 +253,7 @@ private fun HomeContent(
                         }
                     }
                 }
-                Spacer(Modifier.height(AppSpacing.xl))
+                item(key = "home-bottom") { Spacer(Modifier.height(AppSpacing.xl)) }
             }
         }
     }
