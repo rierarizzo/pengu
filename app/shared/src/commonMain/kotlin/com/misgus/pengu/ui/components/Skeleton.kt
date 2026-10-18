@@ -10,8 +10,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material3.MaterialTheme
@@ -31,7 +32,7 @@ import com.misgus.pengu.ui.theme.LocalMotionEnabled
 import com.misgus.pengu.ui.theme.LocalWindowSize
 import com.misgus.pengu.ui.theme.gridColumnCount
 import com.misgus.pengu.ui.theme.gridSpacing
-import com.misgus.pengu.ui.theme.posterCardAspect
+import com.misgus.pengu.ui.theme.posterCardHeight
 import com.misgus.pengu.ui.theme.screenPadding
 import kotlin.math.ceil
 
@@ -70,7 +71,8 @@ fun SkeletonPosterGrid(
         // The cells stretch to fill the row, so measure with the real cell width
         // to know how tall a row is.
         val cell = (maxWidth - screenPadding * 2 - spacing * (columns - 1)) / columns
-        val rows = rowsThatFit(maxHeight, cell / posterCardAspect(hideLabels), screenPadding, spacing)
+        val rowHeight = posterCardHeight(cell, hideLabels)
+        val rows = rowsThatFit(maxHeight, rowHeight, screenPadding, spacing)
         LazyVerticalGrid(
             columns = GridCells.Fixed(columns),
             modifier = Modifier.fillMaxSize(),
@@ -80,7 +82,7 @@ fun SkeletonPosterGrid(
             userScrollEnabled = false,
         ) {
             items(columns * rows) {
-                Box(Modifier.aspectRatio(posterCardAspect(hideLabels))) {
+                Box(Modifier.fillMaxWidth().height(rowHeight)) {
                     SkeletonBox(progress = progress, modifier = Modifier.fillMaxSize())
                 }
             }

@@ -3,7 +3,6 @@ package com.misgus.pengu.ui.library
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -24,7 +23,7 @@ import com.misgus.pengu.ui.components.PosterTile
 import com.misgus.pengu.ui.components.SkeletonPosterGrid
 import com.misgus.pengu.ui.components.SyncingIndicator
 import com.misgus.pengu.ui.components.toUserMessage
-import com.misgus.pengu.ui.icons.Boxicons
+import com.misgus.pengu.ui.icons.FluentIcons
 import com.misgus.pengu.ui.services.LocalAppServices
 import com.misgus.pengu.ui.shell.ContentNavigator
 import com.misgus.pengu.ui.shell.ContentRoute
@@ -32,7 +31,6 @@ import com.misgus.pengu.ui.theme.AppSpacing
 import com.misgus.pengu.ui.theme.LocalWindowSize
 import com.misgus.pengu.ui.theme.gridCells
 import com.misgus.pengu.ui.theme.gridSpacing
-import com.misgus.pengu.ui.theme.posterCardAspect
 import com.misgus.pengu.ui.theme.screenPadding
 import org.jetbrains.compose.resources.stringResource
 
@@ -72,13 +70,13 @@ private fun LibraryContent(
         state.isLoading && !state.hasLoaded -> SkeletonPosterGrid(hideLabels)
         state.error != null && !state.hasLoaded ->
             Message(
-                icon = Boxicons.Error,
+                icon = FluentIcons.Error,
                 title = stringResource(Res.string.library_error_title),
                 message = stringResource(state.error.toUserMessage()),
             )
         state.items.isEmpty() ->
             Message(
-                icon = Boxicons.Inbox,
+                icon = FluentIcons.Inbox,
                 title = stringResource(Res.string.empty_nothing_to_show),
                 message = stringResource(Res.string.library_empty_message),
             )
@@ -93,15 +91,13 @@ private fun LibraryContent(
                 horizontalArrangement = Arrangement.spacedBy(windowSize.gridSpacing),
             ) {
                 items(state.items, key = { it.contentId }) { item ->
-                    Box(Modifier.aspectRatio(posterCardAspect(hideLabels))) {
-                        PosterTile(
-                            item = item,
-                            progress = state.progressByContentId[item.contentId],
-                            watched = item.contentId in state.watchedIds,
-                            hideLabels = hideLabels,
-                            onTap = { onOpen(item) },
-                        )
-                    }
+                    PosterTile(
+                        item = item,
+                        progress = state.progressByContentId[item.contentId],
+                        watched = item.contentId in state.watchedIds,
+                        hideLabels = hideLabels,
+                        onTap = { onOpen(item) },
+                    )
                 }
             }
     }

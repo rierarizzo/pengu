@@ -1,19 +1,17 @@
 package com.misgus.pengu.ui.theme
 
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.misgus.pengu.core.repository.PosterSize
 
-/** Card ratio shared by the poster grids, so a card looks the same everywhere. */
-const val POSTER_CARD_ASPECT = 0.58f
-
 /**
  * Ratio of a poster's artwork on its own.
  *
- * A card with its caption hidden ([posterCardAspect]) collapses to just the
- * artwork, so the freed caption space is dropped instead of stretching the art
- * and cropping its sides.
+ * A card draws its artwork at this ratio whatever its width, and a card with its
+ * caption hidden collapses to just the artwork, so the freed caption space is
+ * dropped instead of stretching the art and cropping its sides.
  */
 const val POSTER_ART_ASPECT = 2f / 3f
 
@@ -70,11 +68,16 @@ fun gridColumnCount(
 fun gridCells(windowSize: WindowSize): GridCells =
     if (windowSize == WindowSize.COMPACT) GridCells.Fixed(COMPACT_GRID_COLUMNS) else GridCells.Adaptive(GRID_CELL_WIDTH)
 
-/** Card ratio for a poster: the art plus its caption, or just the art when [hideLabels]. */
-fun posterCardAspect(hideLabels: Boolean): Float = if (hideLabels) POSTER_ART_ASPECT else POSTER_CARD_ASPECT
-
-/** Height of a poster card [cardWidth] wide: the art plus its caption, or just the art when [hideLabels]. */
+/**
+ * Height of a poster card [cardWidth] wide.
+ *
+ * The artwork always keeps its 2:3 ([POSTER_ART_ASPECT]) and a card that shows
+ * its caption adds the fixed caption block ([PosterCaption.blockHeight]). A
+ * proportional caption reserve would shrink with a phone's narrow cell and let
+ * the caption eat into the artwork, cropping it.
+ */
+@Composable
 fun posterCardHeight(
     cardWidth: Dp,
     hideLabels: Boolean,
-): Dp = cardWidth / posterCardAspect(hideLabels)
+): Dp = cardWidth / POSTER_ART_ASPECT + if (hideLabels) 0.dp else PosterCaption.blockHeight()

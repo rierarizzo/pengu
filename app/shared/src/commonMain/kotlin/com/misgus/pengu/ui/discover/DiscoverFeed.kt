@@ -3,7 +3,6 @@ package com.misgus.pengu.ui.discover
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -30,12 +29,11 @@ import com.misgus.pengu.ui.components.Message
 import com.misgus.pengu.ui.components.MetaPosterCard
 import com.misgus.pengu.ui.components.SkeletonPosterGrid
 import com.misgus.pengu.ui.components.toUserMessage
-import com.misgus.pengu.ui.icons.Boxicons
+import com.misgus.pengu.ui.icons.FluentIcons
 import com.misgus.pengu.ui.theme.AppSpacing
 import com.misgus.pengu.ui.theme.LocalWindowSize
 import com.misgus.pengu.ui.theme.gridCells
 import com.misgus.pengu.ui.theme.gridSpacing
-import com.misgus.pengu.ui.theme.posterCardAspect
 import com.misgus.pengu.ui.theme.screenPadding
 import org.jetbrains.compose.resources.stringResource
 
@@ -62,7 +60,7 @@ fun DiscoverFeed(
         state.error != null && state.items.isEmpty() ->
             Box(modifier, contentAlignment = Alignment.Center) {
                 Message(
-                    icon = Boxicons.Error,
+                    icon = FluentIcons.Error,
                     title = stringResource(Res.string.discover_error_title),
                     message = stringResource(state.error.toUserMessage()),
                 )
@@ -70,7 +68,7 @@ fun DiscoverFeed(
         state.items.isEmpty() ->
             Box(modifier, contentAlignment = Alignment.Center) {
                 Message(
-                    icon = Boxicons.Compass,
+                    icon = FluentIcons.Compass,
                     title = stringResource(Res.string.discover_empty_title),
                     message = stringResource(Res.string.discover_empty_message),
                 )
@@ -126,13 +124,11 @@ private fun DiscoverGrid(
         horizontalArrangement = Arrangement.spacedBy(windowSize.gridSpacing),
     ) {
         items(items, key = { "${it.type}:${it.id}" }) { item ->
-            Box(Modifier.aspectRatio(posterCardAspect(hideLabels))) {
-                MetaPosterCard(
-                    preview = item,
-                    hideLabels = hideLabels,
-                    onTap = { onOpenDetail(LibraryItem.fromPreview(item)) },
-                )
-            }
+            MetaPosterCard(
+                preview = item,
+                hideLabels = hideLabels,
+                onTap = { onOpenDetail(LibraryItem.fromPreview(item)) },
+            )
         }
         if (isLoadingMore) {
             item(span = { GridItemSpan(maxLineSpan) }) {

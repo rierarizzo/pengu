@@ -182,11 +182,12 @@ so the atomic read/write/delete logic lives once.
   widths and the border/progress sizes, `AppAlpha` owns every overlay opacity,
   and `Modifier.focusRing` (in `Interaction.kt`) gives every focusable control
   the same keyboard ring.
-- **Icons are vendored, not a dependency.** `ui/icons/Boxicons.kt` holds the
-  Boxicons (MIT) glyphs the whole UI uses as `ImageVector`s, each built lazily
-  from the official SVG path through `PathParser` on Boxicons' 24dp viewport;
-  `scripts/gen_boxicons.mjs` regenerates the file from the Boxicons set on
-  Iconify. The back arrow and the sign-in/out glyphs carry `autoMirror = true`,
+- **Icons are vendored, not a dependency.** `ui/icons/FluentIcons.kt` holds the
+  Fluent UI System Icons (MIT, Microsoft) glyphs the whole UI uses as
+  `ImageVector`s, each built lazily from the official SVG path through
+  `PathParser` on Fluent's 24dp viewport; `scripts/gen_fluent_icons.mjs`
+  regenerates the file from the Fluent set on Iconify. The back arrow and the
+  sign-in/out glyphs carry `autoMirror = true`,
   which is what Material's auto-mirrored variants did. The Windows caption
   buttons keep their own native-shaped glyphs (`WindowsCaptionIcons` in
   `:app:desktopApp`), so the bar reads as Windows chrome. The app does not depend on
@@ -438,7 +439,7 @@ so the atomic read/write/delete logic lives once.
   a keyboard/D-pad target, and the item is announced as a selected tab. The rail
   drops the labels to stay narrow, centers the profile avatar and the section
   items in the window, and paints the page background instead of a panel colour,
-  so it blends into the content. The glyphs are the Boxicons set (`Boxicons`),
+  so it blends into the content. The glyphs are the Fluent set (`FluentIcons`),
   so the selected state is the tint alone. The bar adds a hairline
   `outlineVariant` top edge and stands 64dp tall
   (`bottomBarHeight`), not Material's 80dp label height that it has no label to
@@ -613,13 +614,16 @@ so the atomic read/write/delete logic lives once.
 - **Poster size** is a single setting (`PosterSize`: default / large, 210 / 230
   dp) that only drives the horizontal poster rows — the Home catalogs, the
   search results and "More like this" — where a card can be resized without a
-  grid side effect; a row uses the width as-is and derives its height from it
-  (`width / 0.58`, or `width / (2/3)` when the labels are hidden). Grids
-  (Library, the full catalog, Discover) ignore the setting and keep a fixed
-  layout: `gridCells` lays out three posters per row on a phone and fits as many
-  `GRID_CELL_WIDTH` cells as it can on a wider window, so a phone never shows a
-  size the user did not choose. On a compact window the rail width shrinks by
-  `COMPACT_SCALE` (0.65).
+  grid side effect; a row keeps the width as-is and derives its height from the
+  artwork's `width / (2/3)` plus a fixed caption block
+  (`PosterCaption.blockHeight`, in `dp` from the caption type so it tracks the
+  font scale), or just the artwork when the labels are hidden. The reserve is a
+  height, not a ratio: a ratio shrinks with a phone's narrow cell until the
+  caption eats into the artwork and crops its sides. Grids (Library, the full
+  catalog, Discover) ignore the setting and keep a fixed layout: `gridCells` lays
+  out three posters per row on a phone and fits as many `GRID_CELL_WIDTH` cells
+  as it can on a wider window, so a phone never shows a size the user did not
+  choose. On a compact window the rail width shrinks by `COMPACT_SCALE` (0.65).
 - **Window**: the desktop window keeps its **native frame** (`WS_CAPTION`,
   `WS_THICKFRAME`) but erases the OS-drawn non-client area, so the Compose title
   bar is the caption. On Windows a native `WindowProc` (JNA, via

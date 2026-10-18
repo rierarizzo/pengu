@@ -5,7 +5,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,6 +28,7 @@ import com.misgus.pengu.ui.theme.AppMotion
 import com.misgus.pengu.ui.theme.AppScale
 import com.misgus.pengu.ui.theme.AppSizes
 import com.misgus.pengu.ui.theme.AppSpacing
+import com.misgus.pengu.ui.theme.POSTER_ART_ASPECT
 import com.misgus.pengu.ui.theme.PosterCaption
 import com.misgus.pengu.ui.theme.motionLayer
 import com.misgus.pengu.ui.theme.motionTween
@@ -68,7 +69,6 @@ fun PosterTile(
     Column(
         modifier =
             Modifier
-                .fillMaxHeight()
                 .clickableSurface(interaction, onTap, indication = null)
                 .pointerHoverIcon(PointerIcon.Hand),
     ) {
@@ -76,7 +76,7 @@ fun PosterTile(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .weight(1f)
+                    .aspectRatio(POSTER_ART_ASPECT)
                     .motionLayer(scale = { scale.value })
                     .motionBorder(color = { borderColor.value }, width = AppSizes.borderWidth, cornerRadius = AppCorner.small)
                     .clip(shape),

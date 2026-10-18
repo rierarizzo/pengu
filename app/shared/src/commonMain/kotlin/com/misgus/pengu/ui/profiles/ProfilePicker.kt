@@ -44,7 +44,7 @@ import com.misgus.pengu.ui.components.interactionHighlight
 import com.misgus.pengu.ui.components.rememberInteraction
 import com.misgus.pengu.ui.components.sectionHeading
 import com.misgus.pengu.ui.components.toUserMessage
-import com.misgus.pengu.ui.icons.Boxicons
+import com.misgus.pengu.ui.icons.FluentIcons
 import com.misgus.pengu.ui.services.LocalAppServices
 import com.misgus.pengu.ui.theme.AppSizes
 import com.misgus.pengu.ui.theme.AppSpacing
@@ -153,7 +153,7 @@ private fun Problem(
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(
-            Boxicons.Error,
+            FluentIcons.Error,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(36.dp),
@@ -164,7 +164,7 @@ private fun Problem(
         ActionButton(
             text = stringResource(Res.string.action_try_again),
             onClick = onRetry,
-            icon = Boxicons.Refresh,
+            icon = FluentIcons.Refresh,
             style = ActionButtonStyle.Tonal,
         )
     }

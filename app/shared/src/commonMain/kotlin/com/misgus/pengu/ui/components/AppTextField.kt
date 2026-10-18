@@ -13,7 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.VisualTransformation
-import com.misgus.pengu.ui.icons.Boxicons
+import com.misgus.pengu.ui.icons.FluentIcons
 import com.misgus.pengu.ui.theme.AppIconSize
 import com.misgus.pengu.ui.theme.AppSizes
 
@@ -87,12 +87,12 @@ fun AppSearchField(
         onValueChange = onValueChange,
         modifier = modifier,
         placeholder = placeholder,
-        leadingIcon = Boxicons.Search,
+        leadingIcon = FluentIcons.Search,
         trailingIcon =
             if (value.isNotEmpty()) {
                 {
                     AppIconButton(
-                        icon = Boxicons.Close,
+                        icon = FluentIcons.Close,
                         contentDescription = clearDescription,
                         onClick = { onValueChange("") },
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,

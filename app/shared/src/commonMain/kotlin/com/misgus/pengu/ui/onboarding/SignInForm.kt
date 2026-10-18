@@ -29,7 +29,7 @@ import com.misgus.pengu.ui.components.ActionButton
 import com.misgus.pengu.ui.components.AppIconButton
 import com.misgus.pengu.ui.components.AppTextField
 import com.misgus.pengu.ui.components.toUserMessage
-import com.misgus.pengu.ui.icons.Boxicons
+import com.misgus.pengu.ui.icons.FluentIcons
 import com.misgus.pengu.ui.services.LocalAppServices
 import com.misgus.pengu.ui.theme.AppSpacing
 import kotlinx.coroutines.CancellationException
@@ -96,7 +96,7 @@ fun SignInForm(modifier: Modifier = Modifier) {
             keyboardActions = KeyboardActions(onDone = { submit() }),
             trailingIcon = {
                 AppIconButton(
-                    icon = if (passwordVisible) Boxicons.VisibilityOff else Boxicons.Visibility,
+                    icon = if (passwordVisible) FluentIcons.VisibilityOff else FluentIcons.Visibility,
                     contentDescription =
                         stringResource(
                             if (passwordVisible) Res.string.field_password_hide else Res.string.field_password_show,
@@ -119,7 +119,7 @@ fun SignInForm(modifier: Modifier = Modifier) {
         ActionButton(
             text = stringResource(Res.string.action_sign_in),
             onClick = submit,
-            icon = Boxicons.Login,
+            icon = FluentIcons.Login,
             enabled = email.isNotBlank() && password.isNotEmpty(),
             loading = busy,
             modifier = Modifier.fillMaxWidth(),

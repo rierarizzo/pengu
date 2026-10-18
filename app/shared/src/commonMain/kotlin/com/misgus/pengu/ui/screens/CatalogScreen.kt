@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -46,14 +45,13 @@ import com.misgus.pengu.ui.components.Message
 import com.misgus.pengu.ui.components.MetaPosterCard
 import com.misgus.pengu.ui.components.SkeletonPosterGrid
 import com.misgus.pengu.ui.components.sectionHeading
-import com.misgus.pengu.ui.icons.Boxicons
+import com.misgus.pengu.ui.icons.FluentIcons
 import com.misgus.pengu.ui.services.LocalAppServices
 import com.misgus.pengu.ui.theme.AppSpacing
 import com.misgus.pengu.ui.theme.AppType
 import com.misgus.pengu.ui.theme.LocalWindowSize
 import com.misgus.pengu.ui.theme.gridCells
 import com.misgus.pengu.ui.theme.gridSpacing
-import com.misgus.pengu.ui.theme.posterCardAspect
 import com.misgus.pengu.ui.theme.safeBottomInset
 import com.misgus.pengu.ui.theme.screenPadding
 import org.jetbrains.compose.resources.stringResource
@@ -103,7 +101,7 @@ fun CatalogScreen(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             AppIconButton(
-                icon = Boxicons.ArrowBack,
+                icon = FluentIcons.ArrowBack,
                 contentDescription = stringResource(Res.string.action_back),
                 onClick = onBack,
             )
@@ -138,13 +136,13 @@ private fun CatalogContent(
         state.isLoading && !state.hasLoaded -> SkeletonPosterGrid(hideLabels)
         state.error != null && !state.hasLoaded ->
             Message(
-                icon = Boxicons.Error,
+                icon = FluentIcons.Error,
                 title = stringResource(Res.string.catalog_error_title),
                 message = stringResource(Res.string.error_try_again_later),
             )
         state.items.isEmpty() ->
             Message(
-                icon = Boxicons.Inbox,
+                icon = FluentIcons.Inbox,
                 title = stringResource(Res.string.empty_nothing_to_show),
                 message = stringResource(Res.string.catalog_empty_message),
             )
@@ -163,13 +161,11 @@ private fun CatalogContent(
                 horizontalArrangement = Arrangement.spacedBy(windowSize.gridSpacing),
             ) {
                 items(state.items, key = { it.id }) { item ->
-                    Box(Modifier.aspectRatio(posterCardAspect(hideLabels))) {
-                        MetaPosterCard(
-                            preview = item,
-                            hideLabels = hideLabels,
-                            onTap = { onOpenDetail(LibraryItem.fromPreview(item)) },
-                        )
-                    }
+                    MetaPosterCard(
+                        preview = item,
+                        hideLabels = hideLabels,
+                        onTap = { onOpenDetail(LibraryItem.fromPreview(item)) },
+                    )
                 }
                 if (state.isLoadingMore) {
                     item {

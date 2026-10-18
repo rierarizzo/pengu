@@ -195,11 +195,12 @@ leer/escribir/borrar vive una sola vez.
   borde/progreso, `AppAlpha` posee toda la opacidad de overlays, y
   `Modifier.focusRing` (en `Interaction.kt`) da a cada control enfocable el mismo
   anillo de teclado.
-- **Los iconos se vendorizan, no son una dependencia.** `ui/icons/Boxicons.kt`
-  contiene los glifos de Boxicons (MIT) que usa toda la UI como `ImageVector`s,
-  cada uno construido de forma perezosa desde el path SVG oficial de Boxicons
-  mediante `PathParser`, en su viewport de 24dp; `scripts/gen_boxicons.mjs`
-  regenera el fichero desde el set Boxicons de Iconify. La flecha de volver y los
+- **Los iconos se vendorizan, no son una dependencia.** `ui/icons/FluentIcons.kt`
+  contiene los glifos de Fluent UI System Icons (MIT, Microsoft) que usa toda la
+  UI como `ImageVector`s, cada uno construido de forma perezosa desde el path SVG
+  oficial de Fluent mediante `PathParser`, en su viewport de 24dp;
+  `scripts/gen_fluent_icons.mjs` regenera el fichero desde el set Fluent de
+  Iconify. La flecha de volver y los
   glifos de inicio/cierre de sesión llevan `autoMirror = true`, que es lo que
   hacían las variantes auto-espejadas de Material. Los botones de caption de
   Windows conservan sus glifos nativos (`WindowsCaptionIcons` en
@@ -462,7 +463,7 @@ leer/escribir/borrar vive una sola vez.
   seleccionada. El rail elimina las etiquetas para mantenerse estrecho, centra el
   avatar de perfil y los items de sección en la ventana, y pinta el fondo de
   página en vez de un color de panel, así que se funde con el contenido. Los
-  glifos son el set Boxicons (`Boxicons`), así que el estado seleccionado es
+  glifos son el set Fluent (`FluentIcons`), así que el estado seleccionado es
   solo el tinte. La barra añade un borde hairline `outlineVariant` arriba y mide
   64dp de alto
   (`bottomBarHeight`), no los 80dp de la barra con etiqueta que no tiene etiqueta
@@ -654,14 +655,18 @@ leer/escribir/borrar vive una sola vez.
 - **Tamaño de póster** es un único ajuste (`PosterSize`: default / large,
   210 / 230 dp) que solo gobierna las filas horizontales de pósters — los
   catálogos de Home, los resultados de búsqueda y "More like this" — donde una
-  tarjeta se puede redimensionar sin efecto colateral en la rejilla; una fila usa
-  el ancho tal cual y deriva su altura de él (`width / 0.58`, o `width / (2/3)`
-  cuando los labels están ocultos). Las rejillas (Library, catálogo completo,
-  Discover) ignoran el ajuste y mantienen un layout fijo: `gridCells` coloca tres
-  pósters por fila en el teléfono y encaja tantas celdas de `GRID_CELL_WIDTH`
-  como pueda en ventana ancha, así que un teléfono nunca muestra un tamaño que el
-  usuario no eligió. En ventana compacta el ancho del raíl se reduce con
-  `COMPACT_SCALE` (0.65).
+  tarjeta se puede redimensionar sin efecto colateral en la rejilla; una fila
+  conserva el ancho tal cual y deriva su altura del `width / (2/3)` del artwork
+  más un bloque de caption fijo (`PosterCaption.blockHeight`, en `dp` desde el
+  tipo del caption para que siga el font scale), o solo el artwork cuando los
+  labels están ocultos. La reserva es una altura, no un ratio: un ratio se encoge
+  con la celda estrecha del teléfono hasta que el caption se come el artwork y
+  recorta sus lados. Las rejillas (Library, catálogo completo, Discover) ignoran
+  el ajuste y mantienen un layout fijo: `gridCells` coloca tres pósters por fila
+  en el teléfono y encaja tantas celdas de `GRID_CELL_WIDTH` como pueda en
+  ventana ancha, así que un teléfono nunca muestra un tamaño que el usuario no
+  eligió. En ventana compacta el ancho del raíl se reduce con `COMPACT_SCALE`
+  (0.65).
 - **Ventana**: la ventana de desktop conserva su **marco nativo** (`WS_CAPTION`,
   `WS_THICKFRAME`) pero borra el área non-client dibujada por el SO, así que la
   barra de título Compose es el caption. En Windows un `WindowProc` nativo (JNA,

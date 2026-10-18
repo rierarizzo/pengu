@@ -10,7 +10,7 @@ import com.misgus.pengu.app.shared.generated.resources.detail_add_to_library
 import com.misgus.pengu.app.shared.generated.resources.detail_rate
 import com.misgus.pengu.app.shared.generated.resources.detail_remove_from_library
 import com.misgus.pengu.app.shared.generated.resources.status_watched
-import com.misgus.pengu.ui.icons.Boxicons
+import com.misgus.pengu.ui.icons.FluentIcons
 import com.misgus.pengu.ui.theme.AppIconSize
 import com.misgus.pengu.ui.theme.AppSizes
 import com.misgus.pengu.ui.theme.AppSpacing
@@ -63,7 +63,7 @@ fun HeroActionRow(
 ) {
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(AppSpacing.md)) {
         AppIconButton(
-            icon = if (actions.saved) Boxicons.Check else Boxicons.Plus,
+            icon = if (actions.saved) FluentIcons.Check else FluentIcons.Plus,
             contentDescription =
                 stringResource(
                     if (actions.saved) Res.string.detail_remove_from_library else Res.string.detail_add_to_library,
@@ -75,7 +75,7 @@ fun HeroActionRow(
         )
         onRate?.let { onRate ->
             AppIconButton(
-                icon = if (actions.rating != null) Boxicons.Star else Boxicons.StarBorder,
+                icon = if (actions.rating != null) FluentIcons.Star else FluentIcons.StarBorder,
                 contentDescription = stringResource(Res.string.detail_rate),
                 onClick = onRate,
                 selected = actions.rating != null,
@@ -84,7 +84,7 @@ fun HeroActionRow(
         }
         onToggleWatched?.let { onToggleWatched ->
             AppIconButton(
-                icon = if (actions.watched) Boxicons.CheckCircle else Boxicons.CheckCircleOutline,
+                icon = if (actions.watched) FluentIcons.CheckCircle else FluentIcons.CheckCircleOutline,
                 contentDescription = stringResource(Res.string.status_watched),
                 onClick = onToggleWatched,
                 enabled = !actions.watchedBusy,

@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -534,11 +535,34 @@ object AppScrim {
 object PosterCaption {
     /** Movie / series title under the artwork. */
     @Composable
-    fun title(): TextStyle = MaterialTheme.typography.titleSmall.copy(fontSize = 15.sp, lineHeight = 21.sp)
+    fun title(): TextStyle = MaterialTheme.typography.titleSmall.copy(fontSize = 15.sp, lineHeight = TITLE_LINE)
 
     /** Year, release info or episode tag under the title. */
     @Composable
-    fun meta(): TextStyle = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp, lineHeight = 17.sp, fontWeight = FontWeight.Medium)
+    fun meta(): TextStyle =
+        MaterialTheme.typography.bodySmall.copy(
+            fontSize = 13.sp,
+            lineHeight = META_LINE,
+            fontWeight = FontWeight.Medium,
+        )
+
+    /**
+     * Height a caption block occupies under the artwork: the gap, the title line
+     * and the meta line.
+     *
+     * Measured in `dp` from the caption type, so it tracks the font scale, and
+     * kept constant across widths so a phone's narrow cell reserves the same room
+     * as a wide one. A ratio would reserve less on a narrow cell, leaving the
+     * artwork taller than its 2:3 and cropping its sides.
+     */
+    @Composable
+    fun blockHeight(): Dp {
+        val lines = with(LocalDensity.current) { (TITLE_LINE.value + META_LINE.value).sp.toDp() }
+        return AppSpacing.sm + lines
+    }
+
+    private val TITLE_LINE = 21.sp
+    private val META_LINE = 17.sp
 }
 
 /**

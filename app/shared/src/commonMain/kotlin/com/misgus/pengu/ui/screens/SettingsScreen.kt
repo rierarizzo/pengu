@@ -95,7 +95,7 @@ import com.misgus.pengu.ui.components.AppIconButton
 import com.misgus.pengu.ui.components.AppTextField
 import com.misgus.pengu.ui.components.sectionHeading
 import com.misgus.pengu.ui.components.toUserMessage
-import com.misgus.pengu.ui.icons.Boxicons
+import com.misgus.pengu.ui.icons.FluentIcons
 import com.misgus.pengu.ui.onboarding.SignInForm
 import com.misgus.pengu.ui.platform.openInDefaultApp
 import com.misgus.pengu.ui.platform.pickVideoFile
@@ -219,7 +219,7 @@ private fun AccountCard() {
                         }
                     }
                 },
-                icon = Boxicons.Logout,
+                icon = FluentIcons.Logout,
                 style = ActionButtonStyle.Tonal,
                 enabled = !signingOut,
                 loading = signingOut,
@@ -360,7 +360,7 @@ private fun MetadataCard(
                 modifier = Modifier.fillMaxWidth(),
                 trailingIcon = {
                     AppIconButton(
-                        icon = if (visible) Boxicons.VisibilityOff else Boxicons.Visibility,
+                        icon = if (visible) FluentIcons.VisibilityOff else FluentIcons.Visibility,
                         contentDescription =
                             stringResource(
                                 if (visible) Res.string.settings_tmdb_api_key_hide else Res.string.settings_tmdb_api_key_show,
@@ -505,7 +505,7 @@ private fun PlaybackCard(onOpenPlayer: (PlaybackTarget) -> Unit) {
                 ActionButton(
                     text = stringResource(Res.string.settings_play_url),
                     onClick = { onOpenPlayer(PlaybackTarget.raw(url.trim())) },
-                    icon = Boxicons.Play,
+                    icon = FluentIcons.Play,
                     enabled = url.isNotBlank(),
                 )
                 ActionButton(
@@ -515,7 +515,7 @@ private fun PlaybackCard(onOpenPlayer: (PlaybackTarget) -> Unit) {
                             pickVideoFile()?.let { onOpenPlayer(PlaybackTarget.raw(it)) }
                         }
                     },
-                    icon = Boxicons.FolderOpen,
+                    icon = FluentIcons.FolderOpen,
                     style = ActionButtonStyle.Tonal,
                 )
             }

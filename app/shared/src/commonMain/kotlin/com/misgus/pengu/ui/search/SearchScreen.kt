@@ -61,7 +61,7 @@ import com.misgus.pengu.ui.components.sectionHeading
 import com.misgus.pengu.ui.components.toUserMessage
 import com.misgus.pengu.ui.discover.DiscoverFeed
 import com.misgus.pengu.ui.discover.DiscoverViewModel
-import com.misgus.pengu.ui.icons.Boxicons
+import com.misgus.pengu.ui.icons.FluentIcons
 import com.misgus.pengu.ui.services.LocalAppServices
 import com.misgus.pengu.ui.shell.ContentNavigator
 import com.misgus.pengu.ui.shell.ContentRoute
@@ -245,7 +245,7 @@ private fun <T> FilterDropdown(
             text = optionLabel(selected),
             onClick = { expanded = true },
             style = ActionButtonStyle.Outline,
-            trailingIcon = Boxicons.ChevronDown,
+            trailingIcon = FluentIcons.ChevronDown,
         )
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             options.forEach { option ->
@@ -279,13 +279,13 @@ private fun SearchResults(
             }
         state.error != null && state.results.isEmpty() ->
             Message(
-                icon = Boxicons.Error,
+                icon = FluentIcons.Error,
                 title = stringResource(Res.string.search_failed_title),
                 message = stringResource(state.error.toUserMessage()),
             )
         state.results.none(matches) && state.hasSearched ->
             Message(
-                icon = Boxicons.Inbox,
+                icon = FluentIcons.Inbox,
                 title = stringResource(Res.string.search_no_results_title),
                 message = emptyMessage,
             )
