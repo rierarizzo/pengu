@@ -19,11 +19,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -253,32 +255,39 @@ internal fun EpisodesSection(
         remember(videos, season) {
             videos.filter { it.season == season }.sortedBy { it.episode?.number ?: it.number ?: 0 }
         }
+    val episodesState = rememberLazyListState()
+    // A season change swaps the list under the same rail; without this the rail
+    // would keep the previous season's offset and open S2 at the episode S1 was
+    // left on.
+    LaunchedEffect(season) { episodesState.scrollToItem(0) }
 
     Column {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = windowSize.screenPadding),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                stringResource(Res.string.detail_episodes),
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.weight(1f).sectionHeading(),
-            )
-            if (seasons.size > 1) {
-                Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-                    seasons.forEach { value ->
-                        ActionButton(
-                            text = seasonLabel(value),
-                            onClick = { season = value },
-                            style = ActionButtonStyle.Text,
-                            selected = value == season,
-                        )
-                    }
+        Text(
+            stringResource(Res.string.detail_episodes),
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.padding(horizontal = windowSize.screenPadding).sectionHeading(),
+        )
+        if (seasons.size > 1) {
+            Spacer(Modifier.height(AppSpacing.sm))
+            // The picker scrolls like the episode rail: a long run of seasons, or
+            // a phone's narrow width, would otherwise crowd or clip the buttons.
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = windowSize.screenPadding),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            ) {
+                items(seasons) { value ->
+                    ActionButton(
+                        text = seasonLabel(value),
+                        onClick = { season = value },
+                        style = ActionButtonStyle.Text,
+                        selected = value == season,
+                    )
                 }
             }
         }
         Spacer(Modifier.height(AppSpacing.md))
         LazyRow(
+            state = episodesState,
             modifier = Modifier.heightIn(min = 190.dp),
             contentPadding = PaddingValues(horizontal = windowSize.screenPadding),
             horizontalArrangement = Arrangement.spacedBy(windowSize.gridSpacing),

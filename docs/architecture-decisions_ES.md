@@ -354,6 +354,12 @@ leer/escribir/borrar vive una sola vez.
   El toggle de biblioteca de Home es optimista en `HomeViewModel` y se reconcilia
   con `LibraryRepository.changes`, así que un título añadido en cualquiera de las
   dos pantallas se ve como añadido en ambas.
+- **El selector de temporadas del detalle se desplaza.** Los botones de temporada
+  viven en su propio `LazyRow` bajo el encabezado de episodios, con el mismo
+  padding que el rail de episodios, así una serie con muchas temporadas sigue
+  siendo alcanzable en vez de amontonar la cabecera. El rail de episodios vuelve
+  a su primera tarjeta al cambiar de temporada, así pasar de S1 a mitad de lista
+  no abre S2 en el mismo offset.
 - **Edge-to-edge e insets del sistema.** Android ejecuta la activity edge-to-edge
   (`enableEdgeToEdge`, con iconos de barra de sistema claros forzados porque la
   app siempre pinta oscuro), y el `Scaffold` ya no reserva las barras del sistema

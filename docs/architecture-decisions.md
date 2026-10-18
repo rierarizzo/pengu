@@ -332,6 +332,11 @@ so the atomic read/write/delete logic lives once.
   Home's library toggle is optimistic in `HomeViewModel` and reconciled through
   `LibraryRepository.changes`, so a title added on either screen shows as added
   on both.
+- **The detail episode picker scrolls.** The season buttons live in their own
+  `LazyRow` under the "Episodes" heading, with the same padding as the episode
+  rail, so a series with many seasons stays reachable instead of crowding the
+  header. The episode rail resets to its first card on a season change, so
+  switching from S1 mid-list does not open S2 at the same offset.
 - **Edge-to-edge and system insets.** Android runs the activity edge-to-edge
   (`enableEdgeToEdge`, with light system-bar icons forced because the app always
   paints dark), and the `Scaffold` no longer reserves the system bars
