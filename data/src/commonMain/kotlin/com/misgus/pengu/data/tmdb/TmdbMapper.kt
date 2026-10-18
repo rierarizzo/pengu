@@ -86,11 +86,13 @@ internal fun tmdbPreviewFromJson(
 }
 
 /**
- * The best language-neutral poster TMDB has.
+ * The highest-resolution language-neutral poster TMDB has.
  *
  * TMDB marks a textless poster with a `null` `iso_639_1`; those are the ones a
- * phone can crop into a cover without cutting a title in half. When TMDB has
- * none, the caller falls back to the wide backdrop.
+ * phone can crop into a cover without cutting a title in half. The phone draws
+ * the poster whole, so a phone wants the sharpest candidate and the pick is by
+ * pixel count, with votes only breaking a tie. When TMDB has none, the caller
+ * falls back to the wide backdrop.
  */
 private fun bestTextlessPoster(posters: JsonArray?): String? =
     posters
@@ -98,9 +100,9 @@ private fun bestTextlessPoster(posters: JsonArray?): String? =
         ?.filter { it["iso_639_1"].stringOrNull() == null }
         ?.maxWithOrNull(
             compareBy(
-                { it["vote_average"].doubleOrNull() ?: 0.0 },
-                { it["vote_count"].intOrNull() ?: 0 },
+                { (it["width"].intOrNull() ?: 0) * (it["height"].intOrNull() ?: 0) },
                 { it["width"].intOrNull() ?: 0 },
+                { it["vote_average"].doubleOrNull() ?: 0.0 },
             ),
         )?.get("file_path")
         ?.stringOrNull()

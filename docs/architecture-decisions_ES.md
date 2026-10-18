@@ -633,8 +633,8 @@ leer/escribir/borrar vive una sola vez.
   recortar uno dentro del otro deshace la composición; un póster neutral de
   idioma ya es vertical y no lleva título incrustado, así que el logo en vivo se
   apoya sobre el arte en vez de sobre un recorte. El enriquecimiento de TMDB
-  aporta uno (`textlessPoster`, su mejor póster con `iso_639_1 == null` por
-  votos), y `heroArtwork` lo elige en ventana compacta, encajado entero en un
+  aporta uno (`textlessPoster`, su póster con `iso_639_1 == null` de mayor
+  resolución), y `heroArtwork` lo elige en ventana compacta, encajado entero en un
   marco que es exactamente el tamaño del póster (`1 / POSTER_ART_ASPECT`) — con
   caída al backdrop y luego al póster, ambos recortados — mientras el billboard
   ancho conserva el backdrop de siempre. Todo el wash compacto es un único

@@ -593,7 +593,7 @@ so the atomic read/write/delete logic lives once.
   into the other cuts the composition apart; a language-neutral poster is
   already portrait and carries no baked-in title, so the live logo sits over the
   art instead of a crop of it. TMDB's enrichment supplies one (`textlessPoster`,
-  its best `iso_639_1 == null` poster by votes), and `heroArtwork` selects it on
+  its highest-resolution `iso_639_1 == null` poster), and `heroArtwork` selects it on
   a compact window, fitted whole into a frame that is exactly the poster's size
   (`1 / POSTER_ART_ASPECT`) — falling back to the backdrop, then the poster, both
   cropped — while the wide billboard keeps the backdrop it always used. The whole

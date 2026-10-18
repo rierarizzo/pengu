@@ -16,8 +16,8 @@ class TmdbMapperTest {
         assertEquals("The Matrix", title.title)
         // The Spanish logo wins over the English one, and both over the neutral.
         assertEquals("https://image.tmdb.org/t/p/w500/logo_es.png", title.logo)
-        // The most voted language-neutral poster is the one a phone crops.
-        assertEquals("https://image.tmdb.org/t/p/w500/textless.jpg", title.textlessPoster)
+        // The largest language-neutral poster is the one a phone draws.
+        assertEquals("https://image.tmdb.org/t/p/w500/textless_huge.jpg", title.textlessPoster)
         assertEquals("https://image.tmdb.org/t/p/w500/poster.jpg", title.poster)
         assertEquals("https://image.tmdb.org/t/p/w1280/backdrop.jpg", title.backdrop)
         assertEquals(136, title.runtimeMinutes)
@@ -69,8 +69,9 @@ class TmdbMapperTest {
               "images": {
                 "posters": [
                   {"file_path": "/poster_es.jpg", "iso_639_1": "es", "vote_average": 3.0, "vote_count": 4, "width": 1000},
-                  {"file_path": "/textless.jpg", "iso_639_1": null, "vote_average": 5.5, "vote_count": 9, "width": 1000},
-                  {"file_path": "/textless_low.jpg", "iso_639_1": null, "vote_average": 1.0, "vote_count": 1, "width": 500}
+                  {"file_path": "/textless.jpg", "iso_639_1": null, "vote_average": 5.5, "vote_count": 9, "width": 1000, "height": 1500},
+                  {"file_path": "/textless_low.jpg", "iso_639_1": null, "vote_average": 1.0, "vote_count": 1, "width": 500, "height": 750},
+                  {"file_path": "/textless_huge.jpg", "iso_639_1": null, "vote_average": 0.5, "vote_count": 1, "width": 2000, "height": 3000}
                 ],
                 "logos": [
                   {"file_path": "/logo_en.png", "iso_639_1": "en", "vote_average": 5.0, "width": 500},
