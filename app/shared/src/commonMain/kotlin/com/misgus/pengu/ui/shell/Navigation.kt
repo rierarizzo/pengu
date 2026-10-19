@@ -75,7 +75,7 @@ fun LeftNav(
                 initialStyle = MaterialTheme.typography.titleMedium,
             )
             Spacer(Modifier.height(AppSpacing.sm))
-            AppSection.entries.forEach { section ->
+            AppSection.navigation.forEach { section ->
                 SectionNavItem(
                     section = section,
                     selected = section == selected,
@@ -122,7 +122,7 @@ fun BottomNav(
                     .selectableGroup(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            AppSection.entries.forEach { section ->
+            AppSection.navigation.forEach { section ->
                 SectionNavItem(
                     section = section,
                     selected = section == selected,

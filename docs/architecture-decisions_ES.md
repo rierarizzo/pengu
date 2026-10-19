@@ -513,6 +513,8 @@ leer/escribir/borrar vive una sola vez.
   contenido recorre `AppSizes.scrollCollapseThreshold`. Cambiar de sección o
   abrir/cerrar una ruta la expande de nuevo. El rail ancho nunca se oculta,
   porque es el chrome de la ventana y no una franja flotando sobre el contenido.
+  `AppSection.navigation` es lo que lista el chrome; Calendar conserva su ruta y
+  su pantalla pero queda fuera mientras su reescritura como agenda está pendiente.
 - **Search es dueña del feed de discover.** Tiene una búsqueda de texto libre en
   cada catálogo que declara el extra `search`, con debounce, ejecutada en
   paralelo y deduplicada entre addons, dividida en raíles Movies / Series /
@@ -530,7 +532,8 @@ leer/escribir/borrar vive una sola vez.
   catálogo como un bloque. Pagina con `skip` según se desplaza la rejilla, así
   que sigue creciendo en vez de parar en la primera página. Discover ya no es una
   sección. **Calendar** pinta una rejilla mensual con los próximos episodios de
-  las series de la Library; ver la limitación más abajo.
+  las series de la Library, y queda fuera de la navegación hasta que llegue su
+  reescritura como agenda; ver la limitación más abajo.
 - **El tema** sigue Material 3 y es dato, no código. `BrandPalette`
   (`theme/Tokens.kt`) es una data class con los colores crudos de un tema,
   `AppThemes` mapea el `AppTheme` persistido a una paleta, y `PenguTheme(theme)`

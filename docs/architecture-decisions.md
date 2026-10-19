@@ -481,7 +481,9 @@ so the atomic read/write/delete logic lives once.
   flips it once the content has travelled `AppSizes.scrollCollapseThreshold`.
   Switching a section or opening/leaving a route expands it again. The wide rail
   never scrolls away, since it is the window's chrome rather than a strip
-  floating over the content.
+  floating over the content. `AppSection.navigation` is what the chrome lists;
+  Calendar keeps its route and screen but stays out of it while its agenda
+  rewrite is pending.
 - **Search owns the discover feed.** It has a free-text search across every
   catalog that declares the `search` extra, debounced, run in parallel and
   deduped across addons, split into Movies / Series / Other rails; and — while
@@ -498,7 +500,8 @@ so the atomic read/write/delete logic lives once.
   showing one catalog as a block. It pages with `skip` as the grid is scrolled,
   so it keeps growing instead of stopping at the first page. Discover is no
   longer a section. **Calendar** paints a month grid with the upcoming
-  episodes of the Library's series; see the limitation below.
+  episodes of the Library's series, and is kept out of the navigation until its
+  agenda rewrite lands; see the limitation below.
 - **Theme** follows Material 3 and is data, not code. `BrandPalette`
   (`theme/Tokens.kt`) is a data class holding one theme's raw colours, `AppThemes`
   maps the persisted `AppTheme` to a palette, and `PenguTheme(theme)` picks it
