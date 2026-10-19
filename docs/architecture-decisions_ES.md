@@ -353,8 +353,9 @@ leer/escribir/borrar vive una sola vez.
   layout fijo de tres por fila en el teléfono, el
   hero de Home cambia el billboard ancho por el recorte del póster sin el logo
   del título, el billboard de detalle se limita en ventana expandida para que el
-  contenido quede cerca, y el diálogo de streams se ajusta a la ventana de la app
-  porque abre la suya. El fondo del detalle solo oscurece el artwork, sin blur:
+  contenido quede cerca, y el selector de streams se ajusta a la ventana de la app
+  cuando abre como diálogo, porque abre la suya, mientras un teléfono lo recibe
+  como bottom sheet. El fondo del detalle solo oscurece el artwork, sin blur:
   un blur a pantalla completa re-renderiza toda la pantalla en cada frame de
   scroll y se ignora por debajo de Android 12, así que el efecto ligado al scroll
   es un scrim plano. El billboard ancho de Home toma su altura del área de
@@ -627,6 +628,35 @@ leer/escribir/borrar vive una sola vez.
   porque es el chrome de la ventana y no una franja flotando sobre el contenido.
   `AppSection.navigation` es lo que lista el chrome; Calendar conserva su ruta y
   su pantalla pero queda fuera mientras su reescritura como agenda está pendiente.
+- **El selector de streams lista fuentes, no artwork.** `StreamsDialog` abre como
+  bottom sheet en un teléfono y como diálogo en una ventana ancha (desktop nunca
+  usa sheet, igual que los selects de ajustes), y ambos alojan el mismo
+  `StreamsPanel`, así que el contenido no puede divergir. El panel abre directo en
+  las fuentes: el billboard de 200dp desapareció, porque el título ya se eligió
+  una pantalla atrás, y el header es el título más una línea `año • N versions`.
+  No hay campo de filtro: los addons ya rankean sus propias fuentes, y un campo
+  sobre una docena de filas solo agrega un paso entre abrir el selector y
+  reproducir. Toda la fila reproduce su fuente — el glifo de play pertenece a la
+  fila en vez de ser su propio target de 48dp — y la acción de copiar solo existe
+  cuando el stream tiene link, así que un teléfono tiene un solo target por
+  fuente. Las filas no pintan superficie (los separadores hairline hacen leer la
+  lista como una sola superficie) y el texto del addon nunca se recorta: su
+  `name` y `description` llevan el formato que configuró el usuario — idiomas,
+  subtítulos, calidad, tamaño — así que truncarlos ocultaría justo lo que el
+  selector existe para mostrar, a costa de alturas de fila desparejas. Solo la
+  línea de meta, que compone la propia app, queda en una línea y lleva el addon y
+  el `behaviorHints.videoSize` declarado sin parsear el texto formateado del
+  addon. Las fuentes se agrupan por addon en el orden en que el repositorio las
+  devolvió, porque el ranking del addon es la verdad y la UI nunca re-ordena; el
+  header de grupo solo aparece cuando respondió más de un addon, ya que con uno
+  solo repetiría la misma etiqueta hacia abajo. El view model colapsa las copias
+  que devuelven varios addons, usando la url, luego `infoHash#fileIdx`, luego la
+  url externa, así que el mismo release se ofrece una sola vez. Una carga fallida
+  ofrece Refresh dentro del propio mensaje, y un refresh fallido conserva la
+  lista anterior con un aviso inline, así que el selector nunca pierde sus
+  fuentes en silencio. Las filas llevan la etiqueta de acción "Play", así que un
+  lector de pantalla anuncia la acción en vez de una columna de botones con el
+  mismo nombre.
 - **Search es dueña del feed de discover.** Tiene una búsqueda de texto libre en
   cada catálogo que declara el extra `search`, con debounce, ejecutada en
   paralelo y deduplicada entre addons, dividida en raíles Movies / Series /
@@ -694,7 +724,7 @@ leer/escribir/borrar vive una sola vez.
   `shapes.small` y un borde ámbar al enfocar, sin relleno propio, así que el
   campo lee la superficie sobre la que se coloca como el resto de controles
   planos, con una variante `AppSearchField` (lupa a la izquierda, acción de
-  limpiar) para Search y streams. `AppIconButton` es el único control de icono —
+  limpiar) para la sección Search. `AppIconButton` es el único control de icono —
   cabeceras de media, el reproductor (atrás, play/pausa, avance, subtítulos,
   audio, pantalla completa y el botón de play centrado), los toggles de
   biblioteca/puntuar/visto del detalle y las acciones de limpiar/contraseña de

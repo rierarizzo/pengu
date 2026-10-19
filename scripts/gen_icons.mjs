@@ -42,7 +42,6 @@ const icons = [
   ["Inbox", "inbox", false],
   ["Movie", "movie", false],
   ["User", "person", false],
-  ["SearchOff", "search_off", false],
   ["CalendarMonth", "calendar_month", false],
   ["Copy", "content_copy", false],
   ["Login", "login", true],

@@ -329,7 +329,8 @@ so the atomic read/write/delete logic lives once.
   three-per-row layout on a phone, the Home hero swaps
   the wide billboard for the poster crop without the title logo, the detail
   billboard is capped on an expanded window so the content stays close, and the
-  streams dialog clamps to the app window because it opens its own. The detail
+  stream picker clamps to the app window when it opens as a dialog, because a
+  dialog opens its own, while a phone gets it as a bottom sheet. The detail
   backdrop only darkens the artwork, with no blur: a full-viewport blur re-renders
   the whole screen on every scroll frame and is ignored below Android 12, so the
   scroll-linked effect is a plain scrim instead. The wide
@@ -587,6 +588,33 @@ so the atomic read/write/delete logic lives once.
   floating over the content. `AppSection.navigation` is what the chrome lists;
   Calendar keeps its route and screen but stays out of it while its agenda
   rewrite is pending.
+- **The stream picker lists sources, not artwork.** `StreamsDialog` opens as a
+  bottom sheet on a phone and as a dialog on a wider window (desktop never gets a
+  sheet, matching the settings selects), and both host the same `StreamsPanel`, so
+  the content cannot drift between the two. The panel opens straight into the
+  sources: the 200dp billboard is gone, since the title was already chosen one
+  screen back, and the header is the title plus one `year • N versions` line.
+  There is no filter field: the addons already rank their own sources, and a field
+  over a dozen rows only adds a step between opening the picker and playing. The
+  whole row plays its source — the play glyph belongs to the row instead of being
+  its own 48dp target — and the copy action only exists when the stream has a
+  link, so a phone gets one tap target per source. Rows paint no surface (hairline
+  dividers read the list as one surface) and the addon's text is never clamped:
+  its `name` and `description` carry the format the user configured — languages,
+  subtitles, quality, size — so truncating them would hide what the picker is
+  for, at the cost of uneven row heights. Only the meta line, which the app
+  composes itself, stays on one line and carries the addon and the declared
+  `behaviorHints.videoSize` without parsing the addon's formatted text. Sources
+  are grouped by addon in the order the repository returned them, because the
+  addon's own ranking is the truth and the UI never re-sorts; the group header
+  only shows when more than one addon answered, since a single one would repeat
+  the same label down the list. The view model collapses the copies several
+  addons return, keyed by the url, then `infoHash#fileIdx`, then the external url,
+  so the same release is offered once. A failed load offers Refresh inside the
+  message itself, and a failed refresh keeps the previous list with an inline
+  notice, so the picker never loses its sources silently. Rows carry the "Play"
+  action label, so a screen reader announces the action instead of a column of
+  identically named buttons.
 - **Search owns the discover feed.** It has a free-text search across every
   catalog that declares the `search` extra, debounced, run in parallel and
   deduped across addons, split into Movies / Series / Other rails; and — while
@@ -647,8 +675,8 @@ so the atomic read/write/delete logic lives once.
   optional `trailingIcon` adds a trailing glyph. `AppTextField` pins the form fields to `shapes.small` and an
   amber-on-focus border, with no fill of its own, so the field reads the
   surface it is placed on like every other flat control, plus an
-  `AppSearchField` variant (leading magnifier, clear action) for Search and
-  streams. `AppIconButton` is the one icon control — media headers, the player
+  `AppSearchField` variant (leading magnifier, clear action) for the Search
+  section. `AppIconButton` is the one icon control — media headers, the player
   (back, play/pause, seek, subtitles, audio, fullscreen and the centred play
   button), the detail screen's library/rate/watched toggles and the text fields'
   clear/password actions — so every one gets the 48dp target, an optional

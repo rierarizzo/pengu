@@ -13,37 +13,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** One stream flattened with the addon that produced it. */
-data class StreamEntry(
-    val stream: Stream,
-    val addonName: String,
-)
-
 /** Immutable state of the stream picker. */
 data class StreamsUiState(
     val groups: List<StreamGroup> = emptyList(),
-    val query: String = "",
     val isLoading: Boolean = false,
     val hasLoaded: Boolean = false,
     val error: Throwable? = null,
 ) {
-    /** Every stream, filtered by [query] against name, description, title and addon. */
-    val entries: List<StreamEntry>
-        get() {
-            val all =
-                groups.flatMap { group ->
-                    group.streams.map { StreamEntry(it, group.addonName) }
-                }
-            if (query.isEmpty()) return all
-            val q = query.lowercase()
-            return all.filter { entry ->
-                (entry.stream.name ?: "").lowercase().contains(q) ||
-                    (entry.stream.description ?: "").lowercase().contains(q) ||
-                    (entry.stream.title ?: "").lowercase().contains(q) ||
-                    entry.addonName.lowercase().contains(q)
-            }
-        }
-
     val totalCount: Int get() = groups.sumOf { it.streams.size }
 }
 
@@ -56,16 +32,14 @@ class StreamsViewModel(
     private val _state = MutableStateFlow(StreamsUiState())
     val state: StateFlow<StreamsUiState> = _state.asStateFlow()
 
-    fun setQuery(value: String) {
-        _state.update { it.copy(query = value.trim()) }
-    }
-
     fun load(force: Boolean = false) {
         if (_state.value.isLoading || (_state.value.hasLoaded && !force)) return
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null, groups = emptyList()) }
+            // A refresh keeps the sources already on screen: clearing them would
+            // replace the list with an empty state for the length of the request.
+            _state.update { it.copy(isLoading = true, error = null) }
             try {
-                val groups = streams.all(type, id)
+                val groups = dedupe(streams.all(type, id))
                 _state.update { it.copy(isLoading = false, hasLoaded = true, groups = groups) }
             } catch (cancellation: CancellationException) {
                 throw cancellation
@@ -74,4 +48,30 @@ class StreamsViewModel(
             }
         }
     }
+
+    /**
+     * Drops the copies of a source that several addons return, keeping the first
+     * one, so the list does not offer the same release twice. An addon whose
+     * sources were all copies disappears from the sections.
+     */
+    private fun dedupe(groups: List<StreamGroup>): List<StreamGroup> {
+        val seen = mutableSetOf<String>()
+        return groups.mapNotNull { group ->
+            val streams = group.streams.filter { seen.add(it.identity()) }
+            if (streams.isEmpty()) null else group.copy(streams = streams)
+        }
+    }
 }
+
+/**
+ * Identity of a stream, so the same release from two addons collapses.
+ *
+ * The playable location identifies a source; a stream with none falls back to
+ * its own content, which also collides only when the two entries really are the
+ * same.
+ */
+private fun Stream.identity(): String =
+    url
+        ?: infoHash?.let { hash -> if (fileIdx == null) hash else "$hash#$fileIdx" }
+        ?: externalUrl
+        ?: hashCode().toString()

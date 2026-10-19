@@ -120,13 +120,10 @@
     <string name="player_error">Playback error: %1$s</string>
 
     <!-- Streams -->
-    <string name="streams_filter">Filter versions</string>
-    <string name="streams_refresh">Refresh</string>
-    <string name="streams_close">Close</string>
     <string name="streams_copy_link">Copy link</string>
     <string name="streams_error">Could not load sources from your addons.</string>
+    <string name="streams_error_hint">Check that your addons are enabled in Settings, then try again.</string>
     <string name="streams_empty">No sources found for this title.</string>
-    <string name="streams_no_match">No versions match the filter.</string>
     <string name="streams_loading">Loading…</string>
     <string name="streams_error_short">Could not load sources</string>
     <string name="streams_count_one">1 version</string>

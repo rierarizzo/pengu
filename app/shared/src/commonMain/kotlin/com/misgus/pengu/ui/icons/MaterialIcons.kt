@@ -47,7 +47,6 @@ object MaterialIcons {
     val Inbox: ImageVector by lazy { material("Inbox", INBOX) }
     val Movie: ImageVector by lazy { material("Movie", MOVIE) }
     val User: ImageVector by lazy { material("User", USER) }
-    val SearchOff: ImageVector by lazy { material("SearchOff", SEARCH_OFF) }
     val CalendarMonth: ImageVector by lazy { material("CalendarMonth", CALENDAR_MONTH) }
     val Copy: ImageVector by lazy { material("Copy", COPY) }
     val Login: ImageVector by lazy { material("Login", LOGIN, autoMirror = true) }
@@ -191,12 +190,6 @@ private const val USER =
         " 19-65t49-41q67-30 128.5-45T480-420q62 0 123 15.5T731-360q31 14 50 41t19 65v94H160Zm60-60h520v-34q0-16-9.5-30." +
         "5T707-306q-64-31-117-42.5T480-360q-57 0-111 11.5T252-306q-14 7-23 21.5t-9 30.5v34Zm324.5-346.5Q570-592 570-631" +
         "t-25.5-64.5Q519-721 480-721t-64.5 25.5Q390-670 390-631t25.5 64.5Q441-541 480-541t64.5-25.5ZM480-631Zm0 411Z"
-private const val SEARCH_OFF =
-    "M136-136q-56-56-56-134t56-134q56-56 134-56t134 56q56 56 56 134t-56 134q-56 56-134 56t-134-56Zm700 16L573-383q-" +
-        "14 11-31.5 21.5T508-344q-5-14-11-28.5T483-399q54-21 91.5-69.5T612-584q0-81-57-138.5T417-780q-82 0-139.5 57.5T2" +
-        "20-584q0 17 3.5 35.5T232-517q-13 2-29 6.5T174-500q-7-18-10.5-40t-3.5-44q0-107 75-181.5T417-840q106 0 180.5 75T" +
-        "672-584q0 43-15 85t-41 73l264 262-44 44Zm-635-56 69-69 68 68 23-23-69-69 71-71-23-23-70 70-70-70-23 23 70 70-7" +
-        "0 70 24 24Z"
 private const val CALENDAR_MONTH =
     "M440-400v-80h80v80h-80Zm-160 0v-80h80v80h-80Zm320 0v-80h80v80h-80ZM440-240v-80h80v80h-80Zm-160 0v-80h80v80h-80" +
         "Zm320 0v-80h80v80h-80ZM120-80v-740h125v-60h65v60h340v-60h65v60h125v740H120Zm60-60h600v-430H180v430Zm0-490h600v" +

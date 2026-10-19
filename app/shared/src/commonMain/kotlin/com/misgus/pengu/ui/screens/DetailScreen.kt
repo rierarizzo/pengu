@@ -130,7 +130,6 @@ fun DetailScreen(
                 id = id,
                 title = title,
                 year = state.year?.toString(),
-                background = state.background,
             ),
         )
     }

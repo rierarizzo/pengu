@@ -8,5 +8,4 @@ data class StreamsRequest(
     val id: String,
     val title: String,
     val year: String? = null,
-    val background: String? = null,
 )

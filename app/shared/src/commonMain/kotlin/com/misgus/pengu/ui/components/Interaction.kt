@@ -58,6 +58,9 @@ fun rememberInteraction(): InteractionState {
  * a button by accessibility services instead of an unlabelled node. Pass
  * `indication = null` for a surface that draws its own hover feedback (a poster
  * that scales on hover), so the Material hover state layer does not grey it.
+ * [onClickLabel] names the action itself when the surface's text describes the
+ * item rather than the gesture (a row that plays the stream it lists), so a
+ * screen reader announces "Play" instead of reading the copy twice.
  */
 @Composable
 fun Modifier.clickableSurface(
@@ -66,12 +69,14 @@ fun Modifier.clickableSurface(
     enabled: Boolean = true,
     role: Role? = Role.Button,
     indication: Indication? = ripple(),
+    onClickLabel: String? = null,
 ): Modifier =
     clickable(
         interactionSource = state.source,
         indication = indication,
         enabled = enabled,
         role = role,
+        onClickLabel = onClickLabel,
         onClick = onClick,
     )
 

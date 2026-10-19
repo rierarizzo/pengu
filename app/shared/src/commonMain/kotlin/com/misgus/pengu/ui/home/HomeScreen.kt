@@ -113,7 +113,6 @@ fun HomeScreen(
                         id = preview.id,
                         title = preview.name,
                         year = yearOf(preview.releaseInfo),
-                        background = preview.background,
                     ),
                 )
             },
