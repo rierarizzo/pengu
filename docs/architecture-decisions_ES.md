@@ -120,7 +120,8 @@ leer/escribir/borrar vive una sola vez.
 - **Los ajustes** viven en `settings.json` como un objeto JSON plano con claves
   punteadas, como el `settings.json` de VS Code (`animations.enabled`,
   `player.resumePlayback`, `player.autoPlayNext`, `poster.size`,
-  `labels.hidden`, `metadata.tmdbApiKey`, `metadata.tmdbLanguage`).
+  `labels.hidden`, `catalog.showType`, `metadata.tmdbApiKey`,
+  `metadata.tmdbLanguage`).
   `JsonSettingsRepository` lo lee de
   forma defensiva, conserva las claves desconocidas al escribir y puede
   `reload()` tras una edición manual; la pantalla de ajustes agrupa los toggles
@@ -130,8 +131,9 @@ leer/escribir/borrar vive una sola vez.
   detalle y la biblioteca) para que el artwork se lea solo; un card sin labels
   colapsa al ratio 2:3 del artwork (`POSTER_ART_ASPECT`) en vez de estirar la
   imagen para llenar el hueco liberado, así el póster conserva el tamaño base que
-  define el ajuste. El subtítulo de tipo de las filas de Home y la metadata del
-  billboard no se ven afectados.
+  define el ajuste. Las filas de Home añaden el tipo de contenido al nombre del
+  catálogo con un punto (`Popular · Movies`), y `catalog.showType` lo oculta; la
+  metadata del billboard no se ve afectada.
 - **El enriquecimiento con TMDB es opcional y solo de presentación.** Una clave
   puesta en Ajustes (`metadata.tmdbApiKey`, con `metadata.tmdbLanguage` para el
   idioma de respuesta, el del sistema por defecto) activa un segundo proveedor de
@@ -269,9 +271,10 @@ leer/escribir/borrar vive una sola vez.
   baja del billboard. Las cabeceras de sección mantienen también
   una altura fija: el título la fija y el
   icono "ver todo" de la derecha se centra en ella y desborda hacia el padding,
-  así que el hueco con la fila de abajo es el mismo con y sin botón; un subtítulo
-  opcional (el Movies / Series del catálogo) se apoya en la línea base del
-  título. Las ventanas compactas también usan un padding de pantalla más ajustado
+  así que el hueco con la fila de abajo es el mismo con y sin botón. Un catálogo
+  de Home añade su tipo al título (`Popular · Movies`) en vez de llevar un
+  subtítulo aparte. Las ventanas compactas también usan un padding de pantalla
+  más ajustado
   (16dp) y un gap de rejilla menor, y las acciones de detalle son solo-icono (con
   `contentDescription`) a la altura del call-to-action, para que la fila quede
   alineada.
@@ -461,8 +464,16 @@ leer/escribir/borrar vive una sola vez.
   para `onSurfaceVariant`, `posterYear`) son blanco con alpha reducido — así que
   la jerarquía viene de la opacidad en lugar de un segundo gris, y el acento
   ámbar queda reservado para marca/atención en vez de copy de cuerpo.
+  `AppType` es el conjunto cerrado de roles de texto que lee la UI —
+  `screenTitle`, `dialogTitle`, `sectionTitle`, `cardTitle`, `itemTitle`, `body`,
+  `bodySecondary`, `caption`, `label`, más los roles de hero y botón —
+  así que ningún punto de llamada elige un slot de Material directamente y un
+  título, un encabezado de sección y una fila no se desvían entre sí. Dos niveles
+  son deliberados: `sectionTitle` (`titleLarge` bajado a 18sp, 16sp en teléfono)
+  encabeza una sección de pantalla, mientras que `cardTitle` e `itemTitle`
+  (`titleMedium`) encabezan una tarjeta o una fila interactiva.
   `PosterCaption` sube `titleSmall` / `bodySmall` 1sp con el peso de meta en
-  Medium, y el subtítulo de sección se sienta también en Medium.
+  Medium.
 - **Localización.** Cada cadena visible al usuario vive en
   `composeResources/values/strings.xml` y se lee con
   `stringResource(Res.string.key)`, así que añadir un idioma es una carpeta

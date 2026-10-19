@@ -120,7 +120,7 @@ fun SyncingIndicator() {
     ) {
         CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
         Spacer(Modifier.width(AppSpacing.sm))
-        Text(stringResource(Res.string.status_syncing), style = MaterialTheme.typography.bodyMedium)
+        Text(stringResource(Res.string.status_syncing), style = AppType.bodySecondary())
     }
 }
 
@@ -143,13 +143,13 @@ fun Message(
         ) {
             Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(40.dp))
             Spacer(Modifier.size(AppSpacing.md))
-            Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.sectionHeading())
+            Text(title, style = AppType.cardTitle(), modifier = Modifier.sectionHeading())
             if (!message.isNullOrEmpty()) {
                 Spacer(Modifier.size(AppSpacing.xs))
                 Text(
                     message,
                     textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = AppType.bodySecondary(),
                 )
             }
             if (actionLabel != null && onAction != null) {
@@ -161,8 +161,8 @@ fun Message(
 }
 
 /**
- * Title row above a horizontal rail of posters, with an optional [subtitle] and
- * a "see all" icon button.
+ * Title row above a horizontal rail of posters, with an optional "see all"
+ * icon button.
  *
  * Shared by Home and Search so the rails keep the same rhythm. The header is as
  * tall as its title: the optional trailing icon is centred on it and allowed to
@@ -172,7 +172,6 @@ fun Message(
 @Composable
 fun SectionHeader(
     title: String,
-    subtitle: String? = null,
     onSeeAll: (() -> Unit)? = null,
 ) {
     val screenPadding = LocalWindowSize.current.screenPadding
@@ -185,22 +184,11 @@ fun SectionHeader(
             Row {
                 Text(
                     title,
-                    style = MaterialTheme.typography.titleLarge,
+                    style = AppType.sectionTitle(),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false).alignByBaseline().sectionHeading(),
+                    modifier = Modifier.weight(1f, fill = false).sectionHeading(),
                 )
-                if (subtitle != null) {
-                    Spacer(Modifier.width(AppSpacing.sm))
-                    Text(
-                        subtitle,
-                        style = AppType.sectionSubtitle(),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.alignByBaseline(),
-                    )
-                }
             }
             if (onSeeAll != null) {
                 AppIconButton(

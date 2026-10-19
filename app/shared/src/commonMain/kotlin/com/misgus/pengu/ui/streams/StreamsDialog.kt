@@ -66,6 +66,7 @@ import com.misgus.pengu.ui.theme.AppMotion
 import com.misgus.pengu.ui.theme.AppScale
 import com.misgus.pengu.ui.theme.AppScrim
 import com.misgus.pengu.ui.theme.AppSpacing
+import com.misgus.pengu.ui.theme.AppType
 import com.misgus.pengu.ui.theme.LocalWindowWidth
 import com.misgus.pengu.ui.theme.motionLayer
 import com.misgus.pengu.ui.theme.motionTween
@@ -191,12 +192,12 @@ private fun Header(
                 request.title,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.headlineSmall,
+                style = AppType.dialogTitle(),
             )
             request.year?.takeIf { it.isNotEmpty() }?.let {
-                Text(it, style = MaterialTheme.typography.bodyLarge)
+                Text(it, style = AppType.body())
             }
-            Text(subtitle, style = MaterialTheme.typography.bodyMedium)
+            Text(subtitle, style = AppType.bodySecondary())
         }
     }
 }
@@ -272,16 +273,16 @@ private fun StreamCard(
         Column(Modifier.weight(1f)) {
             Text(
                 primary,
-                style = MaterialTheme.typography.titleMedium,
+                style = AppType.itemTitle(),
             )
             secondary?.let {
                 Spacer(Modifier.height(AppSpacing.xxs))
-                Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(it, style = AppType.bodySecondary(), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         size?.let {
             Spacer(Modifier.width(AppSpacing.sm))
-            Text(it, style = MaterialTheme.typography.bodyMedium)
+            Text(it, style = AppType.bodySecondary())
         }
         AppIconButton(
             icon = FluentIcons.Copy,

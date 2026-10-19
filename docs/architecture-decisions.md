@@ -112,7 +112,7 @@ so the atomic read/write/delete logic lives once.
   where the OS allows it; that is best-effort hardening, not a keychain.
 - **Settings** live in `settings.json` as a flat JSON object with dotted keys,
   like VS Code's `settings.json` (`animations.enabled`, `player.resumePlayback`,
-  `player.autoPlayNext`, `poster.size`, `labels.hidden`,
+  `player.autoPlayNext`, `poster.size`, `labels.hidden`, `catalog.showType`,
   `metadata.tmdbApiKey`, `metadata.tmdbLanguage`).
   `JsonSettingsRepository` reads it defensively, keeps unknown keys on write and
   can `reload()` after a manual edit; the settings screen groups the toggles by
@@ -122,8 +122,9 @@ so the atomic read/write/delete logic lives once.
   and the library) so the artwork reads on its own; a label-less card collapses
   to the artwork's 2:3 ratio (`POSTER_ART_ASPECT`) instead of stretching the art
   to fill the freed caption space, so the poster keeps the base size the setting
-  defines. The content-type subtitle of the Home rows and the billboard metadata
-  are unaffected.
+  defines. The Home rows append the catalog's content type to its name with a
+  dot (`Popular · Movies`), switched off by `catalog.showType`; the billboard
+  metadata is unaffected.
 - **TMDB enrichment is optional and presentation-only.** A key set in Settings
   (`metadata.tmdbApiKey`, with `metadata.tmdbLanguage` for the answer language,
   system locale by default) turns on a second metadata provider used only by the
@@ -252,8 +253,8 @@ so the atomic read/write/delete logic lives once.
   the billboard's bottom. Section
   headers keep a fixed height too: the title sets it and the trailing see-all icon is centred
   on it and overflows into the padding, so the gap to the row below is the same
-  with and without the button; an optional subtitle (the catalog's Movies /
-  Series) sits on the title's baseline. Compact
+  with and without the button. A Home catalog appends its type to the title
+  (`Popular · Movies`) instead of carrying a separate subtitle. Compact
   windows also use a tighter screen padding (16dp) and grid gap, and the detail
   actions are icon-only (with a `contentDescription`) at the call-to-action's
   height, so the row lines up.
@@ -436,8 +437,15 @@ so the atomic read/write/delete logic lives once.
   (`textSecondary` for `onSurfaceVariant`, `posterYear`) are white with reduced
   alpha — so hierarchy comes from opacity instead of a second grey, and the
   amber accent stays reserved for brand/attention rather than body copy.
+  `AppType` is the closed set of text roles the UI reads — `screenTitle`,
+  `dialogTitle`, `sectionTitle`, `cardTitle`, `itemTitle`, `body`,
+  `bodySecondary`, `caption`, `label`, plus the hero and button roles —
+  so no call site picks a Material slot directly and a title, a section heading
+  and a row never drift apart. Two levels are deliberate: `sectionTitle`
+  (`titleLarge` stepped to 18sp, 16sp on a phone) heads a screen section, while
+  `cardTitle` and `itemTitle` (`titleMedium`) head a card or an interactive row.
   `PosterCaption` steps `titleSmall` / `bodySmall` up 1sp with the meta
-  weight at Medium, and the section subtitle sits at Medium too.
+  weight at Medium.
 - **Localisation.** Every user-facing string lives in
   `composeResources/values/strings.xml` and is read with
   `stringResource(Res.string.key)`, so adding a locale is a new `values-*` folder

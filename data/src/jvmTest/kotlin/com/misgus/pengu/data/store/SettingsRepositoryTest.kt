@@ -32,6 +32,7 @@ class SettingsRepositoryTest {
             assertTrue(settings.state.value.resumePlayback)
             assertTrue(settings.state.value.autoPlayNext)
             assertFalse(settings.state.value.hideLabels)
+            assertTrue(settings.state.value.showCatalogType)
             assertEquals(AppTheme.COFFEE, settings.state.value.theme)
             assertEquals("", settings.state.value.tmdbApiKey)
             assertEquals(TmdbLanguage.SYSTEM, settings.state.value.tmdbLanguage)
@@ -83,6 +84,7 @@ class SettingsRepositoryTest {
             settings.setTheme(AppTheme.COFFEE)
             settings.setPosterSize(PosterSize.LARGE)
             settings.setHideLabels(true)
+            settings.setShowCatalogType(false)
 
             val reloaded = JsonSettingsRepository(store)
             reloaded.load()
@@ -91,6 +93,7 @@ class SettingsRepositoryTest {
             assertEquals(AppTheme.COFFEE, reloaded.state.value.theme)
             assertEquals(PosterSize.LARGE, reloaded.state.value.posterSize)
             assertTrue(reloaded.state.value.hideLabels)
+            assertFalse(reloaded.state.value.showCatalogType)
             assertEquals("value", (store.read()["custom.key"] as JsonPrimitive).content)
             // The file is written indented, so it can be read and edited by hand.
             assertTrue(File(path).readText().contains('\n'))

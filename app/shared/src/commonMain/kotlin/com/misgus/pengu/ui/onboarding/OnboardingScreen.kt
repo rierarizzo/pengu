@@ -51,7 +51,7 @@ fun OnboardingScreen(modifier: Modifier = Modifier) {
             Spacer(Modifier.height(AppSpacing.sm))
             Text(
                 stringResource(Res.string.onboarding_tagline),
-                style = MaterialTheme.typography.bodyLarge,
+                style = AppType.body(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
@@ -61,7 +61,7 @@ fun OnboardingScreen(modifier: Modifier = Modifier) {
             } else {
                 Text(
                     stringResource(Res.string.onboarding_no_sign_in),
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = AppType.bodySecondary(),
                     textAlign = TextAlign.Center,
                 )
             }

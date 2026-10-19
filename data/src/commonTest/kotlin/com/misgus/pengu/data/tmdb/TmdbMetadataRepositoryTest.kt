@@ -148,6 +148,8 @@ private class TestSettings(
 
     override suspend fun setHideLabels(enabled: Boolean) = Unit
 
+    override suspend fun setShowCatalogType(enabled: Boolean) = Unit
+
     override suspend fun setTmdbApiKey(apiKey: String) = Unit
 
     override suspend fun setTmdbLanguage(language: TmdbLanguage) = Unit

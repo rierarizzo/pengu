@@ -26,6 +26,7 @@ import kotlinx.serialization.json.JsonPrimitive
  *   "player.resumePlayback": true,
  *   "player.autoPlayNext": true,
  *   "labels.hidden": false,
+ *   "catalog.showType": true,
  *   "metadata.tmdbApiKey": "",
  *   "metadata.tmdbLanguage": "system"
  * }
@@ -61,6 +62,8 @@ class JsonSettingsRepository(
 
     override suspend fun setHideLabels(enabled: Boolean) = update { it.copy(hideLabels = enabled) }
 
+    override suspend fun setShowCatalogType(enabled: Boolean) = update { it.copy(showCatalogType = enabled) }
+
     override suspend fun setTmdbApiKey(apiKey: String) = update { it.copy(tmdbApiKey = apiKey.trim()) }
 
     override suspend fun setTmdbLanguage(language: TmdbLanguage) = update { it.copy(tmdbLanguage = language) }
@@ -81,6 +84,7 @@ class JsonSettingsRepository(
         data[KEY_AUTOPLAY] = JsonPrimitive(settings.autoPlayNext)
         data[KEY_POSTER_SIZE] = JsonPrimitive(settings.posterSize.name.lowercase())
         data[KEY_HIDE_LABELS] = JsonPrimitive(settings.hideLabels)
+        data[KEY_SHOW_CATALOG_TYPE] = JsonPrimitive(settings.showCatalogType)
         data[KEY_TMDB_API_KEY] = JsonPrimitive(settings.tmdbApiKey)
         data[KEY_TMDB_LANGUAGE] = JsonPrimitive(settings.tmdbLanguage.name.lowercase())
         store.write(JsonObject(data))
@@ -94,6 +98,7 @@ class JsonSettingsRepository(
             autoPlayNext = this[KEY_AUTOPLAY].boolOrNull() ?: true,
             posterSize = this[KEY_POSTER_SIZE].stringOrNull().toPosterSize() ?: PosterSize.DEFAULT,
             hideLabels = this[KEY_HIDE_LABELS].boolOrNull() ?: false,
+            showCatalogType = this[KEY_SHOW_CATALOG_TYPE].boolOrNull() ?: true,
             tmdbApiKey = this[KEY_TMDB_API_KEY].stringOrNull() ?: "",
             tmdbLanguage = this[KEY_TMDB_LANGUAGE].stringOrNull().toTmdbLanguage() ?: TmdbLanguage.SYSTEM,
         )
@@ -118,6 +123,7 @@ class JsonSettingsRepository(
         const val KEY_AUTOPLAY = "player.autoPlayNext"
         const val KEY_POSTER_SIZE = "poster.size"
         const val KEY_HIDE_LABELS = "labels.hidden"
+        const val KEY_SHOW_CATALOG_TYPE = "catalog.showType"
         const val KEY_TMDB_API_KEY = "metadata.tmdbApiKey"
         const val KEY_TMDB_LANGUAGE = "metadata.tmdbLanguage"
     }

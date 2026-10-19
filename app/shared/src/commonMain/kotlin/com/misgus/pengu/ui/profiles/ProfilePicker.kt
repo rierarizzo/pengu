@@ -75,7 +75,7 @@ fun ProfilePicker(modifier: Modifier = Modifier) {
             Spacer(Modifier.height(AppSpacing.xs))
             Text(
                 stringResource(Res.string.profiles_subtitle),
-                style = MaterialTheme.typography.bodyMedium,
+                style = AppType.bodySecondary(),
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(AppSpacing.xl))
@@ -139,9 +139,9 @@ private fun ProfileTile(
             )
         }
         Spacer(Modifier.height(AppSpacing.sm))
-        Text(profile.name, style = MaterialTheme.typography.bodyLarge)
+        Text(profile.name, style = AppType.itemTitle())
         if (profile.pinEnabled) {
-            Text(stringResource(Res.string.profiles_pin), style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(Res.string.profiles_pin), style = AppType.bodySecondary())
         }
     }
 }
@@ -159,7 +159,7 @@ private fun Problem(
             modifier = Modifier.size(36.dp),
         )
         Spacer(Modifier.height(AppSpacing.md))
-        Text(message, textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyMedium)
+        Text(message, textAlign = TextAlign.Center, style = AppType.bodySecondary())
         Spacer(Modifier.height(AppSpacing.md))
         ActionButton(
             text = stringResource(Res.string.action_try_again),

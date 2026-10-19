@@ -60,6 +60,8 @@ import com.misgus.pengu.app.shared.generated.resources.settings_poster_size_subt
 import com.misgus.pengu.app.shared.generated.resources.settings_reload
 import com.misgus.pengu.app.shared.generated.resources.settings_resume
 import com.misgus.pengu.app.shared.generated.resources.settings_resume_subtitle
+import com.misgus.pengu.app.shared.generated.resources.settings_show_catalog_type
+import com.misgus.pengu.app.shared.generated.resources.settings_show_catalog_type_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_sign_in_other_method
 import com.misgus.pengu.app.shared.generated.resources.settings_sign_in_to_load
 import com.misgus.pengu.app.shared.generated.resources.settings_signed_in_account
@@ -152,6 +154,8 @@ fun SettingsScreen(onOpenPlayer: (PlaybackTarget) -> Unit) {
                 onPosterSizeChange = { value -> save { settings.setPosterSize(value) } },
                 hideLabels = state.hideLabels,
                 onHideLabelsChange = { value -> save { settings.setHideLabels(value) } },
+                showCatalogType = state.showCatalogType,
+                onShowCatalogTypeChange = { value -> save { settings.setShowCatalogType(value) } },
             )
             Spacer(Modifier.height(AppSpacing.lg))
             PlaybackSettingsCard(
@@ -181,7 +185,7 @@ fun SettingsScreen(onOpenPlayer: (PlaybackTarget) -> Unit) {
             )
             error?.let {
                 Spacer(Modifier.height(AppSpacing.sm))
-                Text(stringResource(it), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+                Text(stringResource(it), style = AppType.bodySecondary(), color = MaterialTheme.colorScheme.error)
             }
             Spacer(Modifier.height(AppSpacing.lg))
             PlaybackCard(onOpenPlayer)
@@ -229,7 +233,7 @@ private fun AccountCard() {
         } else {
             Text(
                 stringResource(Res.string.settings_sign_in_other_method),
-                style = MaterialTheme.typography.bodyMedium,
+                style = AppType.bodySecondary(),
             )
         }
     }
@@ -245,6 +249,8 @@ private fun AppearanceCard(
     onPosterSizeChange: (PosterSize) -> Unit,
     hideLabels: Boolean,
     onHideLabelsChange: (Boolean) -> Unit,
+    showCatalogType: Boolean,
+    onShowCatalogTypeChange: (Boolean) -> Unit,
 ) {
     val themeLabels = mapOf(AppTheme.COFFEE to stringResource(Res.string.theme_coffee))
     val posterSizeLabels =
@@ -284,6 +290,12 @@ private fun AppearanceCard(
                 subtitle = stringResource(Res.string.settings_hide_labels_subtitle),
                 checked = hideLabels,
                 onCheckedChange = onHideLabelsChange,
+            )
+            SettingsToggle(
+                title = stringResource(Res.string.settings_show_catalog_type),
+                subtitle = stringResource(Res.string.settings_show_catalog_type_subtitle),
+                checked = showCatalogType,
+                onCheckedChange = onShowCatalogTypeChange,
             )
         }
     }
@@ -373,7 +385,7 @@ private fun MetadataCard(
             Spacer(Modifier.height(AppSpacing.xs))
             Text(
                 stringResource(Res.string.settings_tmdb_api_key_subtitle),
-                style = MaterialTheme.typography.bodySmall,
+                style = AppType.caption(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             SettingsChoice(
@@ -416,14 +428,14 @@ private fun MetadataCard(
                     }
                 Text(
                     stringResource(message),
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = AppType.bodySecondary(),
                     color = if (outcome == TmdbVerifyResult.VALID) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                 )
             }
             Spacer(Modifier.height(AppSpacing.md))
             Text(
                 stringResource(Res.string.settings_tmdb_attribution),
-                style = MaterialTheme.typography.bodySmall,
+                style = AppType.caption(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
@@ -443,7 +455,7 @@ private fun ConfigFileCard(
         Column {
             Text(
                 filePath,
-                style = MaterialTheme.typography.labelSmall,
+                style = AppType.caption(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(AppSpacing.sm))
@@ -475,8 +487,8 @@ private fun SettingsToggle(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(title, style = AppType.itemTitle())
+            Text(subtitle, style = AppType.bodySecondary(), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Spacer(Modifier.width(AppSpacing.md))
         Switch(checked = checked, onCheckedChange = onCheckedChange)
@@ -533,8 +545,8 @@ private fun <T> SettingsChoice(
     onSelect: (T) -> Unit,
 ) {
     Column(Modifier.fillMaxWidth().padding(vertical = AppSpacing.sm)) {
-        Text(title, style = MaterialTheme.typography.bodyLarge)
-        Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(title, style = AppType.itemTitle())
+        Text(subtitle, style = AppType.bodySecondary(), color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(AppSpacing.sm))
         Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
             options.forEach { option ->
@@ -559,9 +571,9 @@ private fun SettingsCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(modifier = Modifier.padding(AppSpacing.lg)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.sectionHeading())
+            Text(title, style = AppType.cardTitle(), modifier = Modifier.sectionHeading())
             Spacer(Modifier.height(AppSpacing.xs))
-            Text(subtitle, style = MaterialTheme.typography.bodyMedium)
+            Text(subtitle, style = AppType.bodySecondary())
             Spacer(Modifier.height(AppSpacing.md))
             content()
         }

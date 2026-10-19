@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
@@ -42,6 +41,7 @@ import com.misgus.pengu.ui.theme.AppColors
 import com.misgus.pengu.ui.theme.AppIconSize
 import com.misgus.pengu.ui.theme.AppScrim
 import com.misgus.pengu.ui.theme.AppSpacing
+import com.misgus.pengu.ui.theme.AppType
 import com.misgus.pengu.ui.theme.motionTween
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Duration
@@ -138,7 +138,7 @@ private fun TopBar(
             title,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            style = MaterialTheme.typography.titleMedium,
+            style = AppType.itemTitle(),
             color = AppColors.playerControl,
         )
     }
@@ -208,7 +208,7 @@ private fun BottomBar(
             Spacer(Modifier.width(AppSpacing.sm))
             Text(
                 "${format(state.position)} / ${format(state.duration)}",
-                style = MaterialTheme.typography.labelMedium,
+                style = AppType.label(),
                 color = AppColors.playerControl,
             )
             Spacer(Modifier.weight(1f))

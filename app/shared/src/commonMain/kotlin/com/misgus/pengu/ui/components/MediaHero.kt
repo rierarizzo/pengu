@@ -215,7 +215,7 @@ fun HeroGenres(genres: List<String>) {
     if (genres.isEmpty()) return
     Text(
         genres.joinToString("  ·  "),
-        style = MaterialTheme.typography.bodyMedium,
+        style = AppType.bodySecondary(),
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 }

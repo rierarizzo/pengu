@@ -24,19 +24,6 @@ object AppType {
             MaterialTheme.typography.displayMedium
         }
 
-    /** Title of a screen: onboarding, profile picker, splash, catalog, settings. */
-    @Composable
-    fun screenTitle(): TextStyle =
-        if (LocalWindowSize.current == WindowSize.COMPACT) {
-            MaterialTheme.typography.headlineMedium
-        } else {
-            MaterialTheme.typography.headlineLarge
-        }
-
-    /** Subtitle next to a section title (e.g. the "Movies"/"Series" tag). */
-    @Composable
-    fun sectionSubtitle(): TextStyle = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium)
-
     /**
      * Hero synopsis and other long copy over artwork.
      *
@@ -70,6 +57,68 @@ object AppType {
             }
         return base.copy(fontFamily = interTightFontFamily())
     }
+
+    /** Title of a screen: onboarding, profile picker, splash, catalog, settings. */
+    @Composable
+    fun screenTitle(): TextStyle =
+        if (LocalWindowSize.current == WindowSize.COMPACT) {
+            MaterialTheme.typography.headlineMedium
+        } else {
+            MaterialTheme.typography.headlineLarge
+        }
+
+    /** Main title of a dialog (e.g. the "Select a stream" sheet). */
+    @Composable
+    fun dialogTitle(): TextStyle = MaterialTheme.typography.headlineSmall
+
+    /**
+     * Heading of a screen section or a content rail.
+     *
+     * The level below [screenTitle]: Home and Search rails and the detail
+     * sections all read it, so two sections never differ in size. Stepped down
+     * from `titleLarge` (22sp) so a catalog or section name reads as a row
+     * header rather than a page title while staying above [cardTitle]; a phone
+     * steps it down one more point (16sp) where the layout is tighter.
+     */
+    @Composable
+    fun sectionTitle(): TextStyle =
+        if (LocalWindowSize.current == WindowSize.COMPACT) {
+            MaterialTheme.typography.titleLarge.copy(fontSize = 16.sp, lineHeight = 22.sp)
+        } else {
+            MaterialTheme.typography.titleLarge.copy(fontSize = 18.sp, lineHeight = 24.sp)
+        }
+
+    /**
+     * Heading of a card or a self-contained block, such as an empty state.
+     *
+     * One step under [sectionTitle]: a card nests inside a screen, so its
+     * heading stays smaller than the section it sits in.
+     */
+    @Composable
+    fun cardTitle(): TextStyle = MaterialTheme.typography.titleMedium
+
+    /**
+     * Primary line of an interactive row: a list item, a dialog result, a
+     * profile name or the media title in the player.
+     */
+    @Composable
+    fun itemTitle(): TextStyle = MaterialTheme.typography.titleMedium
+
+    /** Default reading copy: a value, a name or a paragraph. */
+    @Composable
+    fun body(): TextStyle = MaterialTheme.typography.bodyLarge
+
+    /** Secondary copy: a description, a helper or an error line. */
+    @Composable
+    fun bodySecondary(): TextStyle = MaterialTheme.typography.bodyMedium
+
+    /** Small metadata attached to an item (e.g. a poster's secondary line). */
+    @Composable
+    fun caption(): TextStyle = MaterialTheme.typography.bodySmall
+
+    /** Dense label that is not body copy, such as the player timecode. */
+    @Composable
+    fun label(): TextStyle = MaterialTheme.typography.labelMedium
 
     /**
      * Label of a button.

@@ -23,6 +23,7 @@ import com.misgus.pengu.core.player.MediaTrack
 import com.misgus.pengu.ui.components.ActionButton
 import com.misgus.pengu.ui.components.ActionButtonStyle
 import com.misgus.pengu.ui.theme.AppSpacing
+import com.misgus.pengu.ui.theme.AppType
 import org.jetbrains.compose.resources.stringResource
 
 /** One selectable row of a track menu. */
@@ -53,7 +54,7 @@ internal fun TrackMenu(
         text = {
             Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).selectableGroup()) {
                 if (rows.isEmpty()) {
-                    Text(stringResource(Res.string.player_no_tracks), style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(Res.string.player_no_tracks), style = AppType.bodySecondary())
                 }
                 rows.forEach { row ->
                     Column(
@@ -70,10 +71,10 @@ internal fun TrackMenu(
                     ) {
                         Text(
                             text = if (row.selected) "● ${row.label}" else "○ ${row.label}",
-                            style = MaterialTheme.typography.bodyLarge,
+                            style = AppType.itemTitle(),
                         )
                         row.detail?.let {
-                            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(it, style = AppType.caption(), color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }

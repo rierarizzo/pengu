@@ -99,6 +99,7 @@ fun HomeScreen(
             state = state,
             posterSize = settings.posterSize,
             hideLabels = settings.hideLabels,
+            showCatalogType = settings.showCatalogType,
             savedIds = state.savedIds,
             busyIds = state.savingIds,
             onOpenDetail = { navigator.push(ContentRoute.Detail(it)) },
@@ -134,6 +135,7 @@ private fun HomeContent(
     state: HomeUiState,
     posterSize: PosterSize,
     hideLabels: Boolean,
+    showCatalogType: Boolean,
     savedIds: Set<String>,
     busyIds: Set<String>,
     onOpenDetail: (LibraryItem) -> Unit,
@@ -217,9 +219,9 @@ private fun HomeContent(
                 }
                 itemsIndexed(state.rows, key = { _, row -> "row:${row.ref.key}" }) { index, row ->
                     Column(Modifier.pullUp(if (index == 0 && !hasContinue) liftPx else 0)) {
+                        val typeLabel = contentTypeLabel(row.ref.type)
                         SectionHeader(
-                            title = row.title,
-                            subtitle = contentTypeLabel(row.ref.type),
+                            title = if (showCatalogType && typeLabel != null) "${row.title} · $typeLabel" else row.title,
                             onSeeAll = { onOpenCatalog(row.ref) },
                         )
                         val cardWidth = posterSize.cellWidth(windowSize)

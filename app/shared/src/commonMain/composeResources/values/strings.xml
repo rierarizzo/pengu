@@ -178,6 +178,8 @@
     <string name="settings_poster_size_subtitle">The horizontal rows on Home, Search and &quot;More like this&quot;.</string>
     <string name="settings_hide_labels">Hide labels</string>
     <string name="settings_hide_labels_subtitle">Hide the title and year under every poster.</string>
+    <string name="settings_show_catalog_type">Show catalog type</string>
+    <string name="settings_show_catalog_type_subtitle">Adds &quot;Movies&quot; or &quot;Series&quot; after each catalog name on Home.</string>
     <string name="settings_playback">Playback</string>
     <string name="settings_playback_subtitle">How titles play.</string>
     <string name="settings_resume">Resume playback</string>

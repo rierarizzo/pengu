@@ -39,6 +39,11 @@ data class AppSettings(
     val posterSize: PosterSize = PosterSize.DEFAULT,
     /** Hide the title and year captions under every poster. */
     val hideLabels: Boolean = false,
+    /**
+     * Show each Home catalog's content type ("Movies"/"Series") after its name,
+     * separated by a pipe (`Popular | Movies`).
+     */
+    val showCatalogType: Boolean = true,
     /** TMDB API key (v3) or read access token (v4); empty disables the enrichment. */
     val tmdbApiKey: String = "",
     /** Language TMDB answers in; [TmdbLanguage.SYSTEM] follows the OS locale. */
@@ -76,6 +81,8 @@ interface SettingsRepository {
     suspend fun setPosterSize(size: PosterSize)
 
     suspend fun setHideLabels(enabled: Boolean)
+
+    suspend fun setShowCatalogType(enabled: Boolean)
 
     suspend fun setTmdbApiKey(apiKey: String)
 

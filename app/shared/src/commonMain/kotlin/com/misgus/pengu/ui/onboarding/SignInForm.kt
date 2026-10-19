@@ -32,6 +32,7 @@ import com.misgus.pengu.ui.components.toUserMessage
 import com.misgus.pengu.ui.icons.FluentIcons
 import com.misgus.pengu.ui.services.LocalAppServices
 import com.misgus.pengu.ui.theme.AppSpacing
+import com.misgus.pengu.ui.theme.AppType
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
@@ -111,7 +112,7 @@ fun SignInForm(modifier: Modifier = Modifier) {
             Spacer(Modifier.height(AppSpacing.sm))
             Text(
                 stringResource(it),
-                style = MaterialTheme.typography.bodyMedium,
+                style = AppType.bodySecondary(),
                 color = MaterialTheme.colorScheme.error,
             )
         }

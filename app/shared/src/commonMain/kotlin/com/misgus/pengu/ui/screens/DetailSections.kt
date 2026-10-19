@@ -66,6 +66,7 @@ import com.misgus.pengu.ui.services.LocalAppServices
 import com.misgus.pengu.ui.theme.AppCorner
 import com.misgus.pengu.ui.theme.AppSizes
 import com.misgus.pengu.ui.theme.AppSpacing
+import com.misgus.pengu.ui.theme.AppType
 import com.misgus.pengu.ui.theme.LocalWindowSize
 import com.misgus.pengu.ui.theme.POSTER_ART_ASPECT
 import com.misgus.pengu.ui.theme.PosterCaption
@@ -87,7 +88,7 @@ internal fun PeopleRow(
         Text(
             title,
             modifier = Modifier.padding(horizontal = windowSize.screenPadding),
-            style = MaterialTheme.typography.titleLarge,
+            style = AppType.sectionTitle(),
         )
         Spacer(Modifier.height(AppSpacing.md))
         LazyRow(
@@ -156,11 +157,11 @@ internal fun DetailsSection(entries: List<Pair<String, String>>) {
                 Column {
                     Text(
                         label.uppercase(),
-                        style = MaterialTheme.typography.bodySmall,
+                        style = AppType.caption(),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(Modifier.height(AppSpacing.xs))
-                    Text(value, style = MaterialTheme.typography.bodyLarge)
+                    Text(value, style = AppType.body())
                 }
             }
         }
@@ -182,7 +183,7 @@ internal fun SimilarRow(
         Text(
             stringResource(Res.string.detail_you_may_also_like),
             modifier = Modifier.padding(horizontal = AppSpacing.xl).sectionHeading(),
-            style = MaterialTheme.typography.titleLarge,
+            style = AppType.sectionTitle(),
         )
         Spacer(Modifier.height(AppSpacing.sm))
         val cardWidth = posterSize.cellWidth(windowSize)
@@ -264,7 +265,7 @@ internal fun EpisodesSection(
     Column {
         Text(
             stringResource(Res.string.detail_episodes),
-            style = MaterialTheme.typography.titleLarge,
+            style = AppType.sectionTitle(),
             modifier = Modifier.padding(horizontal = windowSize.screenPadding).sectionHeading(),
         )
         if (seasons.size > 1) {
@@ -396,7 +397,7 @@ internal fun RatingDialog(
             Column {
                 Text(
                     if (value == 0) stringResource(Res.string.detail_not_rated) else stringResource(Res.string.detail_rating_value, value),
-                    style = MaterialTheme.typography.titleLarge,
+                    style = AppType.sectionTitle(),
                 )
                 Slider(
                     value = value.toFloat(),

@@ -114,7 +114,7 @@ fun CatalogScreen(
                     style = AppType.screenTitle(),
                     modifier = Modifier.sectionHeading(),
                 )
-                Text(ref.addonName, style = MaterialTheme.typography.bodyMedium)
+                Text(ref.addonName, style = AppType.bodySecondary())
             }
         }
         Spacer(Modifier.height(AppSpacing.md))
