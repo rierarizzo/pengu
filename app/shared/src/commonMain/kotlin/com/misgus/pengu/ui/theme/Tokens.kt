@@ -229,6 +229,12 @@ object AppSizes {
 
     /** Widest a centered empty/error message grows. */
     val messageMaxWidth: Dp = 360.dp
+
+    /** Width of the settings sidebar that groups the categories on a wide window. */
+    val settingsSidebarWidth: Dp = 260.dp
+
+    /** Side of the square badge behind a settings category glyph. */
+    val settingsBadge: Dp = 40.dp
 }
 
 /** Scale factors shared by interactive surfaces. */
@@ -383,6 +389,9 @@ object AppAlpha {
 
     /** Translucent fill behind the selected top-navigation item. */
     const val NAV_SELECTED = 0.12f
+
+    /** Tint of the badge behind a settings category glyph. */
+    const val SETTINGS_BADGE = 0.14f
 }
 
 /**

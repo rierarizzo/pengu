@@ -51,6 +51,7 @@ usan ambas plataformas (ver §7).
 |---|---|
 | Añadir o cambiar una sección (Home, Search…) | `app/shared/.../ui/shell/AppSection.kt`, `SectionHost.kt` |
 | Añadir una pantalla apilada (detalle, reproductor…) | `app/shared/.../ui/shell/ContentNavigator.kt` (`ContentRoute`), `ContentArea.kt` |
+| Añadir o cambiar una categoría de ajustes | `app/shared/.../ui/screens/SettingsCategory.kt`, `SettingsScreen.kt` |
 | Cambiar la lógica/estado de una pantalla | `app/shared/.../ui/<feature>/<Feature>ViewModel.kt` + `<Feature>Screen.kt` |
 | Compartir comportamiento entre secciones | `app/shared/.../ui/common/` (`AccountScopedViewModel`, `WatchedBadgeSync`) |
 | Cambiar colores, espaciado, tipografía, movimiento | `app/shared/.../ui/theme/` (`Tokens.kt`, `AppTheme.kt`, `AppType.kt`, `Motion.kt`, `WindowSize.kt`, `PosterSize.kt`) |
@@ -267,12 +268,13 @@ existe, y contrólalo con `StandardTestDispatcher` + `advanceUntilIdle()` (ver
 1. Añade un campo a `AppSettings` (`core/.../repository/SettingsRepository.kt`).
 2. Añade el getter/setter a `SettingsRepository` y la clave en
    `JsonSettingsRepository`.
-3. Añade el control en `SettingsScreen`. El fichero JSON sigue siendo editable a
+3. Añade el control a la página correspondiente en `SettingsScreen.kt`;
+   `SettingsCategory` elige la página. El fichero JSON sigue siendo editable a
    mano.
 
 **Añadir un tema**
 1. Añade un valor a `AppTheme`, una paleta a `AppThemes` (`ui/theme/Tokens.kt`),
-   una etiqueta al mapa `themeLabels` de `AppearanceCard` en `SettingsScreen` y la
+   una etiqueta al mapa `themeLabels` de `ThemeSection` en `SettingsScreen` y la
    cadena en `strings.xml`. El selector itera `AppTheme.entries`, así que la nueva
    opción aparece sola; cualquier otra superficie lee `LocalBrandPalette` o un rol
    del esquema y no necesita cambios.

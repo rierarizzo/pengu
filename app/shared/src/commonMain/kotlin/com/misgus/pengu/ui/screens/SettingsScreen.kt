@@ -1,25 +1,24 @@
 package com.misgus.pengu.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -27,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,6 +35,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.misgus.pengu.app.shared.generated.resources.Res
+import com.misgus.pengu.app.shared.generated.resources.action_back
 import com.misgus.pengu.app.shared.generated.resources.action_save
 import com.misgus.pengu.app.shared.generated.resources.action_sign_out
 import com.misgus.pengu.app.shared.generated.resources.action_try_again
@@ -44,13 +45,10 @@ import com.misgus.pengu.app.shared.generated.resources.poster_size_large
 import com.misgus.pengu.app.shared.generated.resources.settings_account
 import com.misgus.pengu.app.shared.generated.resources.settings_animations
 import com.misgus.pengu.app.shared.generated.resources.settings_animations_subtitle
-import com.misgus.pengu.app.shared.generated.resources.settings_appearance
-import com.misgus.pengu.app.shared.generated.resources.settings_appearance_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_autoplay
 import com.misgus.pengu.app.shared.generated.resources.settings_autoplay_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_config_file
 import com.misgus.pengu.app.shared.generated.resources.settings_config_file_subtitle
-import com.misgus.pengu.app.shared.generated.resources.settings_hero
 import com.misgus.pengu.app.shared.generated.resources.settings_hero_catalogs
 import com.misgus.pengu.app.shared.generated.resources.settings_hero_catalogs_empty
 import com.misgus.pengu.app.shared.generated.resources.settings_hero_catalogs_error
@@ -60,18 +58,13 @@ import com.misgus.pengu.app.shared.generated.resources.settings_hero_manual
 import com.misgus.pengu.app.shared.generated.resources.settings_hero_smart
 import com.misgus.pengu.app.shared.generated.resources.settings_hero_source
 import com.misgus.pengu.app.shared.generated.resources.settings_hero_source_subtitle
-import com.misgus.pengu.app.shared.generated.resources.settings_hero_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_hide_labels
 import com.misgus.pengu.app.shared.generated.resources.settings_hide_labels_subtitle
-import com.misgus.pengu.app.shared.generated.resources.settings_metadata
-import com.misgus.pengu.app.shared.generated.resources.settings_metadata_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_open_file
 import com.misgus.pengu.app.shared.generated.resources.settings_open_local
 import com.misgus.pengu.app.shared.generated.resources.settings_open_video
 import com.misgus.pengu.app.shared.generated.resources.settings_open_video_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_play_url
-import com.misgus.pengu.app.shared.generated.resources.settings_playback
-import com.misgus.pengu.app.shared.generated.resources.settings_playback_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_poster_size
 import com.misgus.pengu.app.shared.generated.resources.settings_poster_size_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_reload
@@ -103,11 +96,13 @@ import com.misgus.pengu.app.shared.generated.resources.settings_tmdb_test_unreac
 import com.misgus.pengu.app.shared.generated.resources.settings_video_url
 import com.misgus.pengu.app.shared.generated.resources.theme_coffee
 import com.misgus.pengu.core.player.PlaybackTarget
+import com.misgus.pengu.core.repository.AppSettings
 import com.misgus.pengu.core.repository.AppTheme
 import com.misgus.pengu.core.repository.CatalogRef
 import com.misgus.pengu.core.repository.HeroSource
 import com.misgus.pengu.core.repository.MAX_HERO_CATALOGS
 import com.misgus.pengu.core.repository.PosterSize
+import com.misgus.pengu.core.repository.SettingsRepository
 import com.misgus.pengu.core.repository.SignInMethod
 import com.misgus.pengu.core.repository.TmdbLanguage
 import com.misgus.pengu.core.repository.TmdbVerifyResult
@@ -129,205 +124,276 @@ import com.misgus.pengu.ui.theme.AppSizes
 import com.misgus.pengu.ui.theme.AppSpacing
 import com.misgus.pengu.ui.theme.AppType
 import com.misgus.pengu.ui.theme.LocalWindowSize
+import com.misgus.pengu.ui.theme.WindowSize
 import com.misgus.pengu.ui.theme.screenPadding
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
+/** Runs a settings write, routing a failure to the page's error line. */
+private typealias Save = (suspend () -> Unit) -> Unit
+
 /**
- * Settings section.
+ * Settings.
  *
- * Groups the local preferences (appearance, playback) and the account card. The
- * sign-in form is shared with the onboarding screen.
+ * A wide window shows the categories in a sidebar next to the selected page; a
+ * compact window shows them as an index and the caller pushes the page, so a
+ * phone walks into one category at a time. Both read the same pages, so a
+ * setting is written and labelled in one place.
+ *
+ * [onOpenCategory] is only used on a compact window; the wide one keeps the
+ * selection in place.
  */
 @Composable
-fun SettingsScreen(onOpenPlayer: (PlaybackTarget) -> Unit) {
-    val settings = LocalAppServices.current.settings
-    val state by settings.state.collectAsStateWithLifecycle()
-    val scope = rememberCoroutineScope()
-    var error by remember { mutableStateOf<StringResource?>(null) }
-    val save: (suspend () -> Unit) -> Unit = { action ->
-        scope.launch {
-            runCatching { action() }.onFailure { error = it.toUserMessage() }
-        }
+fun SettingsScreen(
+    onOpenPlayer: (PlaybackTarget) -> Unit,
+    onOpenCategory: (SettingsCategory) -> Unit,
+) {
+    if (LocalWindowSize.current == WindowSize.EXPANDED) {
+        WideSettings(onOpenPlayer)
+    } else {
+        CompactSettings(onOpenCategory)
     }
+}
 
-    Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        // A readable column instead of a card stretched across a wide window.
+/** Sidebar plus the selected page, for a window wide enough to hold both. */
+@Composable
+private fun WideSettings(onOpenPlayer: (PlaybackTarget) -> Unit) {
+    var selectedName by rememberSaveable { mutableStateOf(SettingsCategory.PLAYBACK.name) }
+    val selected = SettingsCategory.valueOf(selectedName)
+    val padding = LocalWindowSize.current.screenPadding
+    val contentScroll = rememberScrollState()
+    // A new page opens at its top instead of inheriting the previous scroll.
+    LaunchedEffect(selected) { contentScroll.scrollTo(0) }
+
+    Row(Modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier.widthIn(max = AppSizes.contentMaxWidth).fillMaxWidth().padding(LocalWindowSize.current.screenPadding),
+            modifier =
+                Modifier
+                    .width(AppSizes.settingsSidebarWidth)
+                    .fillMaxHeight()
+                    .verticalScroll(rememberScrollState())
+                    .padding(start = padding, end = AppSpacing.md, top = padding, bottom = padding),
         ) {
             Text(
                 stringResource(Res.string.settings_title),
                 style = AppType.screenTitle(),
                 modifier = Modifier.sectionHeading(),
             )
-            Spacer(Modifier.height(AppSpacing.lg))
-            AccountCard()
-            Spacer(Modifier.height(AppSpacing.lg))
-            AppearanceCard(
-                animationsEnabled = state.animationsEnabled,
-                onAnimationsChange = { value -> save { settings.setAnimationsEnabled(value) } },
-                theme = state.theme,
-                onThemeChange = { value -> save { settings.setTheme(value) } },
-                posterSize = state.posterSize,
-                onPosterSizeChange = { value -> save { settings.setPosterSize(value) } },
-                hideLabels = state.hideLabels,
-                onHideLabelsChange = { value -> save { settings.setHideLabels(value) } },
-                showCatalogType = state.showCatalogType,
-                onShowCatalogTypeChange = { value -> save { settings.setShowCatalogType(value) } },
-            )
-            Spacer(Modifier.height(AppSpacing.lg))
-            HeroCard(
-                source = state.heroSource,
-                selectedKeys = state.heroCatalogKeys,
-                onSourceChange = { value -> save { settings.setHeroSource(value) } },
-                onKeysChange = { value -> save { settings.setHeroCatalogKeys(value) } },
-            )
-            Spacer(Modifier.height(AppSpacing.lg))
-            PlaybackSettingsCard(
-                resumePlayback = state.resumePlayback,
-                autoPlayNext = state.autoPlayNext,
-                onResumeChange = { value -> save { settings.setResumePlayback(value) } },
-                onAutoPlayChange = { value -> save { settings.setAutoPlayNext(value) } },
-            )
-            Spacer(Modifier.height(AppSpacing.lg))
-            MetadataCard(
-                apiKey = state.tmdbApiKey,
-                language = state.tmdbLanguage,
-                onSaveKey = { value -> save { settings.setTmdbApiKey(value) } },
-                onLanguageChange = { value -> save { settings.setTmdbLanguage(value) } },
-            )
-            Spacer(Modifier.height(AppSpacing.lg))
-            ConfigFileCard(
-                filePath = settings.filePath,
-                onOpen = {
-                    save {
-                        if (!openInDefaultApp(settings.filePath)) {
-                            error = Res.string.error_open_file
-                        }
-                    }
-                },
-                onReload = { save { settings.reload() } },
-            )
-            error?.let {
-                Spacer(Modifier.height(AppSpacing.sm))
-                Text(stringResource(it), style = AppType.bodySecondary(), color = MaterialTheme.colorScheme.error)
-            }
-            Spacer(Modifier.height(AppSpacing.lg))
-            PlaybackCard(onOpenPlayer)
+            Spacer(Modifier.height(AppSpacing.md))
+            SettingsSidebar(selected = selected, onSelect = { selectedName = it.name })
+        }
+        Column(
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .verticalScroll(contentScroll)
+                    .padding(start = AppSpacing.lg, end = padding, top = padding, bottom = padding),
+        ) {
+            SettingsCategoryContent(selected, onOpenPlayer)
         }
     }
 }
 
+/** Index of every category, for a window too narrow for the sidebar. */
 @Composable
-private fun AccountCard() {
-    val account = LocalAppServices.current.account
-    val state by account.state.collectAsStateWithLifecycle()
-    val scope = rememberCoroutineScope()
-    var signingOut by remember { mutableStateOf(false) }
-
-    val unknownAccount = stringResource(Res.string.settings_signed_in_account)
-    SettingsCard(
-        title = stringResource(Res.string.settings_account),
-        subtitle =
-            if (state.isSignedIn) {
-                stringResource(Res.string.settings_signed_in_as, state.email ?: unknownAccount)
-            } else {
-                stringResource(Res.string.settings_sign_in_to_load)
-            },
+private fun CompactSettings(onOpenCategory: (SettingsCategory) -> Unit) {
+    val padding = LocalWindowSize.current.screenPadding
+    Column(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(padding),
     ) {
-        if (state.isSignedIn) {
-            ActionButton(
-                text = stringResource(Res.string.action_sign_out),
-                onClick = {
-                    signingOut = true
-                    scope.launch {
-                        try {
-                            account.signOut()
-                        } finally {
-                            signingOut = false
-                        }
-                    }
-                },
-                icon = FluentIcons.Logout,
-                style = ActionButtonStyle.Tonal,
-                enabled = !signingOut,
-                loading = signingOut,
+        Text(
+            stringResource(Res.string.settings_title),
+            style = AppType.screenTitle(),
+            modifier = Modifier.sectionHeading(),
+        )
+        Spacer(Modifier.height(AppSpacing.md))
+        SettingsIndex(onOpen = onOpenCategory)
+    }
+}
+
+/**
+ * One category as a pushed route, for a compact window.
+ *
+ * A pushed route hides the shell chrome, so it paints its own back affordance
+ * and the "Settings" title, then the page below.
+ */
+@Composable
+fun SettingsCategoryScreen(
+    category: SettingsCategory,
+    onBack: () -> Unit,
+    onOpenPlayer: (PlaybackTarget) -> Unit,
+) {
+    val padding = LocalWindowSize.current.screenPadding
+    Column(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(padding),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            AppIconButton(
+                icon = FluentIcons.ArrowBack,
+                contentDescription = stringResource(Res.string.action_back),
+                onClick = onBack,
             )
-        } else if (SignInMethod.EmailPassword in account.signInMethods) {
-            SignInForm()
-        } else {
+            Spacer(Modifier.width(AppSpacing.sm))
             Text(
-                stringResource(Res.string.settings_sign_in_other_method),
+                stringResource(Res.string.settings_title),
+                style = AppType.screenTitle(),
+                modifier = Modifier.sectionHeading(),
+            )
+        }
+        Spacer(Modifier.height(AppSpacing.lg))
+        SettingsCategoryContent(category, onOpenPlayer)
+    }
+}
+
+/**
+ * The selected page: a header, the rows of the category and the error line of
+ * the last failed write.
+ */
+@Composable
+private fun SettingsCategoryContent(
+    category: SettingsCategory,
+    onOpenPlayer: (PlaybackTarget) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val settings = LocalAppServices.current.settings
+    val state by settings.state.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
+    var error by remember { mutableStateOf<StringResource?>(null) }
+    // The wide window swaps the page in place, so a stale error would follow the
+    // user into the next category.
+    LaunchedEffect(category) { error = null }
+    val save: Save = { action ->
+        scope.launch {
+            runCatching { action() }.onFailure { error = it.toUserMessage() }
+        }
+    }
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.lg),
+    ) {
+        SettingsCategoryHeader(category)
+        when (category) {
+            SettingsCategory.PLAYBACK -> PlaybackSection(state, settings, save)
+            SettingsCategory.INTERFACE -> InterfaceSection(state, settings, save)
+            SettingsCategory.THEME -> ThemeSection(state, settings, save)
+            SettingsCategory.HERO -> HeroSection(state, settings, save)
+            SettingsCategory.METADATA -> MetadataSection(state, settings, save)
+            SettingsCategory.ACCOUNT -> AccountSection()
+            SettingsCategory.ADVANCED ->
+                AdvancedSection(
+                    settings = settings,
+                    save = save,
+                    onError = { error = it },
+                    onOpenPlayer = onOpenPlayer,
+                )
+        }
+        error?.let {
+            Text(
+                stringResource(it),
                 style = AppType.bodySecondary(),
+                color = MaterialTheme.colorScheme.error,
             )
         }
     }
 }
 
 @Composable
-private fun AppearanceCard(
-    animationsEnabled: Boolean,
-    onAnimationsChange: (Boolean) -> Unit,
-    theme: AppTheme,
-    onThemeChange: (AppTheme) -> Unit,
-    posterSize: PosterSize,
-    onPosterSizeChange: (PosterSize) -> Unit,
-    hideLabels: Boolean,
-    onHideLabelsChange: (Boolean) -> Unit,
-    showCatalogType: Boolean,
-    onShowCatalogTypeChange: (Boolean) -> Unit,
+private fun PlaybackSection(
+    state: AppSettings,
+    settings: SettingsRepository,
+    save: Save,
 ) {
-    val themeLabels = mapOf(AppTheme.COFFEE to stringResource(Res.string.theme_coffee))
+    SettingsPanel {
+        SettingsToggleRow(
+            title = stringResource(Res.string.settings_resume),
+            description = stringResource(Res.string.settings_resume_subtitle),
+            checked = state.resumePlayback,
+            onCheckedChange = { value -> save { settings.setResumePlayback(value) } },
+        )
+        SettingsDivider()
+        SettingsToggleRow(
+            title = stringResource(Res.string.settings_autoplay),
+            description = stringResource(Res.string.settings_autoplay_subtitle),
+            checked = state.autoPlayNext,
+            onCheckedChange = { value -> save { settings.setAutoPlayNext(value) } },
+        )
+    }
+}
+
+@Composable
+private fun InterfaceSection(
+    state: AppSettings,
+    settings: SettingsRepository,
+    save: Save,
+) {
     val posterSizeLabels =
         mapOf(
             PosterSize.DEFAULT to stringResource(Res.string.poster_size_default),
             PosterSize.LARGE to stringResource(Res.string.poster_size_large),
         )
-    SettingsCard(
-        title = stringResource(Res.string.settings_appearance),
-        subtitle = stringResource(Res.string.settings_appearance_subtitle),
-    ) {
-        Column {
-            SettingsToggle(
-                title = stringResource(Res.string.settings_animations),
-                subtitle = stringResource(Res.string.settings_animations_subtitle),
-                checked = animationsEnabled,
-                onCheckedChange = onAnimationsChange,
-            )
-            SettingsChoice(
-                title = stringResource(Res.string.settings_theme),
-                subtitle = stringResource(Res.string.settings_theme_subtitle),
-                options = AppTheme.entries,
-                selected = theme,
-                label = { themeLabels.getValue(it) },
-                onSelect = onThemeChange,
-            )
-            SettingsChoice(
-                title = stringResource(Res.string.settings_poster_size),
-                subtitle = stringResource(Res.string.settings_poster_size_subtitle),
-                options = PosterSize.entries,
-                selected = posterSize,
-                label = { posterSizeLabels.getValue(it) },
-                onSelect = onPosterSizeChange,
-            )
-            SettingsToggle(
-                title = stringResource(Res.string.settings_hide_labels),
-                subtitle = stringResource(Res.string.settings_hide_labels_subtitle),
-                checked = hideLabels,
-                onCheckedChange = onHideLabelsChange,
-            )
-            SettingsToggle(
-                title = stringResource(Res.string.settings_show_catalog_type),
-                subtitle = stringResource(Res.string.settings_show_catalog_type_subtitle),
-                checked = showCatalogType,
-                onCheckedChange = onShowCatalogTypeChange,
-            )
-        }
+    SettingsPanel {
+        SettingsToggleRow(
+            title = stringResource(Res.string.settings_animations),
+            description = stringResource(Res.string.settings_animations_subtitle),
+            checked = state.animationsEnabled,
+            onCheckedChange = { value -> save { settings.setAnimationsEnabled(value) } },
+        )
+        SettingsDivider()
+        SettingsSelectRow(
+            title = stringResource(Res.string.settings_poster_size),
+            description = stringResource(Res.string.settings_poster_size_subtitle),
+            options = PosterSize.entries,
+            selected = state.posterSize,
+            label = { posterSizeLabels.getValue(it) },
+            onSelect = { value -> save { settings.setPosterSize(value) } },
+        )
+        SettingsDivider()
+        SettingsToggleRow(
+            title = stringResource(Res.string.settings_hide_labels),
+            description = stringResource(Res.string.settings_hide_labels_subtitle),
+            checked = state.hideLabels,
+            onCheckedChange = { value -> save { settings.setHideLabels(value) } },
+        )
+        SettingsDivider()
+        SettingsToggleRow(
+            title = stringResource(Res.string.settings_show_catalog_type),
+            description = stringResource(Res.string.settings_show_catalog_type_subtitle),
+            checked = state.showCatalogType,
+            onCheckedChange = { value -> save { settings.setShowCatalogType(value) } },
+        )
+    }
+}
+
+@Composable
+private fun ThemeSection(
+    state: AppSettings,
+    settings: SettingsRepository,
+    save: Save,
+) {
+    val themeLabels = mapOf(AppTheme.COFFEE to stringResource(Res.string.theme_coffee))
+    SettingsPanel {
+        SettingsSelectRow(
+            title = stringResource(Res.string.settings_theme),
+            description = stringResource(Res.string.settings_theme_subtitle),
+            options = AppTheme.entries,
+            selected = state.theme,
+            label = { themeLabels.getValue(it) },
+            onSelect = { value -> save { settings.setTheme(value) } },
+        )
     }
 }
 
@@ -336,15 +402,14 @@ private fun AppearanceCard(
  *
  * Smart is the default: the app mixes every loaded row. Manual lets the user pin
  * up to [MAX_HERO_CATALOGS] catalogs, which is what Nuvio offers; the catalog
- * list is read here instead of in the ViewModel because it is the only screen
- * that needs the names, not just the keys.
+ * list is read here instead of in a ViewModel because it is the only page that
+ * needs the names, not just the keys.
  */
 @Composable
-private fun HeroCard(
-    source: HeroSource,
-    selectedKeys: List<String>,
-    onSourceChange: (HeroSource) -> Unit,
-    onKeysChange: (List<String>) -> Unit,
+private fun HeroSection(
+    state: AppSettings,
+    settings: SettingsRepository,
+    save: Save,
 ) {
     val catalogs = LocalAppServices.current.catalogs
     val sourceLabels =
@@ -358,83 +423,74 @@ private fun HeroCard(
 
     // Only a manual billboard needs the list, and the addons can change while the
     // app is open, so it is read when the mode is picked and on every retry.
-    LaunchedEffect(source, attempt) {
-        if (source != HeroSource.MANUAL || (options != null && attempt == 0)) return@LaunchedEffect
+    LaunchedEffect(state.heroSource, attempt) {
+        if (state.heroSource != HeroSource.MANUAL || (options != null && attempt == 0)) return@LaunchedEffect
         val loaded = runCatchingCancellable { catalogs.catalogs().filter { it.browsable }.distinctBy { it.key } }
         options = loaded.getOrNull()
         failed = loaded.isFailure
     }
 
-    SettingsCard(
-        title = stringResource(Res.string.settings_hero),
-        subtitle = stringResource(Res.string.settings_hero_subtitle),
-    ) {
-        Column {
-            SettingsChoice(
-                title = stringResource(Res.string.settings_hero_source),
-                subtitle = stringResource(Res.string.settings_hero_source_subtitle),
-                options = HeroSource.entries,
-                selected = source,
-                label = { sourceLabels.getValue(it) },
-                onSelect = onSourceChange,
-            )
-            // Smart draws from every row, so only Manual has anything to pick.
-            if (source == HeroSource.MANUAL) {
-                Spacer(Modifier.height(AppSpacing.sm))
-                Text(stringResource(Res.string.settings_hero_catalogs), style = AppType.itemTitle())
-                Text(
-                    stringResource(Res.string.settings_hero_catalogs_selected, selectedKeys.size, MAX_HERO_CATALOGS),
-                    style = AppType.bodySecondary(),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(AppSpacing.xs))
-                when {
-                    failed ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                stringResource(Res.string.settings_hero_catalogs_error),
-                                style = AppType.bodySecondary(),
-                                color = MaterialTheme.colorScheme.error,
-                            )
-                            Spacer(Modifier.width(AppSpacing.sm))
-                            ActionButton(
-                                text = stringResource(Res.string.action_try_again),
-                                onClick = { attempt++ },
-                                style = ActionButtonStyle.Text,
-                            )
-                        }
-                    options == null ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            CircularProgressIndicator(Modifier.size(AppIconSize.sm))
-                            Spacer(Modifier.width(AppSpacing.sm))
-                            Text(stringResource(Res.string.settings_hero_catalogs_loading), style = AppType.bodySecondary())
-                        }
-                    options.orEmpty().isEmpty() ->
-                        Text(
-                            stringResource(Res.string.settings_hero_catalogs_empty),
-                            style = AppType.bodySecondary(),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+    SettingsPanel {
+        SettingsSelectRow(
+            title = stringResource(Res.string.settings_hero_source),
+            description = stringResource(Res.string.settings_hero_source_subtitle),
+            options = HeroSource.entries,
+            selected = state.heroSource,
+            label = { sourceLabels.getValue(it) },
+            onSelect = { value -> save { settings.setHeroSource(value) } },
+        )
+    }
+
+    // Smart draws from every row, so only Manual has anything to pick.
+    if (state.heroSource != HeroSource.MANUAL) return
+
+    SettingsSubsection(
+        title = stringResource(Res.string.settings_hero_catalogs),
+        subtitle = stringResource(Res.string.settings_hero_catalogs_selected, state.heroCatalogKeys.size, MAX_HERO_CATALOGS),
+    )
+    SettingsPanel {
+        when {
+            failed ->
+                SettingsRow(
+                    title = stringResource(Res.string.settings_hero_catalogs_error),
+                    trailing = {
+                        ActionButton(
+                            text = stringResource(Res.string.action_try_again),
+                            onClick = { attempt++ },
+                            style = ActionButtonStyle.Text,
                         )
-                    else ->
-                        options.orEmpty().forEach { ref ->
-                            HeroCatalogOption(
-                                ref = ref,
-                                selected = ref.key in selectedKeys,
-                                enabled = ref.key in selectedKeys || selectedKeys.size < MAX_HERO_CATALOGS,
-                                onToggle = { checked ->
-                                    onKeysChange(if (checked) selectedKeys + ref.key else selectedKeys - ref.key)
-                                },
-                            )
-                        }
+                    },
+                )
+            options == null ->
+                SettingsRow(
+                    title = stringResource(Res.string.settings_hero_catalogs_loading),
+                    trailing = { CircularProgressIndicator(Modifier.size(AppIconSize.sm)) },
+                )
+            options.orEmpty().isEmpty() ->
+                SettingsRow(title = stringResource(Res.string.settings_hero_catalogs_empty))
+            else ->
+                options.orEmpty().forEachIndexed { index, ref ->
+                    if (index > 0) SettingsDivider()
+                    HeroCatalogRow(
+                        ref = ref,
+                        selected = ref.key in state.heroCatalogKeys,
+                        enabled = ref.key in state.heroCatalogKeys || state.heroCatalogKeys.size < MAX_HERO_CATALOGS,
+                        onToggle = { checked ->
+                            save {
+                                settings.setHeroCatalogKeys(
+                                    if (checked) state.heroCatalogKeys + ref.key else state.heroCatalogKeys - ref.key,
+                                )
+                            }
+                        },
+                    )
                 }
-            }
         }
     }
 }
 
 /** One catalog a manual billboard can draw from. */
 @Composable
-private fun HeroCatalogOption(
+private fun HeroCatalogRow(
     ref: CatalogRef,
     selected: Boolean,
     enabled: Boolean,
@@ -442,7 +498,7 @@ private fun HeroCatalogOption(
 ) {
     val typeLabel = contentTypeLabel(ref.type)
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = AppSpacing.xs),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = AppSpacing.lg, vertical = AppSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Checkbox(checked = selected, onCheckedChange = onToggle, enabled = enabled)
@@ -457,78 +513,53 @@ private fun HeroCatalogOption(
             )
             val subtitle = listOfNotNull(ref.addonName.takeIf { it.isNotBlank() }, typeLabel).joinToString("  ·  ")
             if (subtitle.isNotEmpty()) {
-                Text(subtitle, style = AppType.bodySecondary(), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                Text(subtitle, style = AppType.caption(), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
             }
         }
     }
 }
 
-@Composable
-private fun PlaybackSettingsCard(
-    resumePlayback: Boolean,
-    autoPlayNext: Boolean,
-    onResumeChange: (Boolean) -> Unit,
-    onAutoPlayChange: (Boolean) -> Unit,
-) {
-    SettingsCard(
-        title = stringResource(Res.string.settings_playback),
-        subtitle = stringResource(Res.string.settings_playback_subtitle),
-    ) {
-        Column {
-            SettingsToggle(
-                title = stringResource(Res.string.settings_resume),
-                subtitle = stringResource(Res.string.settings_resume_subtitle),
-                checked = resumePlayback,
-                onCheckedChange = onResumeChange,
-            )
-            SettingsToggle(
-                title = stringResource(Res.string.settings_autoplay),
-                subtitle = stringResource(Res.string.settings_autoplay_subtitle),
-                checked = autoPlayNext,
-                onCheckedChange = onAutoPlayChange,
-            )
-        }
-    }
-}
-
 /**
- * Optional TMDB enrichment: the API key, the answer language, a connection
- * test and the attribution the TMDB terms require.
+ * Optional TMDB enrichment: the API key, the answer language, a connection test
+ * and the attribution the TMDB terms require.
  *
  * The key lives in `settings.json` like the rest of the preferences, so it stays
  * hand-editable; it is masked here and never logged.
  */
 @Composable
-private fun MetadataCard(
-    apiKey: String,
-    language: TmdbLanguage,
-    onSaveKey: (String) -> Unit,
-    onLanguageChange: (TmdbLanguage) -> Unit,
+private fun MetadataSection(
+    state: AppSettings,
+    settings: SettingsRepository,
+    save: Save,
 ) {
     val tmdb = LocalAppServices.current.tmdb
     val scope = rememberCoroutineScope()
-    var draft by remember(apiKey) { mutableStateOf(apiKey) }
+    var draft by remember(state.tmdbApiKey) { mutableStateOf(state.tmdbApiKey) }
     var visible by remember { mutableStateOf(false) }
     var testing by remember { mutableStateOf(false) }
-    var result by remember(apiKey, draft) { mutableStateOf<TmdbVerifyResult?>(null) }
+    var result by remember(state.tmdbApiKey, draft) { mutableStateOf<TmdbVerifyResult?>(null) }
     val languageLabels =
         mapOf(
             TmdbLanguage.SYSTEM to stringResource(Res.string.settings_tmdb_language_system),
             TmdbLanguage.ENGLISH to stringResource(Res.string.settings_tmdb_language_english),
             TmdbLanguage.SPANISH to stringResource(Res.string.settings_tmdb_language_spanish),
         )
-    SettingsCard(
-        title = stringResource(Res.string.settings_metadata),
-        subtitle = stringResource(Res.string.settings_metadata_subtitle),
-    ) {
-        Column {
+    SettingsPanel {
+        Column(Modifier.fillMaxWidth().padding(AppSpacing.lg)) {
+            Text(stringResource(Res.string.settings_tmdb_api_key), style = AppType.itemTitle())
+            Text(
+                stringResource(Res.string.settings_tmdb_api_key_subtitle),
+                style = AppType.bodySecondary(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(AppSpacing.sm))
             AppTextField(
                 value = draft,
                 onValueChange = {
                     draft = it
                     result = null
                 },
-                label = stringResource(Res.string.settings_tmdb_api_key),
+                placeholder = stringResource(Res.string.settings_tmdb_api_key),
                 singleLine = true,
                 visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth(),
@@ -544,26 +575,12 @@ private fun MetadataCard(
                     )
                 },
             )
-            Spacer(Modifier.height(AppSpacing.xs))
-            Text(
-                stringResource(Res.string.settings_tmdb_api_key_subtitle),
-                style = AppType.caption(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            SettingsChoice(
-                title = stringResource(Res.string.settings_tmdb_language),
-                subtitle = stringResource(Res.string.settings_tmdb_language_subtitle),
-                options = TmdbLanguage.entries,
-                selected = language,
-                label = { languageLabels.getValue(it) },
-                onSelect = onLanguageChange,
-            )
             Spacer(Modifier.height(AppSpacing.sm))
             Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
                 ActionButton(
                     text = stringResource(Res.string.action_save),
-                    onClick = { onSaveKey(draft.trim()) },
-                    enabled = draft.trim() != apiKey,
+                    onClick = { save { settings.setTmdbApiKey(draft.trim()) } },
+                    enabled = draft.trim() != state.tmdbApiKey,
                 )
                 ActionButton(
                     text = stringResource(Res.string.settings_tmdb_test),
@@ -594,29 +611,94 @@ private fun MetadataCard(
                     color = if (outcome == TmdbVerifyResult.VALID) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                 )
             }
-            Spacer(Modifier.height(AppSpacing.md))
-            Text(
-                stringResource(Res.string.settings_tmdb_attribution),
-                style = AppType.caption(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        }
+        SettingsDivider()
+        SettingsSelectRow(
+            title = stringResource(Res.string.settings_tmdb_language),
+            description = stringResource(Res.string.settings_tmdb_language_subtitle),
+            options = TmdbLanguage.entries,
+            selected = state.tmdbLanguage,
+            label = { languageLabels.getValue(it) },
+            onSelect = { value -> save { settings.setTmdbLanguage(value) } },
+        )
+        SettingsDivider()
+        Text(
+            stringResource(Res.string.settings_tmdb_attribution),
+            style = AppType.caption(),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(AppSpacing.lg),
+        )
+    }
+}
+
+@Composable
+private fun AccountSection() {
+    val account = LocalAppServices.current.account
+    val state by account.state.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
+    var signingOut by remember { mutableStateOf(false) }
+    val unknownAccount = stringResource(Res.string.settings_signed_in_account)
+
+    SettingsPanel {
+        when {
+            state.isSignedIn ->
+                SettingsRow(
+                    title = stringResource(Res.string.settings_account),
+                    description = stringResource(Res.string.settings_signed_in_as, state.email ?: unknownAccount),
+                    trailing = {
+                        ActionButton(
+                            text = stringResource(Res.string.action_sign_out),
+                            onClick = {
+                                signingOut = true
+                                scope.launch {
+                                    try {
+                                        account.signOut()
+                                    } finally {
+                                        signingOut = false
+                                    }
+                                }
+                            },
+                            icon = FluentIcons.Logout,
+                            style = ActionButtonStyle.Tonal,
+                            enabled = !signingOut,
+                            loading = signingOut,
+                        )
+                    },
+                )
+            SignInMethod.EmailPassword in account.signInMethods ->
+                Column(Modifier.fillMaxWidth().padding(AppSpacing.lg)) {
+                    Text(
+                        stringResource(Res.string.settings_sign_in_to_load),
+                        style = AppType.bodySecondary(),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(AppSpacing.md))
+                    SignInForm()
+                }
+            else ->
+                SettingsRow(title = stringResource(Res.string.settings_sign_in_other_method))
         }
     }
 }
 
 @Composable
-private fun ConfigFileCard(
-    filePath: String,
-    onOpen: () -> Unit,
-    onReload: () -> Unit,
+private fun AdvancedSection(
+    settings: SettingsRepository,
+    save: Save,
+    onError: (StringResource) -> Unit,
+    onOpenPlayer: (PlaybackTarget) -> Unit,
 ) {
-    SettingsCard(
+    var url by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
+
+    SettingsSubsection(
         title = stringResource(Res.string.settings_config_file),
         subtitle = stringResource(Res.string.settings_config_file_subtitle),
-    ) {
-        Column {
+    )
+    SettingsPanel {
+        Column(Modifier.fillMaxWidth().padding(AppSpacing.lg)) {
             Text(
-                filePath,
+                settings.filePath,
                 style = AppType.caption(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -624,49 +706,30 @@ private fun ConfigFileCard(
             Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
                 ActionButton(
                     text = stringResource(Res.string.settings_open_file),
-                    onClick = onOpen,
+                    onClick = {
+                        save {
+                            if (!openInDefaultApp(settings.filePath)) {
+                                onError(Res.string.error_open_file)
+                            }
+                        }
+                    },
                     style = ActionButtonStyle.Tonal,
                 )
                 ActionButton(
                     text = stringResource(Res.string.settings_reload),
-                    onClick = onReload,
+                    onClick = { save { settings.reload() } },
                     style = ActionButtonStyle.Tonal,
                 )
             }
         }
     }
-}
 
-@Composable
-private fun SettingsToggle(
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = AppSpacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(title, style = AppType.itemTitle())
-            Text(subtitle, style = AppType.bodySecondary(), color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        Spacer(Modifier.width(AppSpacing.md))
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
-    }
-}
-
-@Composable
-private fun PlaybackCard(onOpenPlayer: (PlaybackTarget) -> Unit) {
-    var url by remember { mutableStateOf("") }
-    val scope = rememberCoroutineScope()
-
-    SettingsCard(
+    SettingsSubsection(
         title = stringResource(Res.string.settings_open_video),
         subtitle = stringResource(Res.string.settings_open_video_subtitle),
-    ) {
-        Column {
+    )
+    SettingsPanel {
+        Column(Modifier.fillMaxWidth().padding(AppSpacing.lg)) {
             AppTextField(
                 value = url,
                 onValueChange = { url = it },
@@ -693,51 +756,6 @@ private fun PlaybackCard(onOpenPlayer: (PlaybackTarget) -> Unit) {
                     style = ActionButtonStyle.Tonal,
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun <T> SettingsChoice(
-    title: String,
-    subtitle: String,
-    options: List<T>,
-    selected: T,
-    label: (T) -> String,
-    onSelect: (T) -> Unit,
-) {
-    Column(Modifier.fillMaxWidth().padding(vertical = AppSpacing.sm)) {
-        Text(title, style = AppType.itemTitle())
-        Text(subtitle, style = AppType.bodySecondary(), color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.height(AppSpacing.sm))
-        Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-            options.forEach { option ->
-                FilterChip(
-                    selected = option == selected,
-                    onClick = { onSelect(option) },
-                    label = { Text(label(option)) },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SettingsCard(
-    title: String,
-    subtitle: String,
-    content: @Composable () -> Unit,
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-    ) {
-        Column(modifier = Modifier.padding(AppSpacing.lg)) {
-            Text(title, style = AppType.cardTitle(), modifier = Modifier.sectionHeading())
-            Spacer(Modifier.height(AppSpacing.xs))
-            Text(subtitle, style = AppType.bodySecondary())
-            Spacer(Modifier.height(AppSpacing.md))
-            content()
         }
     }
 }

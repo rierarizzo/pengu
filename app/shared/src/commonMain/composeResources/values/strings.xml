@@ -172,13 +172,19 @@
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
+    <!-- Sidebar groups and category headers -->
+    <string name="settings_group_playback">Playback</string>
+    <string name="settings_group_app">App</string>
     <string name="settings_account">Account</string>
+    <string name="settings_account_subtitle">Your session and sign-in.</string>
+    <string name="settings_advanced">Advanced</string>
+    <string name="settings_advanced_subtitle">The configuration file and a playback test.</string>
+    <string name="settings_interface">Interface</string>
+    <string name="settings_interface_subtitle">How the app looks and moves.</string>
     <string name="settings_signed_in_as">Signed in as %1$s.</string>
     <string name="settings_signed_in_account">your account</string>
     <string name="settings_sign_in_to_load">Sign in to load your library.</string>
     <string name="settings_sign_in_other_method">This account signs in through another method.</string>
-    <string name="settings_appearance">Appearance</string>
-    <string name="settings_appearance_subtitle">How the app looks and moves.</string>
     <string name="settings_animations">Animations</string>
     <string name="settings_animations_subtitle">Transitions, hover effects and loading skeletons.</string>
     <string name="settings_theme">Theme</string>

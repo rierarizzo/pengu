@@ -19,9 +19,11 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import com.misgus.pengu.core.player.PlaybackTarget
 import com.misgus.pengu.ui.player.PlayerScreen
 import com.misgus.pengu.ui.screens.CatalogScreen
 import com.misgus.pengu.ui.screens.DetailScreen
+import com.misgus.pengu.ui.screens.SettingsCategoryScreen
 import com.misgus.pengu.ui.streams.StreamsRequest
 import com.misgus.pengu.ui.theme.AppMotion
 import com.misgus.pengu.ui.theme.AppSizes
@@ -56,6 +58,7 @@ fun ContentArea(
     selected: AppSection,
     navigator: ContentNavigator,
     onOpenStreams: (StreamsRequest) -> Unit,
+    onOpenPlayer: (PlaybackTarget) -> Unit,
 ) {
     val enabled = LocalMotionEnabled.current
     Box(Modifier.fillMaxSize()) {
@@ -87,7 +90,7 @@ fun ContentArea(
                         )
                 }
             Box(Modifier.fillMaxSize().padding(contentPadding)) {
-                SectionHost(section, navigator, onOpenStreams)
+                SectionHost(section, navigator, onOpenStreams, onOpenPlayer)
             }
         }
 
@@ -128,6 +131,12 @@ fun ContentArea(
                                 ref = target.ref,
                                 onBack = navigator::pop,
                                 onOpenDetail = { navigator.push(ContentRoute.Detail(it)) },
+                            )
+                        is ContentRoute.SettingsPage ->
+                            SettingsCategoryScreen(
+                                category = target.category,
+                                onBack = navigator::pop,
+                                onOpenPlayer = onOpenPlayer,
                             )
                         // Rendered above, outside the transition.
                         is ContentRoute.Player -> Unit

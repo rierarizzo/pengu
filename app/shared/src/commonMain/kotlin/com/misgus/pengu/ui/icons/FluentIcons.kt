@@ -12,8 +12,8 @@ import androidx.compose.ui.unit.dp
  * The whole UI uses these glyphs, on Fluent's 24dp viewport; call sites
  * size them with [com.misgus.pengu.ui.theme.AppIconSize]. `scripts/gen_fluent_icons.mjs`
  * regenerates the file from the Fluent set on Iconify. Only the glyphs the UI
- * uses are kept, and each pair (a filled and a regular glyph, e.g. star and
- * star outline) mirrors the solid/outline split the UI had before.
+ * uses are kept, and each pair (a filled and a regular glyph, e.g. check circle
+ * and its outline) mirrors the solid/outline split the UI had before.
  */
 object FluentIcons {
     val Home: ImageVector by lazy { fluent("Home", HOME) }
@@ -52,6 +52,12 @@ object FluentIcons {
     val Copy: ImageVector by lazy { fluent("Copy", COPY) }
     val Login: ImageVector by lazy { fluent("Login", LOGIN, autoMirror = true) }
     val Logout: ImageVector by lazy { fluent("Logout", LOGOUT, autoMirror = true) }
+    val Layout: ImageVector by lazy { fluent("Layout", LAYOUT) }
+    val Palette: ImageVector by lazy { fluent("Palette", PALETTE) }
+    val Sparkle: ImageVector by lazy { fluent("Sparkle", SPARKLE) }
+    val Database: ImageVector by lazy { fluent("Database", DATABASE) }
+    val Account: ImageVector by lazy { fluent("Account", ACCOUNT) }
+    val Wrench: ImageVector by lazy { fluent("Wrench", WRENCH) }
 }
 
 /**
@@ -243,3 +249,36 @@ private const val LOGOUT =
     "M6.25 3A3.25 3.25 0 0 0 3 6.25v11.5A3.25 3.25 0 0 0 6.25 21h9a.75.75 0 0 0 0-1.5h-9a1.75 1.75 0 0 1-1.75-1.75V" +
         "6.25c0-.966.784-1.75 1.75-1.75h9a.75.75 0 0 0 0-1.5zm11.28 4.22a.75.75 0 1 0-1.06 1.06l2.97 2.97H8.75a.75.75 0" +
         " 0 0 0 1.5h10.69l-2.97 2.97a.75.75 0 1 0 1.06 1.06l4.25-4.25a.75.75 0 0 0 0-1.06z"
+private const val LAYOUT =
+    "m18.492 2.33l3.179 3.18a2.25 2.25 0 0 1 0 3.181l-2.584 2.584A2.25 2.25 0 0 1 21 13.5v5.25A2.25 2.25 0 0 1 18.7" +
+        "5 21H5.25A2.25 2.25 0 0 1 3 18.75V5.25A2.25 2.25 0 0 1 5.25 3h5.25a2.25 2.25 0 0 1 2.225 1.915L15.31 2.33a2.25" +
+        " 2.25 0 0 1 3.182 0M4.5 18.75c0 .414.336.75.75.75h5.999l.001-6.75H4.5zm8.249.75h6.001a.75.75 0 0 0 .75-.75V13." +
+        "5a.75.75 0 0 0-.75-.75h-6.001zM10.5 4.5H5.25a.75.75 0 0 0-.75.75v6h6.75v-6a.75.75 0 0 0-.75-.75m2.25 4.81v1.94" +
+        "h1.94z"
+private const val PALETTE =
+    "M3.839 5.858c2.94-3.916 9.03-5.055 13.364-2.36c4.28 2.66 5.854 7.777 4.1 12.577c-1.655 4.533-6.016 6.328-9.159" +
+        " 4.048c-1.177-.854-1.634-1.925-1.854-3.664l-.106-.987l-.045-.398c-.123-.934-.311-1.352-.705-1.572c-.535-.298-." +
+        "892-.305-1.595-.033l-.351.146l-.179.078c-1.014.44-1.688.595-2.541.416l-.2-.047l-.164-.047c-2.789-.864-3.202-4." +
+        "647-.565-8.157m12.928 4.722a1.25 1.25 0 1 0 2.415-.647a1.25 1.25 0 0 0-2.415.647m.495 3.488a1.25 1.25 0 1 0 2." +
+        "414-.647a1.25 1.25 0 0 0-2.414.647m-2.474-6.491a1.25 1.25 0 1 0 2.415-.647a1.25 1.25 0 0 0-2.415.647m-.028 8.9" +
+        "98a1.25 1.25 0 1 0 2.415-.647a1.25 1.25 0 0 0-2.415.647m-3.497-9.97a1.25 1.25 0 1 0 2.415-.646a1.25 1.25 0 0 0" +
+        "-2.415.646"
+private const val SPARKLE =
+    "M8.665 15.735c.245.173.537.265.836.264v-.004a1.44 1.44 0 0 0 1.327-.872l.613-1.864a2.87 2.87 0 0 1 1.817-1.812" +
+        "l1.778-.578a1.442 1.442 0 0 0-.052-2.74l-1.755-.57a2.88 2.88 0 0 1-1.822-1.823l-.578-1.777a1.446 1.446 0 0 0-2" +
+        ".732.022l-.583 1.792a2.88 2.88 0 0 1-1.77 1.786l-1.777.57a1.444 1.444 0 0 0 .017 2.735l1.754.569a2.89 2.89 0 0" +
+        " 1 1.822 1.826l.578 1.775c.099.283.283.527.527.7m7.667 5.047a1.12 1.12 0 0 1-.41-.55l-.328-1.006a1.3 1.3 0 0 0" +
+        "-.821-.823l-.991-.323a1.15 1.15 0 0 1-.781-1.083a1.14 1.14 0 0 1 .771-1.08l1.006-.326a1.3 1.3 0 0 0 .8-.82l.32" +
+        "4-.991a1.143 1.143 0 0 1 2.157-.021l.329 1.014a1.3 1.3 0 0 0 .82.816l.992.323a1.141 1.141 0 0 1 .039 2.165l-1." +
+        "014.329a1.3 1.3 0 0 0-.818.822l-.322.989c-.078.23-.226.43-.425.57a1.14 1.14 0 0 1-1.328-.005"
+private const val DATABASE =
+    "M12 10c4.418 0 8-1.79 8-4s-3.582-4-8-4s-8 1.79-8 4s3.582 4 8 4m6.328.17A7.6 7.6 0 0 0 20 9.053V18c0 2.21-3.582" +
+        " 4-8 4s-8-1.79-8-4V9.053a7.6 7.6 0 0 0 1.672 1.117C7.37 11.018 9.608 11.5 12 11.5s4.63-.482 6.328-1.33"
+private const val ACCOUNT =
+    "M17.755 14a2.25 2.25 0 0 1 2.248 2.25v.918a2.75 2.75 0 0 1-.512 1.598c-1.546 2.164-4.07 3.235-7.49 3.235c-3.42" +
+        "2 0-5.945-1.072-7.487-3.236a2.75 2.75 0 0 1-.51-1.596v-.92A2.25 2.25 0 0 1 6.253 14zM12 2.005a5 5 0 1 1 0 10a5" +
+        " 5 0 0 1 0-10"
+private const val WRENCH =
+    "M16.5 2a5.5 5.5 0 0 0-5.348 6.789L2.841 17.1a2.871 2.871 0 1 0 4.06 4.06l8.313-8.311q.621.15 1.286.151a5.5 5.5" +
+        " 0 0 0 5.218-7.245a.75.75 0 0 0-1.242-.292l-2.444 2.444a.75.75 0 0 1-1.06 0l-.879-.878a.75.75 0 0 1 0-1.06l2.4" +
+        "45-2.445a.75.75 0 0 0-.293-1.241A5.5 5.5 0 0 0 16.5 2"

@@ -124,8 +124,13 @@ leer/escribir/borrar vive una sola vez.
   `JsonSettingsRepository` lo lee de
   forma defensiva, conserva las claves desconocidas al escribir y puede
   `reload()` tras una edición manual; la pantalla de ajustes agrupa los toggles
-  por categoría, edita el mismo fichero, muestra su ruta y puede abrirlo en el
-  editor del SO. `labels.hidden` suprime las etiquetas de título y año bajo cada
+  en categorías (`SettingsCategory`, en `ui/screens`), edita el mismo fichero,
+  muestra su ruta y puede abrirlo en el editor del SO. Una ventana ancha pinta
+  las categorías como una barra lateral agrupada junto a la página seleccionada;
+  una ventana compacta pinta los mismos grupos como índice y apila cada página
+  como `ContentRoute.SettingsPage`, así que un móvil entra en una categoría cada
+  vez mientras cada ajuste se define una sola vez. `labels.hidden` suprime las
+  etiquetas de título y año bajo cada
   póster (Home, rejillas de catálogo, Discover, Search, el "More like this" del
   detalle y la biblioteca) para que el artwork se lea solo; un card sin labels
   colapsa al ratio 2:3 del artwork (`POSTER_ART_ASPECT`) en vez de estirar la
@@ -568,13 +573,14 @@ leer/escribir/borrar vive una sola vez.
   `AutoMirrored`.
 - **La navegación** es una pequeña pila tipada (`ContentNavigator` +
   `ContentRoute`) renderizada dentro del área de contenido del shell. Las
-  secciones mantienen la navegación visible; una ruta apilada (detalle, catálogo)
-  la oculta y pinta su propio fondo, así que un hero inmersivo como el de detalle
-  llena toda la ventana sin que la sección de debajo se transparente — el mismo
-  comportamiento que el `Navigator` anidado de Flutter, sin añadir una librería
-  de navegación. El chrome es custom en las dos clases: una ventana compacta
-  recibe una barra inferior solo-iconos; una ventana ancha un rail de navegación
-  izquierdo. Ambas comparten un mismo item (`SectionNavItem`), así que se
+  secciones mantienen la navegación visible; una ruta apilada (detalle, catálogo,
+  página de ajustes) la oculta y pinta su propio fondo, así que un hero inmersivo
+  como el de detalle llena toda la ventana sin que la sección de debajo se
+  transparente — el mismo comportamiento que el `Navigator` anidado de Flutter,
+  sin añadir una librería de navegación. El chrome es custom en las dos clases:
+  una ventana compacta recibe una barra inferior solo-iconos; una ventana ancha
+  un rail de navegación izquierdo. Ambas comparten un mismo item
+  (`SectionNavItem`), así que se
   comportan igual: el glifo lleva el estado (ámbar al seleccionar, más claro en
   hover, foco o press) sin caja de state layer, el anillo de foco compartido
   marca el target de teclado/D-pad, y el item se anuncia como pestaña

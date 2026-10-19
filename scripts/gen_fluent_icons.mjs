@@ -42,6 +42,12 @@ const icons = [
   ["Copy", "copy-24-regular", false],
   ["Login", "arrow-enter-24-regular", true],
   ["Logout", "arrow-exit-24-regular", true],
+  ["Layout", "apps-24-filled", false],
+  ["Palette", "color-24-filled", false],
+  ["Sparkle", "sparkle-24-filled", false],
+  ["Database", "database-24-filled", false],
+  ["Account", "person-24-filled", false],
+  ["Wrench", "wrench-24-filled", false],
 ];
 
 const constName = (kotlin) =>

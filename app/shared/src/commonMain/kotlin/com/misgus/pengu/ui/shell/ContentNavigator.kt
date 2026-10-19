@@ -4,8 +4,9 @@ import androidx.compose.runtime.mutableStateListOf
 import com.misgus.pengu.core.model.LibraryItem
 import com.misgus.pengu.core.player.PlaybackTarget
 import com.misgus.pengu.core.repository.CatalogRef
+import com.misgus.pengu.ui.screens.SettingsCategory
 
-/** A pushed content route (detail, full catalog or the player). */
+/** A pushed content route (detail, full catalog, settings page or the player). */
 sealed interface ContentRoute {
     data class Detail(
         val item: LibraryItem,
@@ -22,6 +23,11 @@ sealed interface ContentRoute {
 
     data class Player(
         val target: PlaybackTarget,
+    ) : ContentRoute
+
+    /** One settings page, opened from the compact index. */
+    data class SettingsPage(
+        val category: SettingsCategory,
     ) : ContentRoute
 }
 

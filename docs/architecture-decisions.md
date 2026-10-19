@@ -114,9 +114,13 @@ so the atomic read/write/delete logic lives once.
   `player.autoPlayNext`, `poster.size`, `labels.hidden`, `catalog.showType`,
   `metadata.tmdbApiKey`, `metadata.tmdbLanguage`).
   `JsonSettingsRepository` reads it defensively, keeps unknown keys on write and
-  can `reload()` after a manual edit; the settings screen groups the toggles by
-  category, edits the same file, shows its path and can open it in the OS
-  editor. `labels.hidden` suppresses the title and year captions under every
+  can `reload()` after a manual edit; the settings screen groups the toggles into
+  categories (`SettingsCategory`, in `ui/screens`), edits the same file, shows
+  its path and can open it in the OS editor. A wide window renders the categories
+  as a grouped sidebar beside the selected page; a compact window renders the
+  same groups as an index and pushes each page as a `ContentRoute.SettingsPage`,
+  so a phone walks into one category at a time while each setting is defined
+  once. `labels.hidden` suppresses the title and year captions under every
   poster (Home, catalog grids, Discover, Search, the detail's "More like this"
   and the library) so the artwork reads on its own; a label-less card collapses
   to the artwork's 2:3 ratio (`POSTER_ART_ASPECT`) instead of stretching the art
@@ -532,11 +536,11 @@ so the atomic read/write/delete logic lives once.
   chevron; arrows use the `AutoMirrored` icons.
 - **Navigation** is a small typed stack (`ContentNavigator` + `ContentRoute`)
   rendered inside the shell content area. Sections keep the navigation
-  visible; a pushed route (detail, catalog) hides it and paints its own
-  background, so an immersive hero such as the detail one fills the whole window
-  without the section underneath showing through — the same behaviour as the
-  Flutter nested `Navigator`, without adding a navigation library. The chrome is
-  custom on both classes: a compact window gets an icon-only bottom bar, a wide
+  visible; a pushed route (detail, catalog, settings page) hides it and paints
+  its own background, so an immersive hero such as the detail one fills the whole
+  window without the section underneath showing through — the same behaviour as
+  the Flutter nested `Navigator`, without adding a navigation library. The chrome
+  is custom on both classes: a compact window gets an icon-only bottom bar, a wide
   window a left navigation rail. Both share one item (`SectionNavItem`), so they
   behave identically: the glyph carries the state (amber when selected, brighter
   on hover, focus or press) with no state-layer box, the shared focus ring marks

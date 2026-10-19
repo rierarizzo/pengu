@@ -1,10 +1,8 @@
 package com.misgus.pengu.ui.shell
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.misgus.pengu.app.shared.generated.resources.Res
-import com.misgus.pengu.app.shared.generated.resources.error_playback_unavailable
+import com.misgus.pengu.core.player.PlaybackTarget
 import com.misgus.pengu.ui.calendar.CalendarScreen
 import com.misgus.pengu.ui.calendar.CalendarViewModel
 import com.misgus.pengu.ui.discover.DiscoverViewModel
@@ -17,8 +15,6 @@ import com.misgus.pengu.ui.search.SearchScreen
 import com.misgus.pengu.ui.search.SearchViewModel
 import com.misgus.pengu.ui.services.LocalAppServices
 import com.misgus.pengu.ui.streams.StreamsRequest
-import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.stringResource
 
 /**
  * Content of the shell: shows [selected].
@@ -32,6 +28,7 @@ fun SectionHost(
     selected: AppSection,
     navigator: ContentNavigator,
     onOpenStreams: (StreamsRequest) -> Unit,
+    onOpenPlayer: (PlaybackTarget) -> Unit,
 ) {
     val services = LocalAppServices.current
     when (selected) {
@@ -102,21 +99,10 @@ fun SectionHost(
                 navigator = navigator,
             )
         }
-        AppSection.SETTINGS -> {
-            val snackbar = LocalSnackbarHost.current
-            val scope = rememberCoroutineScope()
-            val playbackUnavailable = stringResource(Res.string.error_playback_unavailable)
+        AppSection.SETTINGS ->
             SettingsScreen(
-                onOpenPlayer = { target ->
-                    if (services.playbackSupported) {
-                        navigator.push(ContentRoute.Player(target))
-                    } else {
-                        scope.launch {
-                            snackbar?.showSnackbar(playbackUnavailable)
-                        }
-                    }
-                },
+                onOpenPlayer = onOpenPlayer,
+                onOpenCategory = { category -> navigator.push(ContentRoute.SettingsPage(category)) },
             )
-        }
     }
 }

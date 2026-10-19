@@ -86,6 +86,17 @@ fun AppShell() {
     var streamsRequest by remember { mutableStateOf<StreamsRequest?>(null) }
     val playbackUnavailable = stringResource(Res.string.error_playback_unavailable)
     val sourceUnplayable = stringResource(Res.string.error_source_unplayable)
+    // One place decides whether a playback target can open, so a section and a
+    // pushed settings page cannot disagree about the support check.
+    val openPlayer: (PlaybackTarget) -> Unit = { target ->
+        if (services.playbackSupported) {
+            navigator.push(ContentRoute.Player(target))
+        } else {
+            scope.launch {
+                snackbarHost.showSnackbar(playbackUnavailable)
+            }
+        }
+    }
 
     // The system back leaves a pushed route before it leaves the app. A dialog
     // or the player is composed on top, so it gets the event first.
@@ -136,6 +147,7 @@ fun AppShell() {
                         ContentArea(
                             selected = selected,
                             navigator = navigator,
+                            onOpenPlayer = openPlayer,
                             onOpenStreams = { request ->
                                 if (services.playbackSupported) {
                                     streamsRequest = request

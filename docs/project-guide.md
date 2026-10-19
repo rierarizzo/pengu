@@ -51,6 +51,7 @@ inject in-memory fakes.
 |---|---|
 | Add or change a screen section (Home, Search…) | `app/shared/.../ui/shell/AppSection.kt`, `SectionHost.kt` |
 | Add a pushed screen (detail, player…) | `app/shared/.../ui/shell/ContentNavigator.kt` (`ContentRoute`), `ContentArea.kt` |
+| Add or change a settings category | `app/shared/.../ui/screens/SettingsCategory.kt`, `SettingsScreen.kt` |
 | Change a screen's logic/state | `app/shared/.../ui/<feature>/<Feature>ViewModel.kt` + `<Feature>Screen.kt` |
 | Share behavior across data sections | `app/shared/.../ui/common/` (`AccountScopedViewModel`, `WatchedBadgeSync`) |
 | Change colors, spacing, type, motion | `app/shared/.../ui/theme/` (`Tokens.kt`, `AppTheme.kt`, `AppType.kt`, `Motion.kt`, `WindowSize.kt`, `PosterSize.kt`) |
@@ -262,11 +263,12 @@ not exist, and drive it with `StandardTestDispatcher` + `advanceUntilIdle()`
 1. Add a field to `AppSettings` (`core/.../repository/SettingsRepository.kt`).
 2. Add the getter/setter to `SettingsRepository` and the key in
    `JsonSettingsRepository`.
-3. Add the control in `SettingsScreen`. The JSON file stays hand-editable.
+3. Add the control to the matching page in `SettingsScreen.kt`; `SettingsCategory`
+   picks the page. The JSON file stays hand-editable.
 
 **Add a theme**
 1. Add a value to `AppTheme`, a palette to `AppThemes` (`ui/theme/Tokens.kt`) and
-   a label to the `themeLabels` map in `SettingsScreen`'s `AppearanceCard`, plus
+   a label to the `themeLabels` map in `SettingsScreen`'s `ThemeSection`, plus
    the string in `strings.xml`. The picker iterates `AppTheme.entries`, so the
    new option appears on its own; every other surface reads `LocalBrandPalette`
    or a scheme role and needs no change.
