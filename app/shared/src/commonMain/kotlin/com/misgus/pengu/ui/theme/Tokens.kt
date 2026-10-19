@@ -170,6 +170,15 @@ object AppSizes {
      */
     val bottomBarHeight: Dp = 64.dp
 
+    /**
+     * Scroll distance that collapses or expands the compact navigation bar.
+     *
+     * Small enough to react to a real scroll, large enough that a jitter does not
+     * flicker the bar. The scroll connection converts it to pixels and applies it
+     * in both directions.
+     */
+    val scrollCollapseThreshold: Dp = 12.dp
+
     /** Height of the desktop custom title bar. */
     val titleBarHeight: Dp = 40.dp
 

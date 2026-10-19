@@ -68,15 +68,17 @@ fun ContentArea(
             },
             label = "section",
         ) { section ->
-            // Sections reserve the navigation plus the system bars it sits
-            // behind: a phone reserves the bottom bar, a wide window the rail.
+            // The compact bottom bar floats over the content, so a scrolling
+            // section runs edge-to-edge behind it and the bar folds away as the
+            // user scrolls. Calendar does not scroll, so it keeps the bar's height
+            // to stay clear of it. A wide window reserves the rail's width.
             val compact = LocalWindowSize.current == WindowSize.COMPACT
             val contentPadding =
                 when {
-                    section == AppSection.HOME && compact ->
-                        PaddingValues(bottom = AppSizes.bottomBarHeight + safeBottomInset)
-                    compact ->
+                    section == AppSection.HOME && compact -> PaddingValues(bottom = safeBottomInset)
+                    section == AppSection.CALENDAR && compact ->
                         PaddingValues(top = safeTopInset, bottom = AppSizes.bottomBarHeight + safeBottomInset)
+                    compact -> PaddingValues(top = safeTopInset, bottom = safeBottomInset)
                     else ->
                         PaddingValues(
                             start = AppSizes.railWidth,

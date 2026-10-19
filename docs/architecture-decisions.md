@@ -230,8 +230,8 @@ so the atomic read/write/delete logic lives once.
   expanded, at Material's 600 and 840 dp breakpoints) plus the window width,
   through `LocalWindowSize` / `LocalWindowWidth`, so a surface picks a layout
   without measuring anything itself. Compact windows (phones) always get an
-  icon-only bottom bar and reserve its height; wider windows always get a left
-  navigation rail and reserve its width.
+  icon-only bottom bar that floats over the content; wider windows always get a
+  left navigation rail, whose width the content reserves.
   The poster rows scale their card width down on compact windows (the user's
   default / large choice applies there) and the grids keep a fixed
   three-per-row layout on a phone, the Home hero swaps
@@ -345,9 +345,11 @@ so the atomic read/write/delete logic lives once.
   `safeTopInset` / `safeBottomInset` (`ui/theme/WindowSize.kt`, backed by
   `WindowInsets.statusBars` / `navigationBars`, zero on desktop) or the
   `statusBarsPadding` / `navigationBarsPadding` / `safeDrawingPadding`
-  modifiers. The shell reserves the navigation plus the system bars it sits
-  behind for a section (the bottom bar on a phone, the rail on a wide
-  window); the navigation bars carry their own inset; the detail backdrop, the
+  modifiers. The shell floats the compact bottom bar over the content, which runs
+  edge-to-edge behind it and keeps only the system bars' space, so the bar can
+  fold away on scroll without leaving a gap; a non-scrolling section (Calendar)
+  keeps the bar's height, and a wide window reserves the rail's width. The
+  navigation bars carry their own inset; the detail backdrop, the
   player and the onboarding/profile gates paint behind the bars while their
   controls sit below them; and the Home billboard scrolls with the content (it
   is never pinned) in a plain `Column` + `verticalScroll`, not a `LazyColumn`:
@@ -464,11 +466,20 @@ so the atomic read/write/delete logic lives once.
   `outlineVariant` top edge and stands 64dp tall
   (`bottomBarHeight`), not Material's 80dp label height that it has no label to
   fill. Selection reads from the first frame instead of appearing only once the
-  item is focused.
+  item is focused. The compact bar is an overlay over the edge-to-edge content,
+  so hiding it never leaves a gap. It folds away while the content is scrolled
+  down and animates back on a scroll up: a `nestedScroll` connection on the
+  shell's content box (`AppChrome.scrollCollapsed`, `collapseChromeOnScroll`)
+  flips it once the content has travelled `AppSizes.scrollCollapseThreshold`.
+  Switching a section or opening/leaving a route expands it again. The wide rail
+  never scrolls away, since it is the window's chrome rather than a strip
+  floating over the content.
 - **Search owns the discover feed.** It has a free-text search across every
   catalog that declares the `search` extra, debounced, run in parallel and
   deduped across addons, split into Movies / Series / Other rails; and — while
-  the query is empty — the discover feed underneath the bar. The feed flattens
+  the query is empty — the discover feed underneath the bar. The search field is
+  pinned at the top with the same `screenPadding` as the other sections' first
+  row and a `md` gap below it. The feed flattens
   every catalog the enabled addons declare into a single mixed grid, like the
   Library, so the catalog boundaries stay invisible. Only browsable catalogs are
   used: one whose extras are required (a search term, a list of ids, ...) cannot
@@ -477,12 +488,8 @@ so the atomic read/write/delete logic lives once.
   addon with many catalogs does not crowd out the rest, and the items are
   interleaved round-robin and deduped, so the grid alternates sources instead of
   showing one catalog as a block. It pages with `skip` as the grid is scrolled,
-  so it keeps growing instead of stopping at the first page, and it keeps paging
-  while a narrow filter has not yet yielded enough items to show. Two dropdowns
-  — the title type (All / Movies / Series) and the genre — narrow both the feed
-  and the search results; the genre menu is built from the genres of the items
-  that have loaded, so it never offers one the addons do not return. Discover is
-  no longer a section. **Calendar** paints a month grid with the upcoming
+  so it keeps growing instead of stopping at the first page. Discover is no
+  longer a section. **Calendar** paints a month grid with the upcoming
   episodes of the Library's series; see the limitation below.
 - **Theme** follows Material 3 and is data, not code. `BrandPalette`
   (`theme/Tokens.kt`) is a data class holding one theme's raw colours, `AppThemes`
@@ -523,7 +530,7 @@ so the atomic read/write/delete logic lives once.
   inline — caps it to one ellipsised
   line, and steps the whole control down slightly while pressed; a `selected`
   flag turns the low-emphasis weights amber for the season picker, and an
-  optional `trailingIcon` carries the filter dropdown arrow. `AppTextField` pins the form fields to `shapes.small`, a
+  optional `trailingIcon` adds a trailing glyph. `AppTextField` pins the form fields to `shapes.small`, a
   `surfaceContainerLow` container and an amber-on-focus border, with an
   `AppSearchField` variant (leading magnifier, clear action) for Search and
   streams. `AppIconButton` is the one icon control — media headers, the player

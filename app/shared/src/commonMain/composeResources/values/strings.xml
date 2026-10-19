@@ -66,21 +66,13 @@
     <string name="catalog_empty_message">This catalog is empty.</string>
 
     <!-- Search -->
-    <string name="search_discover">Discover</string>
     <string name="search_placeholder">Search movies and series</string>
-    <string name="search_all_genres">All Genres</string>
     <string name="search_failed_title">Search failed</string>
     <string name="search_no_results_title">No results</string>
     <string name="search_nothing_matched">Nothing matched &quot;%1$s&quot;.</string>
-    <string name="search_nothing_matched_typed">No %1$s matched &quot;%2$s&quot;.</string>
-    <string name="search_nothing_matched_typed_genre">No %1$s in %2$s matched &quot;%3$s&quot;.</string>
-    <string name="search_type_all">All Types</string>
     <string name="search_type_movies">Movies</string>
     <string name="search_type_series">Series</string>
     <string name="search_type_other">Other</string>
-    <string name="search_type_titles">titles</string>
-    <string name="search_type_movies_lower">movies</string>
-    <string name="search_type_series_lower">series</string>
 
     <!-- Content types -->
     <string name="content_type_movie">Movie</string>

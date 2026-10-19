@@ -172,8 +172,8 @@ fun ActionButton(
             ),
         contentPadding =
             PaddingValues(
-                // Low-emphasis buttons sit inline (season picker, filter row), so
-                // they keep a tighter horizontal rhythm than a call to action.
+                // Low-emphasis buttons sit inline, so they keep a tighter
+                // horizontal rhythm than a call to action.
                 horizontal =
                     if (style == ActionButtonStyle.Outline || style == ActionButtonStyle.Text) {
                         AppSpacing.md

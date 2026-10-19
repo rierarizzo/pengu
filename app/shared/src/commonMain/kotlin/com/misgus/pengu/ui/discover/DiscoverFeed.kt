@@ -40,11 +40,11 @@ import org.jetbrains.compose.resources.stringResource
 /**
  * The discover feed: every catalog item in one infinite grid.
  *
- * It is embedded in the Search section, so it owns no loading trigger and no
- * filter control; the caller loads and pages it, and passes the already-filtered
- * [items]. A single mixed grid (like the Library) instead of per-catalog rails:
- * the catalog boundaries are an addon detail the user should not have to care
- * about. Reaching the end loads the next page.
+ * It is embedded in the Search section, so it owns no loading trigger, no filter
+ * control and no header; the caller loads and pages it, and passes the [items] to
+ * show. A single mixed grid (like the Library) instead of per-catalog rails: the
+ * catalog boundaries are an addon detail the user should not have to care about.
+ * Reaching the end loads the next page.
  */
 @Composable
 fun DiscoverFeed(
@@ -98,9 +98,7 @@ private fun DiscoverGrid(
     val windowSize = LocalWindowSize.current
     // `rememberUpdatedState` keeps the count current inside the derived state;
     // capturing `items` directly would freeze it at the first composition and
-    // make `shouldLoadMore` permanently true, loading every page at once. The
-    // count is of the filtered list, so a narrow filter keeps pulling pages
-    // until it has enough to show.
+    // make `shouldLoadMore` permanently true, loading every page at once.
     val itemCount by rememberUpdatedState(items.size)
     val shouldLoadMore by remember {
         derivedStateOf {

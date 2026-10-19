@@ -245,8 +245,9 @@ leer/escribir/borrar vive una sola vez.
   los breakpoints de Material de 600 y 840 dp) más el ancho de ventana, a través
   de `LocalWindowSize` / `LocalWindowWidth`, para que una superficie elija un
   layout sin medir nada por sí misma. Las ventanas compactas (teléfonos) reciben
-  siempre una barra inferior solo-iconos y reservan su altura; las ventanas más
-  anchas reciben siempre un rail de navegación izquierdo y reservan su ancho.
+  siempre una barra inferior solo-iconos que flota sobre el contenido; las
+  ventanas más anchas reciben siempre un rail de navegación izquierdo, cuyo
+  ancho reserva el contenido.
   Las filas de pósters reducen su ancho de tarjeta en ventanas compactas (la
   elección default / large del usuario aplica ahí) y las rejillas mantienen un
   layout fijo de tres por fila en el teléfono, el
@@ -367,11 +368,14 @@ leer/escribir/borrar vive una sola vez.
   mediante `safeTopInset` / `safeBottomInset` (`ui/theme/WindowSize.kt`,
   respaldados por `WindowInsets.statusBars` / `navigationBars`, cero en desktop)
   o los modificadores `statusBarsPadding` / `navigationBarsPadding` /
-  `safeDrawingPadding`. El shell reserva la navegación más las barras del sistema
-  tras las que se sienta para una sección (la barra inferior en un teléfono, el
-  rail en ventana ancha); las barras de navegación llevan su propio inset; el
-  fondo del detalle, el reproductor y las puertas de onboarding/perfil pintan
-  tras las barras mientras sus controles se sientan debajo; y el billboard de
+  `safeDrawingPadding`. El shell flota la barra inferior compacta sobre el
+  contenido, que corre a sangre por detrás y solo reserva el espacio de las
+  barras del sistema, así que la barra puede plegarse al hacer scroll sin dejar
+  hueco; una sección que no scrollea (Calendar) mantiene la altura de la barra, y
+  una ventana ancha reserva el ancho del rail. Las barras de navegación llevan su
+  propio inset; el fondo del detalle, el reproductor y las puertas de
+  onboarding/perfil pintan tras las barras mientras sus controles se sientan
+  debajo; y el billboard de
   Home se desplaza con el contenido (nunca se fija) en un `Column` +
   `verticalScroll` plano, no un `LazyColumn`: el reciclado lazy recompone cada
   fila (y libera el hero) al cruzar el viewport, lo que cuesta más de lo que
@@ -490,13 +494,22 @@ leer/escribir/borrar vive una sola vez.
   64dp de alto
   (`bottomBarHeight`), no los 80dp de la barra con etiqueta que no tiene etiqueta
   que llenar. La selección se ve desde el primer frame en vez de aparecer solo
-  cuando el item recibe foco.
+  cuando el item recibe foco. La barra compacta es un overlay sobre el contenido
+  a sangre, así que ocultarla nunca deja hueco. Se repliega mientras se hace
+  scroll hacia abajo y vuelve con animación al hacer scroll hacia arriba: una
+  conexión `nestedScroll` en la caja de contenido del shell
+  (`AppChrome.scrollCollapsed`, `collapseChromeOnScroll`) la cambia en cuanto el
+  contenido recorre `AppSizes.scrollCollapseThreshold`. Cambiar de sección o
+  abrir/cerrar una ruta la expande de nuevo. El rail ancho nunca se oculta,
+  porque es el chrome de la ventana y no una franja flotando sobre el contenido.
 - **Search es dueña del feed de discover.** Tiene una búsqueda de texto libre en
   cada catálogo que declara el extra `search`, con debounce, ejecutada en
   paralelo y deduplicada entre addons, dividida en raíles Movies / Series /
   Other; y — mientras la consulta está vacía — el feed de discover debajo de la
-  barra. El feed aplana cada catálogo que declaran los addons activos en una
-  única rejilla mixta, como la Library, para que los límites de catálogo queden
+  barra. El campo de búsqueda queda fijado arriba con el mismo `screenPadding`
+  que la primera fila de las demás secciones y un margen `md` por debajo. El feed
+  aplana cada catálogo que declaran los addons activos en una única rejilla mixta,
+  como la Library, para que los límites de catálogo queden
   invisibles. Solo se usan catálogos navegables: uno cuyos extras son
   obligatorios (un término de búsqueda, una lista de ids, ...) no se puede pedir
   sin una consulta, así que se salta en vez de pedir y obtener una página vacía.
@@ -504,14 +517,9 @@ leer/escribir/borrar vive una sola vez.
   muchos catálogos no desplaza a los demás, y los items se intercalan round-robin
   y se deduplican, así que la rejilla alterna fuentes en vez de mostrar un
   catálogo como un bloque. Pagina con `skip` según se desplaza la rejilla, así
-  que sigue creciendo en vez de parar en la primera página, y sigue paginando
-  mientras un filtro estrecho no haya dado suficientes items para mostrar. Dos
-  dropdowns — el tipo de título (All / Movies / Series) y el género — estrechan
-  tanto el feed como los resultados de búsqueda; el menú de géneros se construye
-  a partir de los géneros de los items que se han cargado, así que nunca ofrece
-  uno que los addons no devuelvan. Discover ya no es una sección. **Calendar**
-  pinta una rejilla mensual con los próximos episodios de las series de la
-  Library; ver la limitación más abajo.
+  que sigue creciendo en vez de parar en la primera página. Discover ya no es una
+  sección. **Calendar** pinta una rejilla mensual con los próximos episodios de
+  las series de la Library; ver la limitación más abajo.
 - **El tema** sigue Material 3 y es dato, no código. `BrandPalette`
   (`theme/Tokens.kt`) es una data class con los colores crudos de un tema,
   `AppThemes` mapea el `AppTheme` persistido a una paleta, y `PenguTheme(theme)`
@@ -555,8 +563,8 @@ leer/escribir/borrar vive una sola vez.
   action, 20dp inline — la limita a una línea con elipsis, y baja ligeramente
   todo el control mientras se presiona; un flag `selected` vuelve ámbar los
   pesos de baja
-  énfasis para el selector de temporadas, y un `trailingIcon` opcional lleva la
-  flecha del filtro desplegable. `AppTextField` fija los campos de formulario a
+  énfasis para el selector de temporadas, y un `trailingIcon` opcional añade un
+  glifo al final. `AppTextField` fija los campos de formulario a
   `shapes.small`, un contenedor `surfaceContainerLow` y un borde ámbar al
   enfocar, con una variante `AppSearchField` (lupa a la izquierda, acción de
   limpiar) para Search y streams. `AppIconButton` es el único control de icono —

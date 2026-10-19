@@ -19,6 +19,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,19 +52,21 @@ import org.jetbrains.compose.resources.stringResource
 /**
  * Persistent app chrome: the navigation and the content area.
  *
- * The content area fills the whole window and the navigation floats over it, so
- * showing or hiding it never changes the content viewport. That matters:
- * resizing the viewport clamps a section's scroll (it was scrolled back up when
- * a route hid the bar). Sections reserve the bottom bar's height on a phone (or
- * the rail's width on a wide window) with padding; pushed routes use the full
- * window and let the navigation fade away.
+ * The compact bottom bar floats over the content, which runs edge-to-edge behind
+ * it, so the bar can fold away on scroll without leaving a gap and without the
+ * content viewport ever changing (resizing it would clamp a section's scroll). A
+ * section that does not scroll, such as Calendar, keeps the bar's height and stays
+ * clear of it instead. Pushed routes use the full window and let the navigation
+ * fade away.
  */
 @Composable
 fun AppShell() {
     val services = LocalAppServices.current
     val account by services.account.state.collectAsStateWithLifecycle()
     val isFullScreen by services.window.isFullScreen.collectAsStateWithLifecycle()
-    val immersive = services.chrome.immersive
+    val chrome = services.chrome
+    val immersive = chrome.immersive
+    val scrollCollapsed = chrome.scrollCollapsed
     val motionEnabled = LocalMotionEnabled.current
 
     // Section and route stack live in a ViewModel so a rotation (Android) keeps
@@ -72,7 +75,12 @@ fun AppShell() {
     val shell: ShellViewModel = viewModel(key = account.activeProfile?.id) { ShellViewModel() }
     val selected = shell.selected
     val navigator = shell.navigator
-    val selectSection: (AppSection) -> Unit = shell::select
+    val selectSection: (AppSection) -> Unit = { section ->
+        // Expand the chrome before the next section composes, so a section the
+        // user left scrolled down never flashes its bar folded on entry.
+        chrome.updateScrollCollapsed(false)
+        shell.select(section)
+    }
     val snackbarHost = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var streamsRequest by remember { mutableStateOf<StreamsRequest?>(null) }
@@ -86,7 +94,12 @@ fun AppShell() {
     // A pushed route (detail, catalog) is an immersive screen with its own back
     // affordance, so the navigation fades away; the content keeps its size.
     val showNav = !isFullScreen && !immersive && navigator.current == null
+    // Scrolling down folds the compact bar away and scrolling up brings it back;
+    // the wide rail stays put, since it is the window's chrome, not a strip the
+    // content can spare. A new section or route always opens expanded.
+    val showBottomNav = showNav && !scrollCollapsed
     val gate = account.isSignedIn && account.requiresProfile && account.activeProfile == null
+    LaunchedEffect(selected, navigator.current) { chrome.updateScrollCollapsed(false) }
 
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         // The window class is published at the root (PenguApp), so every
@@ -108,7 +121,7 @@ fun AppShell() {
                         // A snackbar clears the compact bottom bar; a pushed route
                         // hides the bar, so it falls back to the window edge.
                         val barHeight =
-                            if (showNav && windowSize == WindowSize.COMPACT) {
+                            if (showBottomNav && windowSize == WindowSize.COMPACT) {
                                 AppSizes.bottomBarHeight
                             } else {
                                 0.dp
@@ -119,7 +132,7 @@ fun AppShell() {
                         )
                     },
                 ) { padding ->
-                    Box(Modifier.fillMaxSize().padding(padding)) {
+                    Box(Modifier.fillMaxSize().padding(padding).collapseChromeOnScroll(chrome)) {
                         ContentArea(
                             selected = selected,
                             navigator = navigator,
@@ -134,14 +147,14 @@ fun AppShell() {
                             },
                         )
                         // The navigation never changes the content viewport: it
-                        // fades in over the space the sections reserve. Compact
-                        // windows (phones) get the icon-only bottom bar; wider
-                        // windows get the left rail.
+                        // fades in over the edge-to-edge content. Compact windows
+                        // (phones) get the icon-only bottom bar; wider windows get
+                        // the left rail.
                         val navFade = AppMotion.spec<Float>(motionEnabled, AppMotion.SLOW, easing = AppMotion.emphasized)
                         val navSlide = AppMotion.spec<IntOffset>(motionEnabled, AppMotion.SLOW, easing = AppMotion.emphasized)
                         if (windowSize == WindowSize.COMPACT) {
                             AnimatedVisibility(
-                                visible = showNav,
+                                visible = showBottomNav,
                                 modifier = Modifier.align(Alignment.BottomCenter),
                                 enter = fadeIn(navFade) + slideInVertically(navSlide) { it },
                                 exit = fadeOut(navFade) + slideOutVertically(navSlide) { it },
