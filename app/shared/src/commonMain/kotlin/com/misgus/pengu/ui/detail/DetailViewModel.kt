@@ -9,8 +9,8 @@ import com.misgus.pengu.core.model.MetaPerson
 import com.misgus.pengu.core.model.MetaPreview
 import com.misgus.pengu.core.model.MetaVideo
 import com.misgus.pengu.core.model.TmdbTitle
-import com.misgus.pengu.core.model.enrichedWith
 import com.misgus.pengu.core.model.releaseYear
+import com.misgus.pengu.core.model.withTmdbPriority
 import com.misgus.pengu.core.repository.MetadataRepository
 import com.misgus.pengu.core.repository.TmdbLookup
 import com.misgus.pengu.core.repository.TmdbRepository
@@ -39,6 +39,17 @@ data class CrewMember(
 data class DetailUiState(
     val isLoading: Boolean = false,
     val hasLoaded: Boolean = false,
+    /**
+     * Whether the artwork and copy on screen are not final yet.
+     *
+     * The page waits for them instead of painting the addon's and replacing them
+     * with TMDB's: `true` from the first state until the merge that has every
+     * source, so a phone shows the backdrop and then the textless poster only in
+     * one direction — from nothing to the final image. It is `false` for the
+     * whole load when there is no TMDB key, because then the addon answer is
+     * already final.
+     */
+    val isResolvingArtwork: Boolean = false,
     val error: Throwable? = null,
     val isSeries: Boolean = false,
     val name: String = "",
@@ -100,9 +111,10 @@ class DetailViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             val request = tmdbRequest()
-            // The addon and TMDB are independent, so they run together; the
-            // addon answer is awaited first so the page paints as it did before
-            // the enrichment existed.
+            // The addon and TMDB are independent, so they run together. The
+            // addon answer is published on its own first, so the page has its
+            // data (episodes, the stream id) the moment it lands, even though
+            // the hero waits for the enrichment before painting.
             val (addonMeta, tmdbTitle, error) =
                 coroutineScope {
                     val metaDeferred = async { runCatchingCancellable { metadata.detail(item.contentType, item.contentId) } }
@@ -120,6 +132,9 @@ class DetailViewModel(
                             tmdb = null,
                             contentId = item.contentId,
                             error = metaResult.exceptionOrNull(),
+                            // A TMDB answer is still coming, and it has priority,
+                            // so this state is not the one to paint from.
+                            isResolvingArtwork = tmdbDeferred != null,
                         )
                     Triple(addonMeta, tmdbDeferred?.await()?.getOrNull(), metaResult.exceptionOrNull())
                 }
@@ -128,7 +143,14 @@ class DetailViewModel(
             // knows; that id then drives the streams, which every addon accepts.
             val resolved = retryViaImdb(addonMeta, tmdbTitle)
             val contentId = streamContentId(addonMeta, resolved, tmdbTitle)
-            _state.value = merge(resolved, tmdb = tmdbTitle, contentId = contentId, error = error)
+            _state.value =
+                merge(
+                    resolved,
+                    tmdb = tmdbTitle,
+                    contentId = contentId,
+                    error = error,
+                    isResolvingArtwork = false,
+                )
             loadSimilar(resolved, tmdbTitle, request, contentId)
         }
     }
@@ -202,14 +224,18 @@ class DetailViewModel(
         tmdb: TmdbTitle?,
         contentId: String,
         error: Throwable?,
+        isResolvingArtwork: Boolean,
     ): DetailUiState {
-        val meta = addonMeta.enrichedWith(tmdb)
+        // TMDB first: the page shows one author for its artwork and copy, never
+        // the addon's image replaced by TMDB's a moment later.
+        val meta = addonMeta.withTmdbPriority(tmdb)
         val cast = meta?.cast ?: emptyList()
         val crew = buildCrew(meta)
         val year = releaseYear(meta?.releaseInfo ?: item.releaseInfo)
         return DetailUiState(
             isLoading = false,
             hasLoaded = true,
+            isResolvingArtwork = isResolvingArtwork,
             error = error,
             isSeries = item.contentType == ContentTypes.SERIES,
             contentId = contentId,
@@ -243,6 +269,8 @@ class DetailViewModel(
     private fun initialState(): DetailUiState {
         val year = releaseYear(item.releaseInfo)
         return DetailUiState(
+            // The load has not answered yet, so nothing painted now is final.
+            isResolvingArtwork = true,
             isSeries = item.contentType == ContentTypes.SERIES,
             contentId = item.contentId,
             name = item.name,

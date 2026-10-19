@@ -37,7 +37,6 @@ import com.misgus.pengu.app.shared.generated.resources.action_back
 import com.misgus.pengu.app.shared.generated.resources.action_stream_now
 import com.misgus.pengu.app.shared.generated.resources.detail_episode_generic
 import com.misgus.pengu.app.shared.generated.resources.detail_error_library
-import com.misgus.pengu.app.shared.generated.resources.detail_error_rating
 import com.misgus.pengu.app.shared.generated.resources.detail_error_watched
 import com.misgus.pengu.core.model.ContentType
 import com.misgus.pengu.core.model.ContentTypes
@@ -98,12 +97,9 @@ fun DetailScreen(
     var saving by remember { mutableStateOf(false) }
     var watched by remember { mutableStateOf(false) }
     var watchedKnown by remember { mutableStateOf(false) }
-    var rating by remember { mutableStateOf<Int?>(null) }
-    var ratingKnown by remember { mutableStateOf(false) }
-    var showRatingDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(item.contentId) {
-        // The three reads are independent: run them together so the wait is the
+        // The two reads are independent: run them together so the wait is the
         // slowest one, not their sum. Each publishes as soon as it is ready.
         coroutineScope {
             launch {
@@ -120,17 +116,12 @@ fun DetailScreen(
                     }.getOrDefault(false)
                 watchedKnown = true
             }
-            launch {
-                rating = runCatchingCancellable { services.ratings.ratingOf(item.contentId) }.getOrNull()
-                ratingKnown = true
-            }
         }
     }
 
     // Resolved once, so the snackbars inside the click handlers stay composable-free.
     val libraryError = stringResource(Res.string.detail_error_library)
     val watchedError = stringResource(Res.string.detail_error_watched)
-    val ratingError = stringResource(Res.string.detail_error_rating)
 
     val openStreams: (ContentType, String, String) -> Unit = { type, id, title ->
         onOpenStreams(
@@ -195,8 +186,6 @@ fun DetailScreen(
                             watched = watched,
                             watchedBusy = !watchedKnown,
                             watchedLoading = !watchedKnown,
-                            rating = rating,
-                            ratingLoading = !ratingKnown,
                         ),
                     onToggleSaved = {
                         if (saving) return@HeroContent
@@ -228,7 +217,6 @@ fun DetailScreen(
                             watchedKnown = true
                         }
                     },
-                    onRate = { showRatingDialog = true },
                 )
 
                 DetailScrollContent(
@@ -260,16 +248,6 @@ fun DetailScreen(
             )
         }
     }
-
-    if (showRatingDialog) {
-        RatingDialog(current = rating, onDismiss = { showRatingDialog = false }) { value ->
-            rating = value
-            scope.launch {
-                runCatchingCancellable { services.ratings.setRating(item.contentId, value) }
-                    .onFailure { snackbar?.showSnackbar(ratingError) }
-            }
-        }
-    }
 }
 
 @Composable
@@ -279,13 +257,19 @@ private fun DetailBackdrop(
 ) {
     val compact = LocalWindowSize.current == WindowSize.COMPACT
     // A phone crops a wide backdrop too aggressively, so it prefers the
-    // language-neutral poster when TMDB supplied one; the wide billboard keeps
-    // the backdrop it always had.
-    val artwork = if (compact) state.textlessPoster ?: state.background ?: state.poster else state.background ?: state.poster
-    // The library fallback is not the final artwork, so it is not painted as if
-    // it were: the image fades in once the metadata is in.
+    // language-neutral poster; the wide billboard keeps the backdrop. Nothing is
+    // painted while the enrichment is in flight, so the page never shows the
+    // addon's image and then swaps it for TMDB's.
+    val artwork =
+        when {
+            state.isResolvingArtwork -> null
+            compact -> state.textlessPoster ?: state.background ?: state.poster
+            else -> state.background ?: state.poster
+        }
+    // The fallback is not the final artwork, so it is not painted as if it were:
+    // the image fades in when it is the one that stays.
     val imageAlpha by animateFloatAsState(
-        targetValue = if (state.hasLoaded) 1f else 0f,
+        targetValue = if (artwork.isNullOrEmpty()) 0f else 1f,
         animationSpec = motionTween(durationMillis = AppMotion.SLOW),
         label = "backdropAlpha",
     )
@@ -323,9 +307,13 @@ private fun HeroContent(
     onPlay: () -> Unit,
     onToggleSaved: () -> Unit,
     onToggleWatched: () -> Unit,
-    onRate: () -> Unit,
 ) {
     Box(Modifier.fillMaxWidth().height(height)) {
+        // Nothing in the hero is painted until its source is final, so no title,
+        // logo, line or synopsis is swapped a moment after it appears. The action
+        // buttons stay live the whole time: library and watched are unrelated to
+        // which metadata answered.
+        val settled = state.hasLoaded && !state.isResolvingArtwork
         Column(
             modifier =
                 Modifier
@@ -333,15 +321,19 @@ private fun HeroContent(
                     .padding(LocalWindowSize.current.screenPadding)
                     .widthIn(max = AppSizes.contentMaxWidth),
         ) {
-            MediaTitle(state.name, state.logo, loading = !state.hasLoaded)
+            MediaTitle(state.name, state.logo, loading = !settled)
             Spacer(Modifier.height(AppSpacing.md))
             MetadataRow(
-                metadataParts(
-                    state.releaseInfo,
-                    runtime = state.runtime,
-                    runtimeMinutes = state.runtimeMinutes,
-                    rating = state.imdbRating,
-                ),
+                if (settled) {
+                    metadataParts(
+                        state.releaseInfo,
+                        runtime = state.runtime,
+                        runtimeMinutes = state.runtimeMinutes,
+                        rating = state.imdbRating,
+                    )
+                } else {
+                    emptyList()
+                },
             )
             // Discount the icon controls' transparent padding, so the row reads as
             // close to the metadata and the synopsis as the text gaps do.
@@ -360,20 +352,19 @@ private fun HeroContent(
                     actions = actions,
                     onToggleSaved = onToggleSaved,
                     onToggleWatched = onToggleWatched,
-                    onRate = onRate,
                 )
             }
             Spacer(Modifier.height(AppSpacing.lg - HeroActionRowInset))
-            // Show only the loaded description: the library preview can be a
+            // Show only the settled description: the library preview can be a
             // different synopsis, and swapping it mid-view reads worse than a
             // short reserve. `minLines` keeps the layout stable.
             HeroSynopsis(
                 text = state.description,
-                loading = !state.hasLoaded,
+                loading = !settled,
                 minLines = AppSynopsis.MAX_LINES,
                 expandable = true,
             )
-            if (state.genres.isNotEmpty()) {
+            if (settled && state.genres.isNotEmpty()) {
                 Spacer(Modifier.height(AppSpacing.sm))
                 HeroGenres(state.genres)
             }

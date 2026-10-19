@@ -86,6 +86,23 @@ fun addonFromRow(json: JsonObject): Addon =
         profileId = json["profile_id"].intOrNull(),
     )
 
+/**
+ * Serializes an [Addon] back into the row shape [addonFromRow] reads.
+ *
+ * Used by the local snapshot, which is written in the backend's own column
+ * names so one mapper covers both directions.
+ */
+fun addonToJson(addon: Addon): JsonObject {
+    val map = mutableMapOf<String, JsonElement>()
+    map["id"] = JsonPrimitive(addon.id)
+    map["url"] = JsonPrimitive(addon.url)
+    addon.name?.let { map["name"] = JsonPrimitive(it) }
+    map["enabled"] = JsonPrimitive(addon.enabled)
+    map["sort_order"] = JsonPrimitive(addon.sortOrder)
+    addon.profileId?.let { map["profile_id"] = JsonPrimitive(it) }
+    return JsonObject(map)
+}
+
 /** Builds a [WatchedEntry] from a `watched_items` row. */
 fun watchedEntryFromRow(json: JsonObject): WatchedEntry =
     WatchedEntry(

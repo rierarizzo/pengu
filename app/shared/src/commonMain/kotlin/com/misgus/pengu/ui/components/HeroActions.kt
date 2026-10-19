@@ -7,7 +7,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import com.misgus.pengu.app.shared.generated.resources.Res
 import com.misgus.pengu.app.shared.generated.resources.detail_add_to_library
-import com.misgus.pengu.app.shared.generated.resources.detail_rate
 import com.misgus.pengu.app.shared.generated.resources.detail_remove_from_library
 import com.misgus.pengu.app.shared.generated.resources.status_watched
 import com.misgus.pengu.ui.icons.FluentIcons
@@ -30,8 +29,8 @@ val HeroActionRowInset: Dp = (AppSizes.minTouchTarget - AppIconSize.md) / 2
  * State of the icon actions next to a billboard's call to action.
  *
  * The home billboard only uses the save flags; the detail screen also uses the
- * rating and watched ones. The defaults keep a screen from wiring the fields it
- * does not show.
+ * watched ones. The defaults keep a screen from wiring the fields it does not
+ * show.
  */
 data class HeroActionState(
     val saved: Boolean = false,
@@ -40,25 +39,22 @@ data class HeroActionState(
     val watched: Boolean = false,
     val watchedBusy: Boolean = false,
     val watchedLoading: Boolean = false,
-    val rating: Int? = null,
-    val ratingLoading: Boolean = false,
 )
 
 /**
  * The icon-only actions next to a billboard's call to action.
  *
  * Save is turned into the library toggle: a plus that becomes a check once the
- * title is in the library. Rate and watched are added when their handlers are
- * passed (the detail screen). One definition keeps these buttons identical
- * wherever a billboard appears; the home billboard opens the title by tapping
- * anywhere on it, so it carries no "more info" action.
+ * title is in the library. Watched is added when its handler is passed (the
+ * detail screen). One definition keeps these buttons identical wherever a
+ * billboard appears; the home billboard opens the title by tapping anywhere on
+ * it, so it carries no "more info" action.
  */
 @Composable
 fun HeroActionRow(
     actions: HeroActionState,
     onToggleSaved: () -> Unit,
     modifier: Modifier = Modifier,
-    onRate: (() -> Unit)? = null,
     onToggleWatched: (() -> Unit)? = null,
 ) {
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(AppSpacing.md)) {
@@ -73,15 +69,6 @@ fun HeroActionRow(
             selected = actions.saved,
             loading = actions.savedLoading,
         )
-        onRate?.let { onRate ->
-            AppIconButton(
-                icon = if (actions.rating != null) FluentIcons.Star else FluentIcons.StarBorder,
-                contentDescription = stringResource(Res.string.detail_rate),
-                onClick = onRate,
-                selected = actions.rating != null,
-                loading = actions.ratingLoading,
-            )
-        }
         onToggleWatched?.let { onToggleWatched ->
             AppIconButton(
                 icon = if (actions.watched) FluentIcons.CheckCircle else FluentIcons.CheckCircleOutline,

@@ -1,6 +1,8 @@
 package com.misgus.pengu.ui.services
 
 import androidx.compose.runtime.staticCompositionLocalOf
+import com.misgus.pengu.core.catalog.HomeSnapshotStore
+import com.misgus.pengu.core.catalog.NoopHomeSnapshotStore
 import com.misgus.pengu.core.player.NoopPlayerService
 import com.misgus.pengu.core.player.PlayerService
 import com.misgus.pengu.core.repository.AccountRepository
@@ -8,11 +10,10 @@ import com.misgus.pengu.core.repository.AddonRepository
 import com.misgus.pengu.core.repository.CatalogRepository
 import com.misgus.pengu.core.repository.LibraryRepository
 import com.misgus.pengu.core.repository.MetadataRepository
-import com.misgus.pengu.core.repository.NoRatingRepository
 import com.misgus.pengu.core.repository.NoSubtitleRepository
 import com.misgus.pengu.core.repository.NoTmdbRepository
+import com.misgus.pengu.core.repository.NoopAddonRepository
 import com.misgus.pengu.core.repository.ProgressRepository
-import com.misgus.pengu.core.repository.RatingRepository
 import com.misgus.pengu.core.repository.SettingsRepository
 import com.misgus.pengu.core.repository.StreamRepository
 import com.misgus.pengu.core.repository.SubtitleRepository
@@ -53,8 +54,6 @@ class AppServices(
     val window: WindowController,
     /** Subtitle tracks exposed by Stremio addons. */
     val subtitles: SubtitleRepository = NoSubtitleRepository(),
-    /** Local per-title ratings (the backend has no server field for them). */
-    val ratings: RatingRepository = NoRatingRepository(),
     /**
      * Optional TMDB enrichment (artwork, text, cast) used by the detail screen
      * and the home billboard. A no-op unless an API key is set in Settings.
@@ -62,10 +61,15 @@ class AppServices(
     val tmdb: TmdbRepository = NoTmdbRepository(),
     /** Remembered per-series "fully watched" results. */
     val watchedCache: WatchedSeriesCache = NoopWatchedSeriesCache(),
+    /**
+     * Last Home paint, per profile, so a cold start shows the previous catalogs
+     * while the network answer is on its way.
+     */
+    val homeSnapshot: HomeSnapshotStore = NoopHomeSnapshotStore(),
     /** Immersive-mode state, shared with the player. */
     val chrome: AppChrome = AppChrome(),
     /** Addons installed in the account; used by the addon repository layer. */
-    val addons: AddonRepository? = null,
+    val addons: AddonRepository = NoopAddonRepository(),
 ) {
     /** Watched-badge resolver, shared by the library and Home. */
     val watchedBadges: WatchedBadgeResolver =

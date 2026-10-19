@@ -2,10 +2,7 @@ package com.misgus.pengu.data.tmdb
 
 import com.misgus.pengu.core.model.ContentTypes
 import com.misgus.pengu.core.repository.AppSettings
-import com.misgus.pengu.core.repository.AppTheme
-import com.misgus.pengu.core.repository.PosterSize
-import com.misgus.pengu.core.repository.SettingsRepository
-import com.misgus.pengu.core.repository.TmdbLanguage
+import com.misgus.pengu.core.repository.InMemorySettingsRepository
 import com.misgus.pengu.core.repository.TmdbLookup
 import com.misgus.pengu.core.repository.TmdbVerifyResult
 import io.ktor.client.HttpClient
@@ -14,8 +11,6 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -115,42 +110,11 @@ class TmdbMetadataRepositoryTest {
     private fun repository(
         engine: MockEngine,
         apiKey: String,
-    ) = TmdbMetadataRepository(HttpClient(engine) { expectSuccess = false }, TestSettings(apiKey))
+    ) = TmdbMetadataRepository(HttpClient(engine) { expectSuccess = false }, InMemorySettingsRepository(AppSettings(tmdbApiKey = apiKey)))
 
     private fun detailJson(): String =
         """
         {"id":603,"title":"The Matrix","poster_path":"/poster.jpg","backdrop_path":"/backdrop.jpg",
          "release_date":"1999-03-31","runtime":136,"external_ids":{"imdb_id":"tt0133093"}}
         """.trimIndent()
-}
-
-/** Minimal [SettingsRepository] that only carries the TMDB key. */
-private class TestSettings(
-    apiKey: String,
-) : SettingsRepository {
-    private val _state = MutableStateFlow(AppSettings(tmdbApiKey = apiKey))
-    override val state: StateFlow<AppSettings> = _state
-    override val filePath: String = "memory"
-
-    override suspend fun load() = Unit
-
-    override suspend fun reload() = Unit
-
-    override suspend fun setTheme(theme: AppTheme) = Unit
-
-    override suspend fun setAnimationsEnabled(enabled: Boolean) = Unit
-
-    override suspend fun setResumePlayback(enabled: Boolean) = Unit
-
-    override suspend fun setAutoPlayNext(enabled: Boolean) = Unit
-
-    override suspend fun setPosterSize(size: PosterSize) = Unit
-
-    override suspend fun setHideLabels(enabled: Boolean) = Unit
-
-    override suspend fun setShowCatalogType(enabled: Boolean) = Unit
-
-    override suspend fun setTmdbApiKey(apiKey: String) = Unit
-
-    override suspend fun setTmdbLanguage(language: TmdbLanguage) = Unit
 }

@@ -2,7 +2,6 @@ package com.misgus.pengu.data.platform
 
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
-import io.ktor.client.plugins.HttpTimeout
 import kotlinx.coroutines.Dispatchers
 import java.io.File
 import java.nio.file.Files
@@ -16,12 +15,12 @@ actual fun systemLanguageTag(): String = Locale.getDefault().toLanguageTag()
 
 actual fun createHttpClient(): HttpClient =
     HttpClient(CIO) {
-        expectSuccess = false
-        install(HttpTimeout) {
-            requestTimeoutMillis = HTTP_REQUEST_TIMEOUT_MS
-            connectTimeoutMillis = HTTP_CONNECT_TIMEOUT_MS
-            socketTimeoutMillis = HTTP_SOCKET_TIMEOUT_MS
-        }
+        installHttpDefaults()
+    }
+
+actual fun createAddonHttpClient(): HttpClient =
+    HttpClient(CIO) {
+        installHttpDefaults(cacheStorage = diskCacheStorage())
     }
 
 actual fun configDirectory(): String {
@@ -32,6 +31,21 @@ actual fun configDirectory(): String {
             env["APPDATA"] ?: env["LOCALAPPDATA"] ?: "."
         } else {
             env["XDG_CONFIG_HOME"] ?: "${env["HOME"] ?: "."}/.config"
+        }
+    return File(base, "Pengu").path
+}
+
+actual fun cacheDirectory(): String {
+    val env = System.getenv()
+    val isWindows = System.getProperty("os.name").lowercase().contains("win")
+    // A cache must not live under `%APPDATA%`: Windows syncs that directory
+    // across machines, and a few megabytes of catalog JSON are not worth a
+    // profile round-trip.
+    val base =
+        if (isWindows) {
+            env["LOCALAPPDATA"] ?: env["APPDATA"] ?: "."
+        } else {
+            env["XDG_CACHE_HOME"] ?: "${env["HOME"] ?: "."}/.cache"
         }
     return File(base, "Pengu").path
 }

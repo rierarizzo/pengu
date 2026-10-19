@@ -13,7 +13,6 @@
     <string name="action_sign_in">Sign in</string>
     <string name="action_sign_out">Sign out</string>
     <string name="action_save">Save</string>
-    <string name="action_cancel">Cancel</string>
     <string name="action_close">Close</string>
     <string name="action_refresh">Refresh</string>
     <string name="field_password_show">Show password</string>
@@ -136,15 +135,10 @@
     <!-- Detail -->
     <string name="detail_error_library">Could not update your library.</string>
     <string name="detail_error_watched">Could not update the watched state.</string>
-    <string name="detail_error_rating">Could not save your rating.</string>
     <string name="detail_add_to_library">Add to my library</string>
     <string name="detail_remove_from_library">Remove from library</string>
-    <string name="detail_rate">Rate</string>
     <string name="detail_episodes">Episodes</string>
     <string name="detail_you_may_also_like">You May Also Like</string>
-    <string name="detail_your_rating">Your rating</string>
-    <string name="detail_not_rated">Not rated</string>
-    <string name="detail_rating_value">%1$d / 10</string>
     <string name="detail_cast">Cast</string>
     <string name="detail_crew">Crew</string>
     <string name="detail_released">Released</string>
@@ -226,6 +220,19 @@
     <string name="settings_tmdb_test_invalid">TMDB rejected this key.</string>
     <string name="settings_tmdb_test_unreachable">Could not reach TMDB. Check your connection and try again.</string>
     <string name="settings_tmdb_attribution">This product uses the TMDB API but is not endorsed or certified by TMDB.</string>
+
+    <!-- Home billboard -->
+    <string name="settings_hero">Home billboard</string>
+    <string name="settings_hero_subtitle">Where the featured titles on Home come from.</string>
+    <string name="settings_hero_source">Source</string>
+    <string name="settings_hero_source_subtitle">Smart picks from every catalog. Manual uses the catalogs you choose.</string>
+    <string name="settings_hero_smart">Smart</string>
+    <string name="settings_hero_manual">Manual</string>
+    <string name="settings_hero_catalogs">Catalogs</string>
+    <string name="settings_hero_catalogs_selected">%1$d of %2$d selected</string>
+    <string name="settings_hero_catalogs_loading">Loading catalogs…</string>
+    <string name="settings_hero_catalogs_empty">No addon offers a browsable catalog yet.</string>
+    <string name="settings_hero_catalogs_error">Could not load your catalogs.</string>
     <string name="dialog_open_video">Open video</string>
     <string name="poster_size_default">Default</string>
     <string name="poster_size_large">Large</string>

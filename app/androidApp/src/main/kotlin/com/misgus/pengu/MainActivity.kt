@@ -9,16 +9,18 @@ import com.misgus.pengu.data.BackendBundle
 import com.misgus.pengu.data.BackendKind
 import com.misgus.pengu.data.addons.StremioAddonRepositories
 import com.misgus.pengu.data.createBackend
+import com.misgus.pengu.data.platform.createAddonHttpClient
 import com.misgus.pengu.data.platform.createHttpClient
 import com.misgus.pengu.data.platform.initPlatform
 import com.misgus.pengu.data.store.AppPaths
+import com.misgus.pengu.data.store.FileHomeSnapshotStore
 import com.misgus.pengu.data.store.FileSessionStore
 import com.misgus.pengu.data.store.FileWatchedSeriesCache
 import com.misgus.pengu.data.store.JsonMapStore
 import com.misgus.pengu.data.store.JsonSettingsRepository
-import com.misgus.pengu.data.store.LocalRatingRepository
 import com.misgus.pengu.data.tmdb.TmdbMetadataRepository
 import com.misgus.pengu.player.MediampPlayerService
+import io.ktor.client.HttpClient
 import com.misgus.pengu.ui.PenguApp
 import com.misgus.pengu.ui.services.AppServices
 import com.misgus.pengu.ui.window.NoopWindowController
@@ -32,6 +34,7 @@ import com.misgus.pengu.ui.window.NoopWindowController
  */
 class MainActivity : ComponentActivity() {
     private lateinit var backend: BackendBundle
+    private lateinit var addonHttpClient: HttpClient
     private lateinit var player: MediampPlayerService
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,7 +63,10 @@ class MainActivity : ComponentActivity() {
         val settings = JsonSettingsRepository(JsonMapStore(AppPaths.settingsFile, pretty = true))
         // One client pool for the four Stremio repositories, so an addon's
         // manifest is fetched once per process instead of once per repository.
-        val stremio = StremioAddonRepositories(addons, httpClient)
+        // Addon traffic gets its own client: it is the only traffic cached on
+        // disk, so a stale read cannot show data the user just changed.
+        addonHttpClient = createAddonHttpClient()
+        val stremio = StremioAddonRepositories(addons, addonHttpClient)
         val services =
             AppServices(
                 account = backend.account,
@@ -76,9 +82,9 @@ class MainActivity : ComponentActivity() {
                 window = NoopWindowController(),
                 addons = addons,
                 // Same persistence as desktop: the watched-series cache and the
-                // local ratings both live in the app's config directory.
+                // Home snapshot both live in the app's config directory.
                 watchedCache = FileWatchedSeriesCache(),
-                ratings = LocalRatingRepository(JsonMapStore(AppPaths.ratingsFile)),
+                homeSnapshot = FileHomeSnapshotStore(),
             )
 
         setContent {
@@ -96,8 +102,10 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
-        // Releases the player engine and the HTTP client owned by the backend.
+        // Releases the player engine and the HTTP clients (the backend's and the
+        // addon one, which a configuration change would otherwise leak).
         player.dispose()
+        addonHttpClient.close()
         backend.close()
         super.onDestroy()
     }

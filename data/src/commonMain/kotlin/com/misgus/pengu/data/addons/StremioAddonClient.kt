@@ -8,9 +8,13 @@ import com.misgus.pengu.core.model.Subtitle
 import com.misgus.pengu.data.appJson
 import com.misgus.pengu.data.arrOrNull
 import com.misgus.pengu.data.objOrNull
+import com.misgus.pengu.data.platform.gzipDecode
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.readRawBytes
+import io.ktor.http.HttpHeaders
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.sync.Mutex
@@ -177,7 +181,12 @@ class StremioAddonClient(
     private suspend fun fetchJson(url: String): JsonObject {
         val response =
             try {
-                client.get(url)
+                // The engines do not ask for compression by themselves, and a
+                // catalog page is the largest thing the app downloads; asking
+                // for gzip here is what keeps the first paint cheap on a cold
+                // cache. The body is decoded below instead of by a plugin, so
+                // the stored cache entry stays compressed.
+                client.get(url) { header(HttpHeaders.AcceptEncoding, "gzip") }
             } catch (cancellation: CancellationException) {
                 throw cancellation
             } catch (error: Exception) {
@@ -191,7 +200,7 @@ class StremioAddonClient(
         val text =
             try {
                 // Decode as UTF-8 explicitly: addons may not declare a charset.
-                response.readRawBytes().decodeToString()
+                response.bodyBytes().decodeToString()
             } catch (error: Exception) {
                 throw StremioAddonException("Could not read the response from $url", error)
             }
@@ -203,6 +212,13 @@ class StremioAddonClient(
             }
         return decoded.objOrNull()
             ?: throw StremioAddonException("Expected a JSON object from $url")
+    }
+
+    /** Response body as raw bytes, gunzipped when the addon answered compressed. */
+    private suspend fun HttpResponse.bodyBytes(): ByteArray {
+        val bytes = readRawBytes()
+        val encoding = headers[HttpHeaders.ContentEncoding]
+        return if (encoding?.contains("gzip", ignoreCase = true) == true) gzipDecode(bytes) else bytes
     }
 }
 

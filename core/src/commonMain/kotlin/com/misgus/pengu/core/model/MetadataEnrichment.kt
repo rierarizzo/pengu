@@ -3,12 +3,17 @@ package com.misgus.pengu.core.model
 /*
  * Merging third-party metadata (TMDB) into what the addons already returned.
  *
- * The merge is deliberately one-directional: it only fills a field the addon
- * left empty, and it never touches an identifier. `MetaDetail.id` and
- * `MetaVideo.id` are what the stream and subtitle addons are queried with, and
- * `MetaPreview.id` is what a poster opens, so replacing them with a TMDB id
- * would break playback rather than improve it. Both the detail screen and the
- * home billboard go through these functions, so the rule cannot drift.
+ * Two rules, one per screen, and both never touch an identifier: `MetaDetail.id`
+ * and `MetaVideo.id` are what the stream and subtitle addons are queried with,
+ * and `MetaPreview.id` is what a poster opens, so replacing them with a TMDB id
+ * would break playback rather than improve it.
+ *
+ * - Home fills gaps: the billboard is built from catalog previews, which are
+ *   already the addon's own artwork and copy, so TMDB only adds what is missing
+ *   and the billboard paints immediately.
+ * - The detail page gives TMDB priority: there, one consistent source is worth
+ *   more than the fastest first paint, so nothing is shown from the addon and
+ *   replaced a moment later.
  */
 
 /** Fills a [MetaPreview]'s empty fields from [tmdb]; returns it untouched when there is nothing to fill. */
@@ -26,33 +31,40 @@ fun MetaPreview.enrichedWith(tmdb: TmdbTitle?): MetaPreview {
 }
 
 /**
- * Fills a [MetaDetail]'s empty fields from [tmdb].
+ * Merges [tmdb] over a detail record, TMDB first.
  *
- * A `null` receiver with a TMDB hit yields a detail built from TMDB alone, so a
- * title no addon knows (a TMDB recommendation, for instance) still renders a
- * full page. When both are `null` the result is `null`.
+ * The detail page uses this rule, not [enrichedWith]'s: when TMDB knows the
+ * title, its artwork and copy are what the page shows, so no image is painted
+ * from the addon and swapped a moment later. The addon keeps what is not
+ * presentation — [MetaDetail.id] and [MetaDetail.videos], which is what the
+ * stream and subtitle addons are queried with — and the IMDb score, which this
+ * TMDB payload does not carry.
+ *
+ * A `null` receiver with a TMDB hit yields the TMDB record alone, so a title no
+ * addon knows still renders a full page. When both are `null` the result is
+ * `null`.
  */
-fun MetaDetail?.enrichedWith(tmdb: TmdbTitle?): MetaDetail? {
+fun MetaDetail?.withTmdbPriority(tmdb: TmdbTitle?): MetaDetail? {
     if (tmdb == null) return this
     val base = this ?: tmdb.toMetaDetail()
     return base.copy(
-        poster = base.poster.nonEmpty() ?: tmdb.poster,
-        background = base.background.nonEmpty() ?: tmdb.backdrop,
-        logo = base.logo.nonEmpty() ?: tmdb.logo,
-        textlessPoster = base.textlessPoster.nonEmpty() ?: tmdb.textlessPoster,
-        description = base.description.nonEmpty() ?: tmdb.overview,
-        releaseInfo = base.releaseInfo.nonEmpty() ?: tmdb.releaseInfo(),
-        runtimeMinutes = base.runtimeMinutes ?: tmdb.runtimeMinutes,
-        genres = base.genres.ifEmpty { tmdb.genres },
-        cast = base.cast.ifEmpty { tmdb.cast },
-        released = base.released.nonEmpty() ?: tmdb.releaseDate,
-        country = base.country.nonEmpty() ?: tmdb.country(),
-        status = base.status.nonEmpty() ?: tmdb.status,
-        originalLanguage = base.originalLanguage.nonEmpty() ?: tmdb.originalLanguage,
-        seasonCount = base.seasonCount ?: tmdb.seasonCount,
-        episodeCount = base.episodeCount ?: tmdb.episodeCount,
-        budget = base.budget ?: tmdb.budget,
-        revenue = base.revenue ?: tmdb.revenue,
+        poster = tmdb.poster.nonEmpty() ?: base.poster,
+        background = tmdb.backdrop.nonEmpty() ?: base.background,
+        logo = tmdb.logo.nonEmpty() ?: base.logo,
+        textlessPoster = tmdb.textlessPoster.nonEmpty() ?: base.textlessPoster,
+        description = tmdb.overview.nonEmpty() ?: base.description,
+        releaseInfo = tmdb.releaseInfo() ?: base.releaseInfo,
+        runtimeMinutes = tmdb.runtimeMinutes ?: base.runtimeMinutes,
+        genres = tmdb.genres.ifEmpty { base.genres },
+        cast = tmdb.cast.ifEmpty { base.cast },
+        released = tmdb.releaseDate.nonEmpty() ?: base.released,
+        country = tmdb.country() ?: base.country,
+        status = tmdb.status.nonEmpty() ?: base.status,
+        originalLanguage = tmdb.originalLanguage.nonEmpty() ?: base.originalLanguage,
+        seasonCount = tmdb.seasonCount ?: base.seasonCount,
+        episodeCount = tmdb.episodeCount ?: base.episodeCount,
+        budget = tmdb.budget ?: base.budget,
+        revenue = tmdb.revenue ?: base.revenue,
     )
 }
 

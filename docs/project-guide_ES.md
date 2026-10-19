@@ -60,6 +60,7 @@ usan ambas plataformas (ver §7).
 | Usar una constante compartida (tipo de contenido, extra, umbral) | `core/.../core/model/` (`ContentTypes`, `CatalogExtras`, `ProgressThresholds`) |
 | Cambiar un contrato de repositorio | `core/.../core/repository/` |
 | Cambiar cómo se piden metadata/streams/subtítulos | `data/.../data/addons/` |
+| Cambiar la caché HTTP, la compresión o el DNS (velocidad de arranque en frío) | `data/.../data/platform/` (`HttpDefaults.kt`, `Platform.jvm.kt`, `Platform.android.kt`) |
 | Cambiar el enriquecimiento opcional con TMDB (resolución de ids, artwork, recomendaciones) | `data/.../data/tmdb/`, `core/.../model/Tmdb.kt` |
 | Cambiar el comportamiento del backend Nuvio | `data/.../data/backend/` |
 | Cambiar el modo local/offline | `data/.../data/local/` y `data/.../data/store/` |
@@ -110,6 +111,13 @@ Existen para no reimplementar la misma preocupación en cada pantalla:
   reconstruirse por repositorio.
 - **`ProfileScope`** (`data/backend`) — `AccountRepository.requireProfileId()` /
   `requireActiveProfile()`, usado por cada repositorio Nuvio con scope de perfil.
+- **`AddonSnapshotStore` / `HomeSnapshotStore`** (contratos en `core`,
+  implementaciones de fichero en `data/store`) — la última lista de addons
+  conocida y la última pintura de Home, por perfil. Son la capa local-first:
+  `NuvioAddonRepository` responde desde su snapshot y refresca detrás, y
+  `HomeViewModel` publica el suyo antes de la primera petición y lo reescribe tras
+  una carga correcta. Ambos degradan a "nada guardado" si el fichero falta o está
+  corrupto.
 - **`VideoOutput`** (`core/player`) — marcador tipado de la salida de plataforma
   del reproductor; `VideoSurfaceRenderer` (en `app/player`) lo extiende
   y dibuja el vídeo como contenido Compose, sea cual sea el motor cableado.
@@ -182,7 +190,9 @@ la cancelación en un error falso.
 **Source sets KMP** — `commonMain` es compartido; `jvmMain` y `androidMain`
 guardan código de plataforma. El código solo de desktop vive en
 `app/desktopApp` (un módulo JVM), no en `app/shared/jvmMain`, salvo que sea UI.
-`data/jvmSharedMain` es compartido por los targets JVM y Android.
+`data/jvmSharedMain` es compartido por los targets JVM y Android: los helpers de
+ficheros, el almacenamiento en disco de la caché HTTP (el `FileStorage` de Ktor
+sobre `kotlinx.io`) y el decodificador gzip viven ahí una sola vez.
 
 ---
 
@@ -206,8 +216,10 @@ Los tests reflejan el módulo que prueban:
 - `core/src/commonTest` — reglas puras (`WatchedRule`, `PlaybackTarget`,
   `Cancellable`, modelos).
 - `data/src/commonTest` — parsers (`StremioParsersTest`), mappers, escapado de
-  PostgREST y el stack Nuvio contra un cliente HTTP falso (`NuvioTestStack.kt`).
-  `data/src/jvmTest` cubre los stores de fichero.
+  PostgREST, el decorador del almacenamiento de caché y el stack Nuvio contra un
+  cliente HTTP falso (`NuvioTestStack.kt`). `data/src/jvmTest` cubre los stores de
+  fichero y la caché HTTP en disco de extremo a extremo (`DiskHttpCacheTest`:
+  gzip, un acierto de caché y la vida de respaldo, contra un `MockEngine`).
 - `app/shared/src/commonTest` — ViewModels contra fakes en
   `ui/support/Fakes.kt`.
 - `app/desktopApp/src/test` — el decodificador de imágenes.

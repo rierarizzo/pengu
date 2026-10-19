@@ -60,6 +60,7 @@ inject in-memory fakes.
 | Use a shared constant (content type, catalog extra, threshold) | `core/.../core/model/` (`ContentTypes`, `CatalogExtras`, `ProgressThresholds`) |
 | Change a repository contract | `core/.../core/repository/` |
 | Change how metadata/streams/subtitles are fetched | `data/.../data/addons/` |
+| Change HTTP caching, compression or DNS (cold-start speed) | `data/.../data/platform/` (`HttpDefaults.kt`, `Platform.jvm.kt`, `Platform.android.kt`) |
 | Change the optional TMDB enrichment (id resolution, artwork, recommendations) | `data/.../data/tmdb/`, `core/.../model/Tmdb.kt` |
 | Change the Nuvio backend behavior | `data/.../data/backend/` |
 | Change local/offline mode | `data/.../data/local/` and `data/.../data/store/` |
@@ -108,6 +109,13 @@ These exist so the same concern is not re-implemented per screen:
   repository.
 - **`ProfileScope`** (`data/backend`) — `AccountRepository.requireProfileId()` /
   `requireActiveProfile()`, used by every profile-scoped Nuvio repository.
+- **`AddonSnapshotStore` / `HomeSnapshotStore`** (`core` contracts,
+  `data/store` file implementations) — the last known addon list and the last
+  Home paint, per profile. They are the local-first layer: `NuvioAddonRepository`
+  answers from its snapshot and refreshes behind it, and `HomeViewModel`
+  publishes its snapshot before the first request and rewrites it after a
+  successful load. Both degrade to "nothing stored" when the file is missing or
+  corrupt.
 - **`VideoOutput`** (`core/player`) — typed marker for the player's platform
   output; `VideoSurfaceRenderer` (in `app/player`) extends it and draws the video
   as Compose content, whichever engine is wired in.
@@ -176,7 +184,8 @@ into a fake error.
 **KMP source sets** — `commonMain` is shared; `jvmMain` and `androidMain` hold
 platform code. Desktop-only code lives in `app/desktopApp` (a JVM module), not in
 `app/shared/jvmMain`, unless it is UI. `data/jvmSharedMain` is shared by the JVM
-and Android targets.
+and Android targets: the file helpers, the on-disk HTTP cache storage (Ktor's
+`FileStorage` over `kotlinx.io`) and the gzip decoder live there once.
 
 ---
 
@@ -201,8 +210,10 @@ Tests mirror the module they test:
 - `core/src/commonTest` — pure rules (`WatchedRule`, `PlaybackTarget`,
   `Cancellable`, models).
 - `data/src/commonTest` — parsers (`StremioParsersTest`), mappers, PostgREST
-  escaping, and the Nuvio stack against a fake HTTP client
-  (`NuvioTestStack.kt`). `data/src/jvmTest` covers the file stores.
+  escaping, the cache-storage decorator and the Nuvio stack against a fake HTTP
+  client (`NuvioTestStack.kt`). `data/src/jvmTest` covers the file stores and the
+  on-disk HTTP cache end to end (`DiskHttpCacheTest`: gzip, a cache hit and the
+  fallback lifetime, against a `MockEngine`).
 - `app/shared/src/commonTest` — ViewModels against fakes in
   `ui/support/Fakes.kt`.
 - `app/desktopApp/src/test` — the image decoder (`MitchellImageDecoder`).

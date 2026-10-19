@@ -2,16 +2,20 @@ package com.misgus.pengu.data.store
 
 import com.misgus.pengu.core.repository.AppSettings
 import com.misgus.pengu.core.repository.AppTheme
+import com.misgus.pengu.core.repository.HeroSource
+import com.misgus.pengu.core.repository.MAX_HERO_CATALOGS
 import com.misgus.pengu.core.repository.PosterSize
 import com.misgus.pengu.core.repository.SettingsRepository
 import com.misgus.pengu.core.repository.TmdbLanguage
 import com.misgus.pengu.data.boolOrNull
+import com.misgus.pengu.data.stringList
 import com.misgus.pengu.data.stringOrNull
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 
@@ -27,6 +31,8 @@ import kotlinx.serialization.json.JsonPrimitive
  *   "player.autoPlayNext": true,
  *   "labels.hidden": false,
  *   "catalog.showType": true,
+ *   "hero.source": "smart",
+ *   "hero.catalogs": ["https://addon|movie|top"],
  *   "metadata.tmdbApiKey": "",
  *   "metadata.tmdbLanguage": "system"
  * }
@@ -64,6 +70,11 @@ class JsonSettingsRepository(
 
     override suspend fun setShowCatalogType(enabled: Boolean) = update { it.copy(showCatalogType = enabled) }
 
+    override suspend fun setHeroSource(source: HeroSource) = update { it.copy(heroSource = source) }
+
+    override suspend fun setHeroCatalogKeys(keys: List<String>) =
+        update { it.copy(heroCatalogKeys = keys.distinct().take(MAX_HERO_CATALOGS)) }
+
     override suspend fun setTmdbApiKey(apiKey: String) = update { it.copy(tmdbApiKey = apiKey.trim()) }
 
     override suspend fun setTmdbLanguage(language: TmdbLanguage) = update { it.copy(tmdbLanguage = language) }
@@ -85,6 +96,8 @@ class JsonSettingsRepository(
         data[KEY_POSTER_SIZE] = JsonPrimitive(settings.posterSize.name.lowercase())
         data[KEY_HIDE_LABELS] = JsonPrimitive(settings.hideLabels)
         data[KEY_SHOW_CATALOG_TYPE] = JsonPrimitive(settings.showCatalogType)
+        data[KEY_HERO_SOURCE] = JsonPrimitive(settings.heroSource.name.lowercase())
+        data[KEY_HERO_CATALOGS] = JsonArray(settings.heroCatalogKeys.take(MAX_HERO_CATALOGS).map(::JsonPrimitive))
         data[KEY_TMDB_API_KEY] = JsonPrimitive(settings.tmdbApiKey)
         data[KEY_TMDB_LANGUAGE] = JsonPrimitive(settings.tmdbLanguage.name.lowercase())
         store.write(JsonObject(data))
@@ -99,6 +112,10 @@ class JsonSettingsRepository(
             posterSize = this[KEY_POSTER_SIZE].stringOrNull().toPosterSize() ?: PosterSize.DEFAULT,
             hideLabels = this[KEY_HIDE_LABELS].boolOrNull() ?: false,
             showCatalogType = this[KEY_SHOW_CATALOG_TYPE].boolOrNull() ?: true,
+            heroSource = this[KEY_HERO_SOURCE].stringOrNull().toHeroSource() ?: HeroSource.SMART,
+            // A file edited by hand can carry more keys than the UI allows, and
+            // an array of non-strings is simply ignored.
+            heroCatalogKeys = this[KEY_HERO_CATALOGS].stringList().distinct().take(MAX_HERO_CATALOGS),
             tmdbApiKey = this[KEY_TMDB_API_KEY].stringOrNull() ?: "",
             tmdbLanguage = this[KEY_TMDB_LANGUAGE].stringOrNull().toTmdbLanguage() ?: TmdbLanguage.SYSTEM,
         )
@@ -116,6 +133,8 @@ class JsonSettingsRepository(
 
     private fun String?.toTmdbLanguage(): TmdbLanguage? = TmdbLanguage.entries.firstOrNull { it.name.equals(this, ignoreCase = true) }
 
+    private fun String?.toHeroSource(): HeroSource? = HeroSource.entries.firstOrNull { it.name.equals(this, ignoreCase = true) }
+
     companion object {
         const val KEY_THEME = "appearance.theme"
         const val KEY_ANIMATIONS = "animations.enabled"
@@ -124,6 +143,8 @@ class JsonSettingsRepository(
         const val KEY_POSTER_SIZE = "poster.size"
         const val KEY_HIDE_LABELS = "labels.hidden"
         const val KEY_SHOW_CATALOG_TYPE = "catalog.showType"
+        const val KEY_HERO_SOURCE = "hero.source"
+        const val KEY_HERO_CATALOGS = "hero.catalogs"
         const val KEY_TMDB_API_KEY = "metadata.tmdbApiKey"
         const val KEY_TMDB_LANGUAGE = "metadata.tmdbLanguage"
     }

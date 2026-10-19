@@ -24,13 +24,14 @@ import com.misgus.pengu.core.repository.SignInRequest
 import com.misgus.pengu.data.BackendKind
 import com.misgus.pengu.data.addons.StremioAddonRepositories
 import com.misgus.pengu.data.createBackend
+import com.misgus.pengu.data.platform.createAddonHttpClient
 import com.misgus.pengu.data.platform.createHttpClient
 import com.misgus.pengu.data.store.AppPaths
+import com.misgus.pengu.data.store.FileHomeSnapshotStore
 import com.misgus.pengu.data.store.FileSessionStore
 import com.misgus.pengu.data.store.FileWatchedSeriesCache
 import com.misgus.pengu.data.store.JsonMapStore
 import com.misgus.pengu.data.store.JsonSettingsRepository
-import com.misgus.pengu.data.store.LocalRatingRepository
 import com.misgus.pengu.data.tmdb.TmdbMetadataRepository
 import com.misgus.pengu.imaging.configureImageLoader
 import com.misgus.pengu.player.MediampPlayerService
@@ -65,9 +66,11 @@ fun main(args: Array<String>) {
     // One addon list shared by every Stremio repository.
     val addons = backend.addons
     // One client pool for the four repositories, so an addon's manifest is
-    // fetched once per process instead of once per repository.
-    val stremio = StremioAddonRepositories(addons, httpClient)
-    val ratings = LocalRatingRepository(JsonMapStore(AppPaths.ratingsFile))
+    // fetched once per process instead of once per repository. Addon traffic gets
+    // its own client: it is the only traffic that is cached on disk, so a stale
+    // read can never show the user library or progress data they just changed.
+    val addonHttpClient = createAddonHttpClient()
+    val stremio = StremioAddonRepositories(addons, addonHttpClient)
     val settings = JsonSettingsRepository(JsonMapStore(AppPaths.settingsFile, pretty = true))
     val watchedCache = FileWatchedSeriesCache()
 
@@ -92,9 +95,9 @@ fun main(args: Array<String>) {
                     streams = stremio.streams,
                     catalogs = stremio.catalogs,
                     subtitles = stremio.subtitles,
-                    ratings = ratings,
                     tmdb = TmdbMetadataRepository(httpClient, settings),
                     watchedCache = watchedCache,
+                    homeSnapshot = FileHomeSnapshotStore(),
                     player = player,
                     window = windowController,
                     addons = addons,
@@ -104,6 +107,7 @@ fun main(args: Array<String>) {
         val appSettings by services.settings.state.collectAsState()
         val isFullScreen by windowController.isFullScreen.collectAsState()
         val closeApp: () -> Unit = {
+            addonHttpClient.close()
             backend.close()
             player.dispose()
             exitApplication()

@@ -178,6 +178,8 @@ class FakeTmdbRepository(
     private val recommended: List<MetaPreview> = emptyList(),
     private val verified: TmdbVerifyResult = TmdbVerifyResult.VALID,
     override val isConfigured: Boolean = true,
+    /** Optional gate a test completes to hold a lookup in flight. */
+    private val gate: CompletableDeferred<Unit>? = null,
 ) : TmdbRepository {
     /** Number of lookups, so a test can assert the disabled path makes none. */
     var lookups: Int = 0
@@ -185,6 +187,7 @@ class FakeTmdbRepository(
 
     override suspend fun lookup(request: TmdbLookup): TmdbTitle? {
         lookups += 1
+        gate?.await()
         return titles[request.contentId]
     }
 

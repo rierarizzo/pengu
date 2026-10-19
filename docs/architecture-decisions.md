@@ -44,8 +44,7 @@ so the atomic read/write/delete logic lives once.
 - **One repository per capability**, mirroring the Flutter refactor:
   `AccountRepository`, `LibraryRepository`, `ProgressRepository`,
   `AddonRepository`, plus the addon contracts (`CatalogRepository`,
-  `MetadataRepository`, `StreamRepository`, `SubtitleRepository`) and
-  `RatingRepository`.
+  `MetadataRepository`, `StreamRepository`, `SubtitleRepository`).
 - **Observability with coroutines.** Where Flutter used `Listenable`, the
   Kotlin contracts expose `StateFlow`. `AccountRepository` exposes a single
   `StateFlow<AccountState>` (session, profiles, active profile, loading and
@@ -102,7 +101,7 @@ so the atomic read/write/delete logic lives once.
   refresh, sign-out) and `NuvioRest` (PostgREST select/insert/delete and the
   `sync_*` RPCs). Repositories take the slice they need. Session tokens live in
   `data/`, never in the domain.
-- **Local store**: `JsonFileStore`/`JsonMapStore` and the session / ratings /
+- **Local store**: `JsonFileStore`/`JsonMapStore` and the session / snapshot /
   watched-series stores. Path resolution is a platform `expect`
   (`%APPDATA%\Pengu` on Windows, XDG elsewhere). Writes go through a
   sibling temporary file and are renamed into place, so an interrupted write
@@ -128,9 +127,18 @@ so the atomic read/write/delete logic lives once.
 - **TMDB enrichment is optional and presentation-only.** A key set in Settings
   (`metadata.tmdbApiKey`, with `metadata.tmdbLanguage` for the answer language,
   system locale by default) turns on a second metadata provider used only by the
-  detail screen and the home billboard; the addon metadata stays the source of
-  truth and the merge only fills fields an addon left empty, never an identifier
-  (`MetaDetail.id` and `MetaVideo.id` still address streams).
+  detail screen and the home billboard, and it never replaces an identifier
+  (`MetaDetail.id` and `MetaVideo.id` still address streams). Two merge rules,
+  one per screen (`MetadataEnrichment.kt`): the home billboard *fills gaps*, so
+  TMDB only adds what the catalog preview left empty and the billboard paints
+  immediately; the **detail page gives TMDB priority**, because there one
+  consistent source is worth more than the fastest first paint. There,
+  `DetailUiState.isResolvingArtwork` keeps the hero from painting anything —
+  artwork, logo, metadata line, synopsis — until the merge that has every source
+  has landed, so a phone goes straight from nothing to the textless poster and
+  never shows the addon's backdrop first (the same reason the synopsis already
+  reserved its space instead of showing the preview copy). The addon keeps the
+  IMDb score, which this TMDB payload does not carry.
   `TmdbMetadataRepository` resolves any content id to a TMDB one — an explicit
   `tmdb:` id, IMDb/TVDB
   through `/find`, otherwise a title-and-year search that rejects an ambiguous
@@ -140,7 +148,7 @@ so the atomic read/write/delete logic lives once.
   preview still plays. Both
   the resolved id and the payload are cached for the process. The addon answer is
   published first and the enrichment lands right after, so a slow lookup never
-  delays the page. The "You may also like" row is built from TMDB's
+  delays the page's data (only its paint). The "You may also like" row is built from TMDB's
   recommendations (its similar list as a fallback), and falls back to the addon's
   own similar catalog when there is no key or no match. Without a key the
   repository short-circuits and no request leaves the app. The key lives in
@@ -161,10 +169,66 @@ so the atomic read/write/delete logic lives once.
   resolver reads the two progress sources in parallel and its metadata lookups
   are bounded but concurrent; `watched_items` chunks are queried together;
   catalog manifests are fetched in parallel and cached per addon (a manifest is
-  immutable). The addon list is cached per profile uuid, so the watched-badge
-  sync does not re-query it for every series. Account-scoped ViewModels (Home,
+  immutable, and the disk cache below keeps it across launches). The addon list
+  is cached per profile uuid, so the watched-badge sync does not re-query it for
+  every series. Account-scoped ViewModels (Home,
   Library, Search (and its discover feed), Calendar) wait for a profile before
   loading rather than loading without one and failing.
+- **Addon responses are cached on disk.** `createAddonHttpClient()`
+  (`data/platform`) installs Ktor's `HttpCache` over a `FileStorage` in the
+  platform cache directory — never in the config directory, because a cache is
+  disposable and on Windows must not land in a roaming profile. A manifest or a
+  catalog page the addon declared as cacheable is served from disk, and
+  `Cache-Control: no-cache` still revalidates with `If-None-Match` /
+  `If-Modified-Since` instead of being served blind.
+  `CacheStorageWithFallbackTtl` gives the responses that declare nothing at all
+  — no `Cache-Control`, no `Expires`, no validator, which a large part of the
+  Stremio ecosystem sends — a five-minute lifetime, the same window Home already
+  uses to consider content fresh; anything the addon did declare wins, and
+  `no-cache`/`must-revalidate` are never overridden. Addon traffic is
+  deliberately the only cached traffic: `createHttpClient()`, used by the Nuvio
+  backend and TMDB, has no cache, because a stale `library_items` or
+  `watch_progress` read would show the user data they just changed.
+- **Catalog JSON is requested gzipped.** Neither engine adds `Accept-Encoding`,
+  so `StremioAddonClient` asks for `gzip` itself and decodes the body
+  (`gzipDecode`, implemented once for the JVM and Android targets). A catalog
+  page shrinks about fivefold, which is most of the bytes a cold start would
+  otherwise download; the disk cache keeps storing the compressed body.
+- **The addon list is answered from a local snapshot.** `NuvioAddonRepository`
+  serves the last list stored by `FileAddonSnapshotStore` instead of waiting for
+  the profile's `addons` query, then refreshes it in the background and
+  announces a real change through `AddonRepository.changes`, which Home listens
+  to before reloading its rows. The list used to sit in front of every catalog
+  request — session, profile, `addons` query, manifest, catalog — so this removes
+  one round-trip from the cold path; a device without a network keeps working
+  from the snapshot.
+- **Home paints the last session before the first request.**
+  `FileHomeSnapshotStore` keeps the rows and the billboard that were on screen
+  (`HomeSnapshot`, keyed by profile id) and `HomeViewModel` publishes them before
+  the load starts. The network answer then replaces the rows batch by batch and
+  keeps the billboard already on screen, so the hero never swaps from the stored
+  artwork to a fresh pick; a failed load leaves the snapshot visible instead of
+  an error page. The snapshot is rewritten after every successful load, and it
+  carries the instant the billboard set was picked: a set older than six hours is
+  re-picked on a cold start (the rows still paint at once, the new set replaces
+  the hero once it is enriched), so the billboard does not stay frozen for weeks
+  while the first frame stays instant. A re-entry keeps the pick time, because it
+  refreshes the rows behind and must not make the set look fresher than it is.
+- **The billboard source is a setting.** `hero.source` is `smart` (the default:
+  every loaded row, mixed and ranked by the app) or `manual`, and
+  `hero.catalogs` holds up to two `CatalogRef.key`s picked in Settings → Home
+  billboard. Manual narrows the pool the pick draws from and falls back to every
+  row when none of the picked catalogs is loaded, so an addon removed elsewhere
+  cannot leave Home without a billboard; every catalog still gets its own row
+  either way. Home listens to the setting (`distinctUntilChanged` on the two
+  fields), so switching it re-picks immediately instead of waiting for the next
+  rotation. The catalog list for the picker is read from the addons in the
+  settings screen, not stored: only the keys are persisted, which keeps
+  `settings.json` hand-editable and free of stale names.
+- **Android resolves IPv4 first and bypasses the system proxy.** `IPv4FirstDns`
+  sorts the DNS answers, so a host with a broken AAAA record does not stall every
+  connect until IPv6 times out; `Proxy.NO_PROXY` stops a proxy that only knows a
+  corporate network from failing every public addon request.
 
 ## UI (`:app:shared`)
 
@@ -307,7 +371,7 @@ so the atomic read/write/delete logic lives once.
   cropped artwork. Metadata is one builder, so the star, separators, the type
   name and rating formatting cannot diverge.
 - **Billboards share their icon actions.** `HeroActionRow` and
-  `HeroActionState` (`ui/components/HeroActions.kt`) render the library, rate and
+  `HeroActionState` (`ui/components/HeroActions.kt`) render the library and
   watched buttons next to the call to action, so Home and the detail screen
   cannot drift in icon, size, colour or state. Both billboards lead with a
   labelled play call to action (`ActionButton` + `action_stream_now`), so Home
@@ -656,7 +720,9 @@ so the atomic read/write/delete logic lives once.
   does not drift during a swipe, because the parallax overscan would trim its
   sides again. The detail backdrop makes the same textless choice on a phone,
   cropped to fill, and there drops the left-to-right readability scrim so the
-  artwork is only darkened at the bottom, under the copy. The Home preloader goes through the same helper, so it always
+  artwork is only darkened at the bottom, under the copy. It also waits for the
+  enrichment to settle before painting, so the choice is never re-made on screen.
+  The Home preloader goes through the same helper, so it always
   warms the URL the layer will draw, and the featured set is enriched before the
   billboard's first paint, so it never shows the catalog artwork and then swaps
   to TMDB's.

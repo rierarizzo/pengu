@@ -16,8 +16,6 @@ const icons = [
   ["Check", "checkmark-24-filled", false],
   ["CheckCircle", "checkmark-circle-24-filled", false],
   ["CheckCircleOutline", "checkmark-circle-24-regular", false],
-  ["Star", "star-24-filled", false],
-  ["StarBorder", "star-24-regular", false],
   ["ArrowBack", "arrow-left-24-regular", true],
   ["ChevronLeft", "chevron-left-24-regular", false],
   ["ChevronRight", "chevron-right-24-regular", false],
@@ -82,8 +80,8 @@ import androidx.compose.ui.unit.dp
  * The whole UI uses these glyphs, on Fluent's 24dp viewport; call sites
  * size them with [com.misgus.pengu.ui.theme.AppIconSize]. \`scripts/gen_fluent_icons.mjs\`
  * regenerates the file from the Fluent set on Iconify. Only the glyphs the UI
- * uses are kept, and each pair (a filled and a regular glyph, e.g. star and
- * star outline) mirrors the solid/outline split the UI had before.
+ * uses are kept, and each pair (a filled and a regular glyph, e.g. check circle
+ * and its outline) mirrors the solid/outline split the UI had before.
  */
 object FluentIcons {
 `;

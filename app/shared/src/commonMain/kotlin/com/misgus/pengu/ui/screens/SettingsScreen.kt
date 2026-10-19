@@ -8,17 +8,21 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,10 +32,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.misgus.pengu.app.shared.generated.resources.Res
 import com.misgus.pengu.app.shared.generated.resources.action_save
 import com.misgus.pengu.app.shared.generated.resources.action_sign_out
+import com.misgus.pengu.app.shared.generated.resources.action_try_again
 import com.misgus.pengu.app.shared.generated.resources.error_open_file
 import com.misgus.pengu.app.shared.generated.resources.poster_size_default
 import com.misgus.pengu.app.shared.generated.resources.poster_size_large
@@ -44,6 +50,17 @@ import com.misgus.pengu.app.shared.generated.resources.settings_autoplay
 import com.misgus.pengu.app.shared.generated.resources.settings_autoplay_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_config_file
 import com.misgus.pengu.app.shared.generated.resources.settings_config_file_subtitle
+import com.misgus.pengu.app.shared.generated.resources.settings_hero
+import com.misgus.pengu.app.shared.generated.resources.settings_hero_catalogs
+import com.misgus.pengu.app.shared.generated.resources.settings_hero_catalogs_empty
+import com.misgus.pengu.app.shared.generated.resources.settings_hero_catalogs_error
+import com.misgus.pengu.app.shared.generated.resources.settings_hero_catalogs_loading
+import com.misgus.pengu.app.shared.generated.resources.settings_hero_catalogs_selected
+import com.misgus.pengu.app.shared.generated.resources.settings_hero_manual
+import com.misgus.pengu.app.shared.generated.resources.settings_hero_smart
+import com.misgus.pengu.app.shared.generated.resources.settings_hero_source
+import com.misgus.pengu.app.shared.generated.resources.settings_hero_source_subtitle
+import com.misgus.pengu.app.shared.generated.resources.settings_hero_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_hide_labels
 import com.misgus.pengu.app.shared.generated.resources.settings_hide_labels_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_metadata
@@ -87,14 +104,19 @@ import com.misgus.pengu.app.shared.generated.resources.settings_video_url
 import com.misgus.pengu.app.shared.generated.resources.theme_coffee
 import com.misgus.pengu.core.player.PlaybackTarget
 import com.misgus.pengu.core.repository.AppTheme
+import com.misgus.pengu.core.repository.CatalogRef
+import com.misgus.pengu.core.repository.HeroSource
+import com.misgus.pengu.core.repository.MAX_HERO_CATALOGS
 import com.misgus.pengu.core.repository.PosterSize
 import com.misgus.pengu.core.repository.SignInMethod
 import com.misgus.pengu.core.repository.TmdbLanguage
 import com.misgus.pengu.core.repository.TmdbVerifyResult
+import com.misgus.pengu.core.util.runCatchingCancellable
 import com.misgus.pengu.ui.components.ActionButton
 import com.misgus.pengu.ui.components.ActionButtonStyle
 import com.misgus.pengu.ui.components.AppIconButton
 import com.misgus.pengu.ui.components.AppTextField
+import com.misgus.pengu.ui.components.contentTypeLabel
 import com.misgus.pengu.ui.components.sectionHeading
 import com.misgus.pengu.ui.components.toUserMessage
 import com.misgus.pengu.ui.icons.FluentIcons
@@ -102,6 +124,7 @@ import com.misgus.pengu.ui.onboarding.SignInForm
 import com.misgus.pengu.ui.platform.openInDefaultApp
 import com.misgus.pengu.ui.platform.pickVideoFile
 import com.misgus.pengu.ui.services.LocalAppServices
+import com.misgus.pengu.ui.theme.AppIconSize
 import com.misgus.pengu.ui.theme.AppSizes
 import com.misgus.pengu.ui.theme.AppSpacing
 import com.misgus.pengu.ui.theme.AppType
@@ -156,6 +179,13 @@ fun SettingsScreen(onOpenPlayer: (PlaybackTarget) -> Unit) {
                 onHideLabelsChange = { value -> save { settings.setHideLabels(value) } },
                 showCatalogType = state.showCatalogType,
                 onShowCatalogTypeChange = { value -> save { settings.setShowCatalogType(value) } },
+            )
+            Spacer(Modifier.height(AppSpacing.lg))
+            HeroCard(
+                source = state.heroSource,
+                selectedKeys = state.heroCatalogKeys,
+                onSourceChange = { value -> save { settings.setHeroSource(value) } },
+                onKeysChange = { value -> save { settings.setHeroCatalogKeys(value) } },
             )
             Spacer(Modifier.height(AppSpacing.lg))
             PlaybackSettingsCard(
@@ -297,6 +327,138 @@ private fun AppearanceCard(
                 checked = showCatalogType,
                 onCheckedChange = onShowCatalogTypeChange,
             )
+        }
+    }
+}
+
+/**
+ * Source of the featured titles on Home.
+ *
+ * Smart is the default: the app mixes every loaded row. Manual lets the user pin
+ * up to [MAX_HERO_CATALOGS] catalogs, which is what Nuvio offers; the catalog
+ * list is read here instead of in the ViewModel because it is the only screen
+ * that needs the names, not just the keys.
+ */
+@Composable
+private fun HeroCard(
+    source: HeroSource,
+    selectedKeys: List<String>,
+    onSourceChange: (HeroSource) -> Unit,
+    onKeysChange: (List<String>) -> Unit,
+) {
+    val catalogs = LocalAppServices.current.catalogs
+    val sourceLabels =
+        mapOf(
+            HeroSource.SMART to stringResource(Res.string.settings_hero_smart),
+            HeroSource.MANUAL to stringResource(Res.string.settings_hero_manual),
+        )
+    var options by remember { mutableStateOf<List<CatalogRef>?>(null) }
+    var failed by remember { mutableStateOf(false) }
+    var attempt by remember { mutableStateOf(0) }
+
+    // Only a manual billboard needs the list, and the addons can change while the
+    // app is open, so it is read when the mode is picked and on every retry.
+    LaunchedEffect(source, attempt) {
+        if (source != HeroSource.MANUAL || (options != null && attempt == 0)) return@LaunchedEffect
+        val loaded = runCatchingCancellable { catalogs.catalogs().filter { it.browsable }.distinctBy { it.key } }
+        options = loaded.getOrNull()
+        failed = loaded.isFailure
+    }
+
+    SettingsCard(
+        title = stringResource(Res.string.settings_hero),
+        subtitle = stringResource(Res.string.settings_hero_subtitle),
+    ) {
+        Column {
+            SettingsChoice(
+                title = stringResource(Res.string.settings_hero_source),
+                subtitle = stringResource(Res.string.settings_hero_source_subtitle),
+                options = HeroSource.entries,
+                selected = source,
+                label = { sourceLabels.getValue(it) },
+                onSelect = onSourceChange,
+            )
+            // Smart draws from every row, so only Manual has anything to pick.
+            if (source == HeroSource.MANUAL) {
+                Spacer(Modifier.height(AppSpacing.sm))
+                Text(stringResource(Res.string.settings_hero_catalogs), style = AppType.itemTitle())
+                Text(
+                    stringResource(Res.string.settings_hero_catalogs_selected, selectedKeys.size, MAX_HERO_CATALOGS),
+                    style = AppType.bodySecondary(),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(AppSpacing.xs))
+                when {
+                    failed ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                stringResource(Res.string.settings_hero_catalogs_error),
+                                style = AppType.bodySecondary(),
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                            Spacer(Modifier.width(AppSpacing.sm))
+                            ActionButton(
+                                text = stringResource(Res.string.action_try_again),
+                                onClick = { attempt++ },
+                                style = ActionButtonStyle.Text,
+                            )
+                        }
+                    options == null ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(Modifier.size(AppIconSize.sm))
+                            Spacer(Modifier.width(AppSpacing.sm))
+                            Text(stringResource(Res.string.settings_hero_catalogs_loading), style = AppType.bodySecondary())
+                        }
+                    options.orEmpty().isEmpty() ->
+                        Text(
+                            stringResource(Res.string.settings_hero_catalogs_empty),
+                            style = AppType.bodySecondary(),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    else ->
+                        options.orEmpty().forEach { ref ->
+                            HeroCatalogOption(
+                                ref = ref,
+                                selected = ref.key in selectedKeys,
+                                enabled = ref.key in selectedKeys || selectedKeys.size < MAX_HERO_CATALOGS,
+                                onToggle = { checked ->
+                                    onKeysChange(if (checked) selectedKeys + ref.key else selectedKeys - ref.key)
+                                },
+                            )
+                        }
+                }
+            }
+        }
+    }
+}
+
+/** One catalog a manual billboard can draw from. */
+@Composable
+private fun HeroCatalogOption(
+    ref: CatalogRef,
+    selected: Boolean,
+    enabled: Boolean,
+    onToggle: (Boolean) -> Unit,
+) {
+    val typeLabel = contentTypeLabel(ref.type)
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = AppSpacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Checkbox(checked = selected, onCheckedChange = onToggle, enabled = enabled)
+        Spacer(Modifier.width(AppSpacing.sm))
+        Column(Modifier.weight(1f)) {
+            Text(
+                ref.name,
+                style = AppType.itemTitle(),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            val subtitle = listOfNotNull(ref.addonName.takeIf { it.isNotBlank() }, typeLabel).joinToString("  ·  ")
+            if (subtitle.isNotEmpty()) {
+                Text(subtitle, style = AppType.bodySecondary(), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+            }
         }
     }
 }

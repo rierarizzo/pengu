@@ -45,6 +45,9 @@ fun SectionHost(
                         progress = services.progress,
                         badges = services.watchedBadges,
                         tmdb = services.tmdb,
+                        snapshot = services.homeSnapshot,
+                        addons = services.addons,
+                        settings = services.settings,
                     )
                 }
             HomeScreen(viewModel, navigator, onOpenStreams)

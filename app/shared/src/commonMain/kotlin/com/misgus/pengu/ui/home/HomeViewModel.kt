@@ -1,6 +1,10 @@
 package com.misgus.pengu.ui.home
 
 import androidx.lifecycle.viewModelScope
+import com.misgus.pengu.core.catalog.HomeSnapshot
+import com.misgus.pengu.core.catalog.HomeSnapshotRow
+import com.misgus.pengu.core.catalog.HomeSnapshotStore
+import com.misgus.pengu.core.catalog.NoopHomeSnapshotStore
 import com.misgus.pengu.core.model.ContentType
 import com.misgus.pengu.core.model.ContentTypes
 import com.misgus.pengu.core.model.LibraryItem
@@ -10,11 +14,16 @@ import com.misgus.pengu.core.model.WatchProgress
 import com.misgus.pengu.core.model.enrichedWith
 import com.misgus.pengu.core.model.releaseYear
 import com.misgus.pengu.core.repository.AccountRepository
+import com.misgus.pengu.core.repository.AddonRepository
 import com.misgus.pengu.core.repository.CatalogRef
 import com.misgus.pengu.core.repository.CatalogRepository
+import com.misgus.pengu.core.repository.HeroSource
+import com.misgus.pengu.core.repository.InMemorySettingsRepository
 import com.misgus.pengu.core.repository.LibraryRepository
 import com.misgus.pengu.core.repository.NoTmdbRepository
+import com.misgus.pengu.core.repository.NoopAddonRepository
 import com.misgus.pengu.core.repository.ProgressRepository
+import com.misgus.pengu.core.repository.SettingsRepository
 import com.misgus.pengu.core.repository.TmdbLookup
 import com.misgus.pengu.core.repository.TmdbRepository
 import com.misgus.pengu.core.util.runCatchingCancellable
@@ -30,13 +39,16 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlin.random.Random
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
@@ -75,9 +87,13 @@ data class HomeUiState(
  * (watch progress joined with the library). Catalogs load in batches and the
  * screen paints after the first one, with the featured artwork already enriched
  * so the billboard never swaps; later batches only append rows. Re-entering the
- * section keeps the loaded content and refreshes behind it. The watched badges
- * are resolved after the paint. Every browsable catalog gets a row; only the
- * items per row are capped.
+ * section keeps the loaded content and refreshes behind it, and a cold start
+ * paints the previous session's rows from disk before the first request. The
+ * billboard comes from every loaded row (Smart) or from the catalogs picked in
+ * Settings (Manual), and a stored set older than [HERO_PICK_TTL] is re-picked on
+ * a cold start. The
+ * watched badges are resolved after the paint. Every browsable catalog gets a
+ * row; only the items per row are capped.
  */
 class HomeViewModel(
     account: AccountRepository,
@@ -86,7 +102,11 @@ class HomeViewModel(
     private val progress: ProgressRepository,
     badges: WatchedBadgeResolver,
     private val tmdb: TmdbRepository = NoTmdbRepository(),
+    private val snapshot: HomeSnapshotStore = NoopHomeSnapshotStore(),
+    addons: AddonRepository = NoopAddonRepository(),
+    private val settings: SettingsRepository = InMemorySettingsRepository(),
     private val random: Random = Random.Default,
+    private val now: () -> Instant = { Clock.System.now() },
 ) : AccountScopedViewModel(account) {
     private val _state = MutableStateFlow(HomeUiState())
     val state: StateFlow<HomeUiState> = _state.asStateFlow()
@@ -99,6 +119,15 @@ class HomeViewModel(
     /** When the last load finished, so a re-entry refreshes only when stale. */
     private var lastLoadedAt: Instant? = null
 
+    /**
+     * When the billboard set was picked.
+     *
+     * Kept across loads so the snapshot carries the pick time, not the time of the
+     * last write: a re-entry that refreshes the rows behind must not make the set
+     * look freshly picked (nor older than it is).
+     */
+    private var billboardAt: Instant? = null
+
     init {
         // A save or a remove made elsewhere (the detail screen, the library)
         // bumps the repository; keep the billboard's save state in sync without
@@ -106,6 +135,21 @@ class HomeViewModel(
         // is in flight, so the optimistic flip is not clobbered by stale reads.
         viewModelScope.launch {
             library.changes.drop(1).collect { if (_state.value.savingIds.isEmpty()) refreshSaved() }
+        }
+        // The addon list is answered from the last snapshot and refreshed behind
+        // it; when the addons really changed (the user installed one in another
+        // client), the rows on screen are loaded again.
+        viewModelScope.launch {
+            addons.changes.collect { if (_state.value.hasLoaded) load(force = true) }
+        }
+        // Picking a different billboard source is a deliberate change, so it
+        // applies at once instead of waiting for the next rotation or reload.
+        viewModelScope.launch {
+            settings.state
+                .map { it.heroSource to it.heroCatalogKeys }
+                .distinctUntilChanged()
+                .drop(1)
+                .collect { if (_state.value.rows.isNotEmpty()) rotateFeatured() }
         }
     }
 
@@ -128,7 +172,7 @@ class HomeViewModel(
             // Re-entering Home keeps the loaded rows on screen and refreshes
             // behind them, unless the last load is recent enough to reuse.
             val last = lastLoadedAt
-            if (last != null && Clock.System.now() - last < HOME_REFRESH_INTERVAL) return
+            if (last != null && now() - last < HOME_REFRESH_INTERVAL) return
             loadJob = viewModelScope.launch { doLoad(refresh = true) }
             return
         }
@@ -140,6 +184,13 @@ class HomeViewModel(
         var progressEntries: List<WatchProgress> = emptyList()
         var loaded = false
         try {
+            // Paint the previous session's rows from disk before the first
+            // request, so a cold start shows content instead of a spinner. The
+            // network pass then replaces them row by row; the billboard that is
+            // already on screen is kept, unless its set is old enough to be
+            // re-picked (the stored rows paint either way).
+            val stored = restoreSnapshot()
+            val keepsBillboard = refresh || (stored != null && !stored.billboardExpired())
             // Watch progress, library and the catalog list are independent, so
             // they all start at once instead of paying three round-trips in a row.
             val (entries, libraryItems, refs) =
@@ -171,31 +222,47 @@ class HomeViewModel(
             // picked and enriched from the rows on screen before that first paint,
             // so the billboard never shows the catalog artwork and then swaps to
             // TMDB's; later batches only append rows and leave the billboard alone.
-            // A refresh keeps the billboard that is already on screen.
+            // A refresh keeps the billboard that is already on screen, and so does
+            // a cold start with stored rows: there the rows stay until the load
+            // finishes, so the screen never shrinks to the first batch's catalogs,
+            // and an expired set is re-picked from the final rows below.
+            val paintsEarly = !refresh && stored == null && _state.value.rows.isEmpty()
             val order = refs.mapIndexed { index, ref -> ref.key to index }.toMap()
             val batches = refs.chunked(HOME_CATALOG_FETCH_BATCH_SIZE)
             val rows = mutableListOf<HomeRow>()
-            var featured = if (refresh) _state.value.featured else emptyList()
+            var featured = if (keepsBillboard) _state.value.featured else emptyList()
 
             batches.forEachIndexed { batchIndex, batch ->
                 val results = coroutineScope { batch.map { ref -> async { loadRow(ref) } }.awaitAll() }
                 rows += results.filterNotNull()
                 rows.sortBy { order[it.ref.key] ?: Int.MAX_VALUE }
-                val firstContentPaint = featured.isEmpty() && rows.isNotEmpty()
+                val firstContentPaint = paintsEarly && featured.isEmpty() && rows.isNotEmpty()
                 if (firstContentPaint) {
-                    featured = enrichFeatured(pickFeatured(rows, MAX_FEATURED, random))
+                    featured = pickBillboard(rows)
                 }
                 val last = batchIndex == batches.lastIndex
                 val publishNow =
-                    !refresh &&
+                    paintsEarly &&
                         (batchIndex == 0 || (batchIndex + 1) % HOME_CATALOG_PUBLISH_INTERVAL == 0 || last)
                 if (publishNow || firstContentPaint) {
                     publishContent(isLoading = true, continueWatching, savedIds, rows, featured)
+                } else if (batchIndex == 0) {
+                    // Content was already on screen: the stored rows stay, but the
+                    // backend-owned rows (continue watching) do not have to wait for
+                    // the last batch.
+                    publishBackend(continueWatching, savedIds)
                 }
             }
 
+            // A set that was dropped above (its snapshot had aged out) is picked
+            // from the rows that are actually loaded, not from the first batch.
+            if (featured.isEmpty() && rows.isNotEmpty()) {
+                featured = pickBillboard(rows)
+            }
+
             publishContent(isLoading = false, continueWatching, savedIds, rows, featured)
-            lastLoadedAt = Clock.System.now()
+            lastLoadedAt = now()
+            writeSnapshot(rows, featured, billboardAt)
             loaded = true
         } catch (cancellation: CancellationException) {
             throw cancellation
@@ -227,12 +294,90 @@ class HomeViewModel(
         }
     }
 
+    /** Publishes the backend-owned rows, leaving the loaded catalogs untouched. */
+    private fun publishBackend(
+        continueWatching: List<ContinueEntry>,
+        savedIds: Set<String>,
+    ) {
+        _state.update { it.copy(continueWatching = continueWatching, savedIds = savedIds) }
+    }
+
     /** Loads one catalog row, or `null` when it is empty or fails. */
     private suspend fun loadRow(ref: CatalogRef): HomeRow? =
         runCatchingCancellable {
             val items = catalogs.items(ref)
             if (items.isEmpty()) null else HomeRow(ref, ref.name, items.take(MAX_ITEMS_PER_ROW))
         }.getOrNull()
+
+    /**
+     * Publishes the rows of the last session and returns its snapshot.
+     *
+     * The rows go on screen whatever their age — that is the point of the
+     * snapshot — while the caller decides whether the billboard that came with
+     * them is recent enough to keep. An unreadable snapshot is treated as no
+     * snapshot: the load simply starts from the network.
+     */
+    private suspend fun restoreSnapshot(): HomeSnapshot? {
+        val stored = runCatchingCancellable { snapshot.read(profileKey()) }.getOrNull() ?: return null
+        val rows =
+            stored.rows
+                .filter { it.items.isNotEmpty() }
+                .map { HomeRow(ref = it.ref, title = it.ref.name, items = it.items.take(MAX_ITEMS_PER_ROW)) }
+        if (rows.isEmpty()) return null
+        _state.update { it.copy(rows = rows, featured = stored.featured, hasLoaded = true) }
+        if (billboardAt == null) billboardAt = stored.featuredAt
+        return stored
+    }
+
+    /**
+     * The rows the billboard is built from.
+     *
+     * Smart draws from every loaded row. Manual narrows it to the catalogs picked
+     * in Settings, and falls back to every row when none of them is loaded, so an
+     * addon removed in the meantime cannot leave Home without a billboard.
+     */
+    private fun billboardRows(rows: List<HomeRow>): List<HomeRow> {
+        val current = settings.state.value
+        if (current.heroSource != HeroSource.MANUAL || current.heroCatalogKeys.isEmpty()) return rows
+        return rows.filter { it.ref.key in current.heroCatalogKeys }.ifEmpty { rows }
+    }
+
+    /** Whether the stored set is old enough that a cold start should re-pick it. */
+    private fun HomeSnapshot.billboardExpired(): Boolean {
+        val pickedAt = featuredAt ?: return true
+        return now() - pickedAt >= HERO_PICK_TTL
+    }
+
+    /** Stores what is on screen, so the next cold start can paint it. */
+    private suspend fun writeSnapshot(
+        rows: List<HomeRow>,
+        featured: List<MetaPreview>,
+        featuredAt: Instant?,
+    ) {
+        if (rows.isEmpty()) return
+        runCatchingCancellable {
+            snapshot.write(
+                profileKey(),
+                HomeSnapshot(
+                    rows = rows.map { HomeSnapshotRow(it.ref, it.items) },
+                    featured = featured,
+                    featuredAt = featuredAt,
+                ),
+            )
+        }
+    }
+
+    /**
+     * Scopes the on-disk snapshot.
+     *
+     * The integer profile id is what every other local cache keys on, and a
+     * backend without profiles (local mode) keeps a single snapshot under
+     * [LOCAL_PROFILE_KEY].
+     */
+    private fun profileKey(): String =
+        account.state.value.activeProfile
+            ?.profileId
+            ?.toString() ?: LOCAL_PROFILE_KEY
 
     private suspend fun syncWatched(progressEntries: List<WatchProgress>) {
         val candidates =
@@ -323,9 +468,24 @@ class HomeViewModel(
                 .map { it.type to it.id }
                 .toSet()
         viewModelScope.launch {
-            val featured = enrichFeatured(pickFeatured(rows, MAX_FEATURED, random, exclude = current))
+            val featured = pickBillboard(rows, exclude = current)
             _state.update { it.copy(featured = featured) }
+            writeSnapshot(rows, featured, billboardAt)
         }
+    }
+
+    /**
+     * Picks the billboard set from [rows] and records when it was picked.
+     *
+     * The one place that turns rows into a billboard, so the first paint, a cold
+     * start that re-picks an aged set and the timed rotation cannot drift.
+     */
+    private suspend fun pickBillboard(
+        rows: List<HomeRow>,
+        exclude: Set<Pair<ContentType, String>> = emptySet(),
+    ): List<MetaPreview> {
+        billboardAt = now()
+        return enrichFeatured(pickFeatured(billboardRows(rows), MAX_FEATURED, random, exclude))
     }
 
     /**
@@ -363,6 +523,7 @@ class HomeViewModel(
         loadJob?.cancel()
         loadJob = null
         lastLoadedAt = null
+        billboardAt = null
         watchedSync.invalidate()
         _state.value = HomeUiState()
     }
@@ -384,6 +545,16 @@ class HomeViewModel(
 
         /** A re-entry refreshes behind only when the loaded content is this old. */
         val HOME_REFRESH_INTERVAL = 5.minutes
+
+        /**
+         * How long a stored billboard set is reused before a cold start re-picks
+         * it. Long on purpose: the set is enriched and on disk, so replacing it
+         * is a visible change, not a repair.
+         */
+        val HERO_PICK_TTL = 6.hours
+
+        /** Snapshot key for a backend without profiles. */
+        const val LOCAL_PROFILE_KEY = "local"
     }
 }
 

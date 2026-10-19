@@ -1,6 +1,7 @@
 package com.misgus.pengu.data.store
 
 import com.misgus.pengu.core.repository.AppTheme
+import com.misgus.pengu.core.repository.HeroSource
 import com.misgus.pengu.core.repository.PosterSize
 import com.misgus.pengu.core.repository.TmdbLanguage
 import kotlinx.coroutines.test.runTest
@@ -33,9 +34,40 @@ class SettingsRepositoryTest {
             assertTrue(settings.state.value.autoPlayNext)
             assertFalse(settings.state.value.hideLabels)
             assertTrue(settings.state.value.showCatalogType)
-            assertEquals(AppTheme.COFFEE, settings.state.value.theme)
-            assertEquals("", settings.state.value.tmdbApiKey)
-            assertEquals(TmdbLanguage.SYSTEM, settings.state.value.tmdbLanguage)
+            val loaded = settings.state.value
+            assertEquals(AppTheme.COFFEE, loaded.theme)
+            assertEquals(HeroSource.SMART, loaded.heroSource)
+            assertTrue(loaded.heroCatalogKeys.isEmpty())
+            assertEquals("", loaded.tmdbApiKey)
+            assertEquals(TmdbLanguage.SYSTEM, loaded.tmdbLanguage)
+        }
+
+    @Test
+    fun persistsTheBillboardSourceAndItsCatalogs() =
+        runTest {
+            val path = File(tempDir(), "settings.json").path
+            val settings = JsonSettingsRepository(JsonMapStore(path, pretty = true))
+            settings.load()
+
+            settings.setHeroSource(HeroSource.MANUAL)
+            settings.setHeroCatalogKeys(listOf("https://a|movie|top", "https://b|series|new"))
+
+            val reloaded = JsonSettingsRepository(JsonMapStore(path, pretty = true))
+            reloaded.load()
+
+            assertEquals(HeroSource.MANUAL, reloaded.state.value.heroSource)
+            assertEquals(listOf("https://a|movie|top", "https://b|series|new"), reloaded.state.value.heroCatalogKeys)
+        }
+
+    @Test
+    fun keepsOnlyTwoBillboardCatalogs() =
+        runTest {
+            val settings = JsonSettingsRepository(JsonMapStore(File(tempDir(), "settings.json").path))
+            settings.load()
+
+            settings.setHeroCatalogKeys(listOf("https://a|movie|top", "https://b|series|new", "https://c|movie|x"))
+
+            assertEquals(listOf("https://a|movie|top", "https://b|series|new"), settings.state.value.heroCatalogKeys)
         }
 
     @Test

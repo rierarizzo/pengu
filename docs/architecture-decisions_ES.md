@@ -45,8 +45,7 @@ leer/escribir/borrar vive una sola vez.
 - **Un repositorio por capacidad**, reflejando el refactor de Flutter:
   `AccountRepository`, `LibraryRepository`, `ProgressRepository`,
   `AddonRepository`, más los contratos de addons (`CatalogRepository`,
-  `MetadataRepository`, `StreamRepository`, `SubtitleRepository`) y
-  `RatingRepository`.
+  `MetadataRepository`, `StreamRepository`, `SubtitleRepository`).
 - **Observabilidad con corrutinas.** Donde Flutter usaba `Listenable`, los
   contratos de Kotlin exponen `StateFlow`. `AccountRepository` expone un único
   `StateFlow<AccountState>` (sesión, perfiles, perfil activo, carga y error);
@@ -109,7 +108,7 @@ leer/escribir/borrar vive una sola vez.
   las RPC `sync_*`). Los repositorios toman la parte que necesitan. Los tokens de
   sesión viven en `data/`, nunca en el dominio.
 - **Almacén local**: `JsonFileStore`/`JsonMapStore` y los stores de sesión /
-  valoraciones / series vistas. La resolución de rutas es un `expect` de
+  snapshot / series vistas. La resolución de rutas es un `expect` de
   plataforma (`%APPDATA%\Pengu` en Windows, XDG en el resto). Las escrituras
   pasan por un fichero temporal hermano y se renombran en su sitio, así que una
   escritura interrumpida no puede dejar un documento truncado, y una escritura
@@ -137,10 +136,20 @@ leer/escribir/borrar vive una sola vez.
 - **El enriquecimiento con TMDB es opcional y solo de presentación.** Una clave
   puesta en Ajustes (`metadata.tmdbApiKey`, con `metadata.tmdbLanguage` para el
   idioma de respuesta, el del sistema por defecto) activa un segundo proveedor de
-  metadata que solo usan la pantalla de detalle y el billboard de Home; la
-  metadata de los addons sigue siendo la fuente de verdad y el merge solo rellena
-  los campos que un addon dejó vacíos, nunca un identificador (`MetaDetail.id` y
-  `MetaVideo.id` siguen direccionando los streams). `TmdbMetadataRepository`
+  metadata que solo usan la pantalla de detalle y el billboard de Home, y nunca
+  reemplaza un identificador (`MetaDetail.id` y `MetaVideo.id` siguen
+  direccionando los streams). Dos reglas de merge, una por pantalla
+  (`MetadataEnrichment.kt`): el billboard de Home *rellena huecos*, así que TMDB
+  solo añade lo que el preview del catálogo dejó vacío y el billboard pinta de
+  inmediato; la **pantalla de detalle da prioridad a TMDB**, porque ahí una sola
+  fuente consistente vale más que el primer pintado más rápido. Allí,
+  `DetailUiState.isResolvingArtwork` impide que el hero pinte nada — artwork,
+  logo, línea de metadata, sinopsis — hasta que ha llegado el merge con todas las
+  fuentes, así que un teléfono pasa directo de nada al póster sin texto y nunca
+  muestra antes el backdrop del addon (la misma razón por la que la sinopsis ya
+  reservaba su espacio en vez de enseñar el copy del preview). El addon conserva
+  la nota IMDb, que este payload de TMDB no trae.
+  `TmdbMetadataRepository`
   resuelve cualquier content id a uno de TMDB — un id `tmdb:` explícito,
   IMDb/TVDB vía `/find`, y si no una búsqueda por título y año que rechaza un
   match ambiguo — y luego pide el detalle con sus imágenes, ids externos y
@@ -149,7 +158,8 @@ leer/escribir/borrar vive una sola vez.
   streams, así que un preview `tmdb:` igual reproduce. Tanto el id resuelto como
   el payload se cachean durante el proceso.
   La respuesta del addon se publica primero y el enriquecimiento llega justo
-  después, así que una búsqueda lenta nunca retrasa la página. La fila "More like
+  después, así que una búsqueda lenta nunca retrasa los datos de la página (solo
+  su pintado). La fila "More like
   this" se construye con las recomendaciones de TMDB (su lista similar como
   respaldo) y cae al catálogo similar del addon cuando no hay clave o no hay
   match. Sin clave el repositorio corta y ninguna petición sale de la app. La
@@ -172,11 +182,71 @@ leer/escribir/borrar vive una sola vez.
   resolver de badges lee las dos fuentes de progreso en paralelo y sus búsquedas
   de metadata son acotadas pero concurrentes; los chunks de `watched_items` se
   consultan juntos; los manifiestos de catálogo se piden en paralelo y se cachean
-  por addon (un manifiesto es inmutable). La lista de addons se cachea por uuid
-  de perfil, así que la sincronización de badges no la reconsulta para cada
+  por addon (un manifiesto es inmutable, y la caché en disco de abajo lo conserva
+  entre arranques). La lista de addons se cachea por uuid de perfil, así que la
+  sincronización de badges no la reconsulta para cada
   serie. Los ViewModels con scope de cuenta (Home, Library, Search (y su feed de
   discover), Calendar) esperan a un perfil antes de cargar en vez de cargar sin
   él y fallar.
+- **Las respuestas de los addons se cachean en disco.** `createAddonHttpClient()`
+  (`data/platform`) instala el `HttpCache` de Ktor sobre un `FileStorage` en el
+  directorio de caché de la plataforma — nunca en el de configuración, porque una
+  caché es desechable y en Windows no debe acabar en un perfil móvil. Un
+  manifiesto o una página de catálogo que el addon marcó como cacheable se sirve
+  desde disco, y `Cache-Control: no-cache` sigue revalidando con `If-None-Match` /
+  `If-Modified-Since` en lugar de servirse a ciegas.
+  `CacheStorageWithFallbackTtl` da a las respuestas que no declaran nada — sin
+  `Cache-Control`, sin `Expires` y sin validador, que es lo que manda buena parte
+  del ecosistema Stremio — una vida de cinco minutos, la misma ventana que Home
+  ya usa para considerar el contenido fresco; lo que el addon sí declaró manda, y
+  `no-cache`/`must-revalidate` nunca se sobrescriben. El tráfico de addons es
+  deliberadamente el único cacheado: `createHttpClient()`, usado por el backend
+  Nuvio y TMDB, no tiene caché, porque servir un `library_items` o un
+  `watch_progress` viejo le mostraría al usuario datos que acaba de cambiar.
+- **El JSON de catálogo se pide comprimido con gzip.** Ningún motor añade
+  `Accept-Encoding`, así que `StremioAddonClient` pide `gzip` él mismo y decodifica
+  el cuerpo (`gzipDecode`, implementado una vez para los targets JVM y Android).
+  Una página de catálogo encoge unas cinco veces, que son la mayoría de los bytes
+  que un arranque en frío descargaría de otro modo; la caché en disco sigue
+  guardando el cuerpo comprimido.
+- **La lista de addons se responde desde un snapshot local.**
+  `NuvioAddonRepository` sirve la última lista guardada por
+  `FileAddonSnapshotStore` en vez de esperar la query `addons` del perfil, luego
+  la refresca en segundo plano y anuncia un cambio real por
+  `AddonRepository.changes`, que Home escucha antes de recargar sus filas. La
+  lista estaba antes delante de cada petición de catálogo — sesión, perfil, query
+  de `addons`, manifiesto, catálogo — así que esto quita un round-trip del camino
+  frío; un dispositivo sin red sigue funcionando desde el snapshot.
+- **Home pinta la última sesión antes de la primera petición.**
+  `FileHomeSnapshotStore` guarda las filas y el billboard que estaban en pantalla
+  (`HomeSnapshot`, por id de perfil) y `HomeViewModel` los publica antes de
+  empezar la carga. La respuesta de red reemplaza después las filas lote a lote y
+  conserva el billboard ya visible, así que el hero nunca cambia del artwork
+  guardado a una elección nueva; una carga fallida deja el snapshot en pantalla
+  en vez de una página de error. El snapshot se reescribe tras cada carga
+  correcta y lleva el instante en que se eligió el set del billboard: un set con
+  más de seis horas se vuelve a elegir en un arranque en frío (las filas siguen
+  pintando de inmediato y el set nuevo reemplaza al hero cuando ya está
+  enriquecido), así el billboard no se queda congelado semanas mientras el primer
+  frame sigue siendo instantáneo. Una re-entrada conserva el instante de la
+  elección, porque refresca las filas por detrás y no debe hacer que el set
+  parezca más reciente de lo que es.
+- **La fuente del billboard es un ajuste.** `hero.source` es `smart` (el
+  defecto: todas las filas cargadas, mezcladas y ordenadas por la app) o
+  `manual`, y `hero.catalogs` guarda hasta dos `CatalogRef.key` elegidos en
+  Ajustes → Home billboard. Manual acota el pool del que se elige y cae a todas
+  las filas cuando ninguno de los catálogos elegidos está cargado, así que un
+  addon eliminado en otro sitio no puede dejar Home sin billboard; cada catálogo
+  sigue teniendo su fila en cualquier caso. Home escucha el ajuste
+  (`distinctUntilChanged` sobre los dos campos), así que cambiarlo vuelve a
+  elegir al instante en vez de esperar a la siguiente rotación. La lista de
+  catálogos del selector se lee de los addons en la pantalla de ajustes, no se
+  guarda: solo se persisten las claves, lo que mantiene `settings.json`
+  editable a mano y sin nombres obsoletos.
+- **Android resuelve IPv4 primero y evita el proxy del sistema.** `IPv4FirstDns`
+  ordena las respuestas DNS, así que un host con un registro AAAA roto no bloquea
+  cada conexión hasta que IPv6 caduque; `Proxy.NO_PROXY` evita que un proxy que
+  solo conoce una red corporativa haga fallar cada petición a un addon público.
 
 ## UI (`:app:shared`)
 
@@ -332,7 +402,7 @@ leer/escribir/borrar vive una sola vez.
   formato de la valoración no pueden divergir.
 - **Los billboards comparten sus acciones de icono.** `HeroActionRow` y
   `HeroActionState` (`ui/components/HeroActions.kt`) renderizan los botones de
-  biblioteca, puntuar y visto junto al call to action, así que Home y el detalle
+  biblioteca y visto junto al call to action, así que Home y el detalle
   no pueden desviarse en icono, tamaño, color ni estado. Ambos billboards abren
   con un call to action de play con etiqueta (`ActionButton` + `action_stream_now`),
   así que Home y detalle leen la misma gramática stream / guardar desde una
@@ -705,7 +775,9 @@ leer/escribir/borrar vive una sola vez.
   recortar sus lados. El backdrop del detalle toma la misma decisión de póster
   sin texto en un teléfono, recortado para llenar, y ahí suelta el scrim de
   legibilidad de izquierda a derecha, así que el arte solo se oscurece abajo,
-  bajo el copy. El preloader de Home pasa por
+  bajo el copy. Además espera a que el enriquecimiento se resuelva antes de
+  pintar, así que la decisión nunca se rehace en pantalla.
+  El preloader de Home pasa por
   el mismo helper, así que siempre precarga la URL que la capa va a dibujar, y el
   set destacado se enriquece antes del primer pintado del billboard, así que
   nunca muestra el arte del catálogo y luego lo cambia por el de TMDB.

@@ -69,13 +69,16 @@ fun PenguApp(
     val owner = LocalViewModelStoreOwner.current ?: fallbackOwner
     val settings by services.settings.state.collectAsStateWithLifecycle()
     val account by services.account.state.collectAsStateWithLifecycle()
-    LaunchedEffect(Unit) { services.settings.load() }
 
-    // Resolve the session before deciding what to show, so a returning user never
-    // sees the onboarding for a frame. `autoSignIn` is the desktop development
-    // shortcut, applied only when there is no stored session.
+    // Resolve the session and the preferences before deciding what to show, so a
+    // returning user never sees the onboarding for a frame and no screen starts
+    // from the default settings and flips a moment later (the hero source, the
+    // poster size and the hidden labels all read them on their first paint).
+    // `autoSignIn` is the desktop development shortcut, applied only when there
+    // is no stored session.
     var bootstrapping by remember { mutableStateOf(true) }
     LaunchedEffect(Unit) {
+        runCatchingCancellable { services.settings.load() }
         val restored = runCatchingCancellable { services.account.restoreSession() }.getOrDefault(false)
         if (!restored && autoSignIn != null) {
             runCatchingCancellable { services.account.signIn(autoSignIn) }

@@ -19,9 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -37,17 +35,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.misgus.pengu.app.shared.generated.resources.Res
-import com.misgus.pengu.app.shared.generated.resources.action_cancel
-import com.misgus.pengu.app.shared.generated.resources.action_clear
-import com.misgus.pengu.app.shared.generated.resources.action_save
 import com.misgus.pengu.app.shared.generated.resources.detail_episode
 import com.misgus.pengu.app.shared.generated.resources.detail_episodes
-import com.misgus.pengu.app.shared.generated.resources.detail_not_rated
-import com.misgus.pengu.app.shared.generated.resources.detail_rating_value
 import com.misgus.pengu.app.shared.generated.resources.detail_season_short
 import com.misgus.pengu.app.shared.generated.resources.detail_specials
 import com.misgus.pengu.app.shared.generated.resources.detail_you_may_also_like
-import com.misgus.pengu.app.shared.generated.resources.detail_your_rating
 import com.misgus.pengu.core.model.MetaPerson
 import com.misgus.pengu.core.model.MetaPreview
 import com.misgus.pengu.core.model.MetaVideo
@@ -411,59 +403,4 @@ private fun EpisodeCard(
             )
         }
     }
-}
-
-/** 1–10 rating dialog for the current title. */
-@Composable
-internal fun RatingDialog(
-    current: Int?,
-    onDismiss: () -> Unit,
-    onSave: (Int?) -> Unit,
-) {
-    var value by remember { mutableStateOf(current ?: 0) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(Res.string.detail_your_rating)) },
-        text = {
-            Column {
-                Text(
-                    if (value == 0) stringResource(Res.string.detail_not_rated) else stringResource(Res.string.detail_rating_value, value),
-                    style = AppType.sectionTitle(),
-                )
-                Slider(
-                    value = value.toFloat(),
-                    onValueChange = { value = it.toInt() },
-                    valueRange = 0f..10f,
-                    steps = 9,
-                )
-            }
-        },
-        confirmButton = {
-            ActionButton(
-                text = stringResource(Res.string.action_save),
-                onClick = {
-                    onSave(if (value == 0) null else value)
-                    onDismiss()
-                },
-                style = ActionButtonStyle.Text,
-            )
-        },
-        dismissButton = {
-            Row {
-                ActionButton(
-                    text = stringResource(Res.string.action_clear),
-                    onClick = {
-                        onSave(null)
-                        onDismiss()
-                    },
-                    style = ActionButtonStyle.Text,
-                )
-                ActionButton(
-                    text = stringResource(Res.string.action_cancel),
-                    onClick = onDismiss,
-                    style = ActionButtonStyle.Text,
-                )
-            }
-        },
-    )
 }

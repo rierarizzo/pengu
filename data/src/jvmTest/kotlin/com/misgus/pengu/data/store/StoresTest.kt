@@ -55,7 +55,7 @@ class StoresTest {
     @Test
     fun jsonMapStoreRoundTrips() =
         runTest {
-            val path = File(tempDir(), "ratings.json").path
+            val path = File(tempDir(), "map.json").path
             val store = JsonMapStore(path)
             store.write(
                 kotlinx.serialization.json.JsonObject(

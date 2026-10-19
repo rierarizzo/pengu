@@ -9,6 +9,7 @@ import com.misgus.pengu.core.model.TmdbTitle
 import com.misgus.pengu.ui.detail.DetailViewModel
 import com.misgus.pengu.ui.support.FakeMetadataRepository
 import com.misgus.pengu.ui.support.FakeTmdbRepository
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -19,6 +20,8 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class DetailViewModelTest {
     private val dispatcher = StandardTestDispatcher()
@@ -54,15 +57,17 @@ class DetailViewModelTest {
         }
 
     @Test
-    fun enrichesTheDetailFromTmdb() =
+    fun takesTmdbArtworkAndCopyOverTheAddonOnes() =
         runTest(dispatcher) {
             val tmdb =
                 TmdbTitle(
                     tmdbId = 1,
                     mediaType = TmdbMediaType.MOVIE,
                     title = "Movie",
+                    poster = "https://img/poster.jpg",
                     backdrop = "https://img/backdrop.jpg",
                     textlessPoster = "https://img/textless.jpg",
+                    overview = "From TMDB",
                     runtimeMinutes = 136,
                 )
             val viewModel =
@@ -78,7 +83,64 @@ class DetailViewModelTest {
             assertEquals("https://img/backdrop.jpg", state.background)
             assertEquals("https://img/textless.jpg", state.textlessPoster)
             assertEquals(136, state.runtimeMinutes)
-            // The addon keeps winning the fields it already answered with.
+            // TMDB answers the fields it has, even when the addon did too; the
+            // page shows one source instead of swapping a moment after it paints.
+            assertEquals("From TMDB", state.description)
+            assertEquals("https://img/poster.jpg", state.poster)
+            // The id streams are addressed with is still the addon's.
+            assertEquals("tt1", state.contentId)
+        }
+
+    @Test
+    fun waitsForTmdbBeforeSettlingTheArtwork() =
+        runTest(dispatcher) {
+            val gate = CompletableDeferred<Unit>()
+            val tmdb =
+                TmdbTitle(
+                    tmdbId = 1,
+                    mediaType = TmdbMediaType.MOVIE,
+                    title = "Movie",
+                    textlessPoster = "https://img/textless.jpg",
+                )
+            val viewModel =
+                DetailViewModel(
+                    metadata = FakeMetadataRepository(detail = addonDetail()),
+                    tmdb = FakeTmdbRepository(titles = mapOf("tt1" to tmdb), gate = gate),
+                    item = item(),
+                )
+
+            viewModel.load()
+            advanceUntilIdle()
+
+            // The addon answered, and the page still refuses to paint: a TMDB
+            // answer with priority is on its way.
+            val waiting = viewModel.state.value
+            assertEquals("Movie", waiting.name)
+            assertTrue(waiting.isResolvingArtwork)
+
+            gate.complete(Unit)
+            advanceUntilIdle()
+
+            val settled = viewModel.state.value
+            assertFalse(settled.isResolvingArtwork)
+            assertEquals("https://img/textless.jpg", settled.textlessPoster)
+        }
+
+    @Test
+    fun settlesOnTheAddonAnswerWhenTmdbIsOff() =
+        runTest(dispatcher) {
+            val viewModel =
+                DetailViewModel(
+                    metadata = FakeMetadataRepository(detail = addonDetail()),
+                    tmdb = FakeTmdbRepository(isConfigured = false),
+                    item = item(),
+                )
+
+            viewModel.load()
+            advanceUntilIdle()
+
+            val state = viewModel.state.value
+            assertFalse(state.isResolvingArtwork)
             assertEquals("From the addon", state.description)
         }
 

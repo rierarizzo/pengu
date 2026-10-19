@@ -10,10 +10,11 @@ enum class TmdbMediaType {
  * A title as TMDB describes it, with every field optional except its identity.
  *
  * The data layer resolves the external id and maps the payload into this shape;
- * the domain then merges it into a Stremio record, filling only what the addon
- * left empty (see [enrichedWith]). Image fields are already absolute URLs, so
- * the UI renders them like any other artwork and never needs the TMDB client or
- * the API key.
+ * the domain then merges it into a Stremio record — filling only what the addon
+ * left empty on Home, and taking priority on the detail page (see
+ * [enrichedWith] and [withTmdbPriority]). Image fields are already absolute
+ * URLs, so the UI renders them like any other artwork and never needs the TMDB
+ * client or the API key.
  */
 data class TmdbTitle(
     val tmdbId: Int,

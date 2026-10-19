@@ -18,11 +18,16 @@ import com.misgus.pengu.data.local.LocalAddonRepository
 import com.misgus.pengu.data.local.LocalLibraryRepository
 import com.misgus.pengu.data.local.LocalProgressRepository
 import com.misgus.pengu.data.platform.createHttpClient
+import com.misgus.pengu.data.store.AddonSnapshotStore
 import com.misgus.pengu.data.store.AppPaths
+import com.misgus.pengu.data.store.FileAddonSnapshotStore
 import com.misgus.pengu.data.store.JsonFileStore
 import com.misgus.pengu.data.store.NoopSessionStore
 import com.misgus.pengu.data.store.SessionStore
 import io.ktor.client.HttpClient
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 
 /**
  * Which backend provides the account, the library and the progress.
@@ -73,6 +78,7 @@ fun createBackend(
     sessionStore: SessionStore = NoopSessionStore(),
     localDir: String? = null,
     localAddons: List<Addon>? = null,
+    addonSnapshots: AddonSnapshotStore = FileAddonSnapshotStore(),
 ): BackendBundle =
     when (kind) {
         BackendKind.NUVIO ->
@@ -80,6 +86,7 @@ fun createBackend(
                 baseUrl = baseUrl ?: NuvioTransport.DEFAULT_BASE_URL,
                 httpClient = httpClient,
                 sessionStore = sessionStore,
+                addonSnapshots = addonSnapshots,
             )
         BackendKind.LOCAL -> {
             val dir = localDir ?: AppPaths.localStoreDir
@@ -101,6 +108,7 @@ fun createNuvioBackend(
     baseUrl: String = NuvioTransport.DEFAULT_BASE_URL,
     httpClient: HttpClient,
     sessionStore: SessionStore = NoopSessionStore(),
+    addonSnapshots: AddonSnapshotStore = FileAddonSnapshotStore(),
 ): BackendBundle {
     // The pieces are wired here and handed out narrowly: a repository gets the
     // transport slice it needs, not a client that can do everything.
@@ -109,11 +117,17 @@ fun createNuvioBackend(
     val auth = NuvioAuth(transport, discovery, sessionStore)
     val rest = NuvioRest(transport, discovery, auth)
     val account = NuvioAccountRepository(auth, rest)
+    // The addon repository refreshes its local snapshot after answering, so it
+    // owns a scope that outlives a single call; the bundle closes it.
+    val addonScope = CoroutineScope(SupervisorJob())
     return BackendBundle(
         account = account,
         library = NuvioLibraryRepository(rest, auth, account),
         progress = NuvioProgressRepository(rest, account),
-        addons = NuvioAddonRepository(rest, account),
-        close = transport::close,
+        addons = NuvioAddonRepository(rest, account, addonSnapshots, addonScope),
+        close = {
+            addonScope.cancel()
+            transport.close()
+        },
     )
 }

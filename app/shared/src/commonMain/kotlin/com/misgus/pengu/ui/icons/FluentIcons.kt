@@ -26,8 +26,6 @@ object FluentIcons {
     val Check: ImageVector by lazy { fluent("Check", CHECK) }
     val CheckCircle: ImageVector by lazy { fluent("CheckCircle", CHECK_CIRCLE) }
     val CheckCircleOutline: ImageVector by lazy { fluent("CheckCircleOutline", CHECK_CIRCLE_OUTLINE) }
-    val Star: ImageVector by lazy { fluent("Star", STAR) }
-    val StarBorder: ImageVector by lazy { fluent("StarBorder", STAR_BORDER) }
     val ArrowBack: ImageVector by lazy { fluent("ArrowBack", ARROW_BACK, autoMirror = true) }
     val ChevronLeft: ImageVector by lazy { fluent("ChevronLeft", CHEVRON_LEFT) }
     val ChevronRight: ImageVector by lazy { fluent("ChevronRight", CHEVRON_RIGHT) }
@@ -122,16 +120,6 @@ private const val CHECK_CIRCLE_OUTLINE =
     "M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12S6.477 2 12 2m0 1.5a8.5 8.5 0 1 0 0 17a8.5 8.5 0 0 0" +
         " 0-17m-1.25 9.94l4.47-4.47a.75.75 0 0 1 1.133.976l-.073.084l-5 5a.75.75 0 0 1-.976.073l-.084-.073l-2.5-2.5a.75" +
         ".75 0 0 1 .976-1.133l.084.073zl4.47-4.47z"
-private const val STAR =
-    "M10.788 3.102c.495-1.003 1.926-1.003 2.421 0l2.358 4.778l5.273.766c1.107.16 1.549 1.522.748 2.303l-3.816 3.719" +
-        "l.901 5.25c.19 1.104-.968 1.945-1.959 1.424l-4.716-2.48l-4.715 2.48c-.99.52-2.148-.32-1.96-1.423l.901-5.251l-3" +
-        ".815-3.72c-.801-.78-.359-2.141.748-2.302L8.43 7.88z"
-private const val STAR_BORDER =
-    "M10.788 3.102c.495-1.003 1.926-1.003 2.421 0l2.358 4.778l5.273.766c1.107.16 1.549 1.522.748 2.303l-3.816 3.719" +
-        "l.901 5.25c.19 1.104-.968 1.945-1.959 1.424l-4.716-2.48l-4.715 2.48c-.99.52-2.148-.32-1.96-1.423l.901-5.251l-3" +
-        ".815-3.72c-.801-.78-.359-2.141.748-2.302L8.43 7.88zm1.21.937L9.74 8.614a1.35 1.35 0 0 1-1.016.739l-5.05.734l3." +
-        "654 3.562c.318.31.463.757.388 1.195l-.862 5.029l4.516-2.375a1.35 1.35 0 0 1 1.257 0l4.516 2.375l-.862-5.03a1.3" +
-        "5 1.35 0 0 1 .388-1.194l3.654-3.562l-5.05-.734a1.35 1.35 0 0 1-1.016-.739z"
 private const val ARROW_BACK =
     "M10.733 19.79a.75.75 0 0 0 1.034-1.086L5.516 12.75H20.25a.75.75 0 0 0 0-1.5H5.516l6.251-5.955a.75.75 0 0 0-1.0" +
         "34-1.086l-7.42 7.067a1 1 0 0 0-.3.58a.8.8 0 0 0 .001.289a1 1 0 0 0 .3.579z"

@@ -18,8 +18,11 @@ object AppPaths {
     val sessionFile: String by lazy { "$configDir/session.json" }
     val localStoreDir: String by lazy { "$configDir/local" }
     val watchedSeriesCacheFile: String by lazy { "$configDir/watched_series.json" }
-    val ratingsFile: String by lazy { "$configDir/ratings.json" }
     val settingsFile: String by lazy { "$configDir/settings.json" }
+
+    /** Last known addon list, and the last Home paint, per profile. */
+    val addonsFile: String by lazy { "$configDir/addons.json" }
+    val homeSnapshotFile: String by lazy { "$configDir/home.json" }
 }
 
 /**
