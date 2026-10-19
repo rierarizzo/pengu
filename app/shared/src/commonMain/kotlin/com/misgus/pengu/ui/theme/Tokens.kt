@@ -32,6 +32,12 @@ internal data class BrandPalette(
     val surface: Color,
     /** Hover / selected surfaces. */
     val surfaceHigh: Color,
+    /**
+     * Fill of a card or raised panel: the settings categories, the settings
+     * pages and every container that groups rows. Warmer and darker than
+     * [surfaceHigh], so it sits on the page background without a border.
+     */
+    val surfaceCard: Color,
     /** Fill of a selected settings row, chip or sidebar entry. */
     val surfaceSelected: Color,
     /**
@@ -81,6 +87,7 @@ internal object AppThemes {
             background = Color(0xFF0B0803),
             surface = Color(0xFF151518),
             surfaceHigh = Color(0xFF1F1F24),
+            surfaceCard = Color(0xFF191610),
             surfaceSelected = Color(0xFF1A1814),
             accent = Color(0xFFF4AE52),
             onAccent = Color(0xFF2A1A0E),
@@ -124,6 +131,10 @@ object AppColors {
     /** Fill of a selected settings row, chip or sidebar entry. */
     val surfaceSelected: Color
         @Composable get() = LocalBrandPalette.current.surfaceSelected
+
+    /** Fill of a settings card or page panel. */
+    val surfaceCard: Color
+        @Composable get() = LocalBrandPalette.current.surfaceCard
 
     /** Hero carousel dots over artwork: muted grey when idle, bright when active. */
     val heroIndicatorInactive: Color
@@ -240,8 +251,13 @@ object AppSizes {
     /** Width of the settings sidebar that groups the categories on a wide window. */
     val settingsSidebarWidth: Dp = 260.dp
 
-    /** Side of the square badge behind a settings category glyph. */
-    val settingsBadge: Dp = 40.dp
+    /**
+     * Inner padding of a settings card.
+     *
+     * Shared by the category cards, the rows inside a page and the hairlines
+     * between them, so the copy of both levels lines up.
+     */
+    val cardPadding: Dp = 20.dp
 }
 
 /** Scale factors shared by interactive surfaces. */
@@ -397,8 +413,13 @@ object AppAlpha {
     /** Translucent fill behind the selected top-navigation item. */
     const val NAV_SELECTED = 0.12f
 
-    /** Fill of a selected chip, badge or icon tile inside a settings page. */
-    const val SELECTED_SURFACE = 0.15f
+    /**
+     * Tint of the open settings category on its card.
+     *
+     * Kept light on purpose: the card fill is already a warm tone, so a stronger
+     * accent reads as brown instead of as a highlight.
+     */
+    const val SELECTED_CARD = 0.07f
 }
 
 /**

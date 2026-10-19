@@ -1,6 +1,5 @@
 package com.misgus.pengu.ui.screens
 
-import androidx.compose.ui.graphics.vector.ImageVector
 import com.misgus.pengu.app.shared.generated.resources.Res
 import com.misgus.pengu.app.shared.generated.resources.settings_account
 import com.misgus.pengu.app.shared.generated.resources.settings_account_subtitle
@@ -18,7 +17,6 @@ import com.misgus.pengu.app.shared.generated.resources.settings_playback
 import com.misgus.pengu.app.shared.generated.resources.settings_playback_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_theme
 import com.misgus.pengu.app.shared.generated.resources.settings_theme_subtitle
-import com.misgus.pengu.ui.icons.MaterialIcons
 import org.jetbrains.compose.resources.StringResource
 
 /** A titled cluster of [SettingsCategory] entries in the settings sidebar. */
@@ -34,8 +32,8 @@ enum class SettingsGroup(
  *
  * On a wide window the entries fill the sidebar and the selected page renders
  * beside it; on a compact window they are the index the user drills into. Each
- * entry owns a title, a one-line description and a glyph, so the sidebar and the
- * index row read the same vocabulary.
+ * entry owns a title and a one-line description, so the sidebar and the index
+ * row read the same vocabulary without borrowing a glyph.
  *
  * A page never nests a [SettingsCategory]: a finer choice (the manual billboard
  * catalogs, the TMDB key) is a control inside the page, not another level.
@@ -43,49 +41,41 @@ enum class SettingsGroup(
 enum class SettingsCategory(
     val label: StringResource,
     val subtitle: StringResource,
-    val icon: ImageVector,
     val group: SettingsGroup,
 ) {
     PLAYBACK(
         label = Res.string.settings_playback,
         subtitle = Res.string.settings_playback_subtitle,
-        icon = MaterialIcons.Play,
         group = SettingsGroup.PLAYBACK,
     ),
     INTERFACE(
         label = Res.string.settings_interface,
         subtitle = Res.string.settings_interface_subtitle,
-        icon = MaterialIcons.Layout,
         group = SettingsGroup.APP,
     ),
     THEME(
         label = Res.string.settings_theme,
         subtitle = Res.string.settings_theme_subtitle,
-        icon = MaterialIcons.Palette,
         group = SettingsGroup.APP,
     ),
     HERO(
         label = Res.string.settings_hero,
         subtitle = Res.string.settings_hero_subtitle,
-        icon = MaterialIcons.Sparkle,
         group = SettingsGroup.APP,
     ),
     METADATA(
         label = Res.string.settings_metadata,
         subtitle = Res.string.settings_metadata_subtitle,
-        icon = MaterialIcons.Database,
         group = SettingsGroup.APP,
     ),
     ACCOUNT(
         label = Res.string.settings_account,
         subtitle = Res.string.settings_account_subtitle,
-        icon = MaterialIcons.Account,
         group = SettingsGroup.APP,
     ),
     ADVANCED(
         label = Res.string.settings_advanced,
         subtitle = Res.string.settings_advanced_subtitle,
-        icon = MaterialIcons.Wrench,
         group = SettingsGroup.APP,
     ),
     ;

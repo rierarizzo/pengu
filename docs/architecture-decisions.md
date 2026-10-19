@@ -117,18 +117,26 @@ so the atomic read/write/delete logic lives once.
   can `reload()` after a manual edit; the settings screen groups the toggles into
   categories (`SettingsCategory`, in `ui/screens`), edits the same file, shows
   its path and can open it in the OS editor. A wide window renders the categories
-  as a grouped sidebar beside the selected page; a compact window renders the
-  same groups as an index and pushes each page as a `ContentRoute.SettingsPage`,
-  so a phone walks into one category at a time while each setting is defined
+  as a grouped sidebar beside the selected page; a compact window renders them as
+  a flat index and pushes each page as a `ContentRoute.SettingsPage`, so a phone
+  walks into one category at a time while each setting is defined
   once.
 - **Settings controls are app components, not stock Material.** A toggle row is
   itself the target and its switch takes the accent track; a short option set is
   a chip row, a longer one opens a popover on desktop and a bottom sheet on
   touch (`isDesktop`, in `ui/platform`); the dividers are inset to the row copy;
-  and a group is a bordered panel on the page background. The category list marks
-  the open category with the accent icon alone (no selected fill) and brightens
-  the icon and label on hover, like the rail (`navContentColor`), while a selected
-  chip or picker uses the `surfaceSelected` palette role. A setting then looks like
+  and a group is a borderless card on the page background, filled with the
+  `surfaceCard` palette role so the index and the pages share one warm tone.
+  The categories are a
+  stack of those cards (`SettingsNavCard`) instead of icon rows: the compact
+  index shows a semibold label and a chevron with no description and no group
+  labels — the phone title bar names the screen and the cards carry the rest —
+  while the wide sidebar keeps the groups, drops the chevron and marks the open
+  page with an accent tint over the card and an accent label. Inside a page, the
+  section labels are semibold and the row titles step up to semibold too, so the
+  hierarchy reads the same as the index; the picker reads as a field (no fill,
+  `outline` border) so it stays legible on the card, and a selected chip or the
+  popover uses `surfaceSelected`. A setting then looks like
   the app rather than a form, while every colour still comes from the scheme.
 - **`labels.hidden`** suppresses the title and year captions under every
   poster (Home, catalog grids, Discover, Search, the detail's "More like this"

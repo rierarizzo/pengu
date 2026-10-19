@@ -498,7 +498,7 @@ private fun HeroCatalogRow(
 ) {
     val typeLabel = contentTypeLabel(ref.type)
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = AppSpacing.lg, vertical = AppSpacing.sm),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = AppSizes.cardPadding, vertical = AppSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Checkbox(checked = selected, onCheckedChange = onToggle, enabled = enabled)
@@ -545,7 +545,7 @@ private fun MetadataSection(
             TmdbLanguage.SPANISH to stringResource(Res.string.settings_tmdb_language_spanish),
         )
     SettingsPanel {
-        Column(Modifier.fillMaxWidth().padding(AppSpacing.lg)) {
+        Column(Modifier.fillMaxWidth().padding(AppSizes.cardPadding)) {
             Text(stringResource(Res.string.settings_tmdb_api_key), style = AppType.itemTitle())
             Text(
                 stringResource(Res.string.settings_tmdb_api_key_subtitle),
@@ -626,7 +626,7 @@ private fun MetadataSection(
             stringResource(Res.string.settings_tmdb_attribution),
             style = AppType.caption(),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(AppSpacing.lg),
+            modifier = Modifier.padding(AppSizes.cardPadding),
         )
     }
 }
@@ -666,7 +666,7 @@ private fun AccountSection() {
                     },
                 )
             SignInMethod.EmailPassword in account.signInMethods ->
-                Column(Modifier.fillMaxWidth().padding(AppSpacing.lg)) {
+                Column(Modifier.fillMaxWidth().padding(AppSizes.cardPadding)) {
                     Text(
                         stringResource(Res.string.settings_sign_in_to_load),
                         style = AppType.bodySecondary(),
@@ -696,7 +696,7 @@ private fun AdvancedSection(
         subtitle = stringResource(Res.string.settings_config_file_subtitle),
     )
     SettingsPanel {
-        Column(Modifier.fillMaxWidth().padding(AppSpacing.lg)) {
+        Column(Modifier.fillMaxWidth().padding(AppSizes.cardPadding)) {
             Text(
                 settings.filePath,
                 style = AppType.caption(),
@@ -729,7 +729,7 @@ private fun AdvancedSection(
         subtitle = stringResource(Res.string.settings_open_video_subtitle),
     )
     SettingsPanel {
-        Column(Modifier.fillMaxWidth().padding(AppSpacing.lg)) {
+        Column(Modifier.fillMaxWidth().padding(AppSizes.cardPadding)) {
             AppTextField(
                 value = url,
                 onValueChange = { url = it },

@@ -40,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -51,7 +52,6 @@ import com.misgus.pengu.ui.components.clickableSurface
 import com.misgus.pengu.ui.components.focusRing
 import com.misgus.pengu.ui.components.interactionHighlight
 import com.misgus.pengu.ui.components.mirrorInRtl
-import com.misgus.pengu.ui.components.navContentColor
 import com.misgus.pengu.ui.components.rememberInteraction
 import com.misgus.pengu.ui.components.sectionHeading
 import com.misgus.pengu.ui.icons.MaterialIcons
@@ -69,7 +69,9 @@ import org.jetbrains.compose.resources.stringResource
  * Building blocks of the settings screen: the sidebar and index that pick a
  * category, the page header, and the list rows the pages are made of.
  *
- * A page is a stack of [SettingsPanel]s, each a filled, bordered box of rows
+ * The categories are a stack of filled cards: the compact index pairs each label
+ * with a chevron, and the wide sidebar keeps the groups and marks the open page.
+ * A page is a stack of [SettingsPanel]s, each a filled, borderless card of rows
  * divided by inset hairlines. The controls are not stock Material: the switch
  * carries the accent, a whole toggle row is the target, short choices are chips
  * and a longer list opens a popover on desktop and a bottom sheet on touch, so a
@@ -90,9 +92,8 @@ fun SettingsGroupLabel(text: String) {
 /**
  * Categories at the side of a wide window.
  *
- * The selected entry keeps a filled surface, an accent icon tile and a heavier
- * label; every entry answers hover, focus and press with the shared state layer,
- * and announces itself as a selected tab to accessibility services.
+ * They keep the groups of the pages themselves; each entry is a
+ * [SettingsNavCard] and the open page is the selected one.
  */
 @Composable
 fun SettingsSidebar(
@@ -100,155 +101,116 @@ fun SettingsSidebar(
     onSelect: (SettingsCategory) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxWidth()) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+    ) {
         SettingsCategory.grouped.forEach { (group, categories) ->
             SettingsGroupLabel(stringResource(group.label))
             categories.forEach { category ->
-                SettingsSidebarItem(
+                SettingsNavCard(
                     category = category,
-                    selected = category == selected,
                     onClick = { onSelect(category) },
+                    selected = category == selected,
                 )
             }
         }
     }
 }
 
-@Composable
-private fun SettingsSidebarItem(
-    category: SettingsCategory,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    val interaction = rememberInteraction()
-    val iconColor = navContentColor(selected, interaction)
-    val textColor = navContentColor(selected, interaction, selectedColor = MaterialTheme.colorScheme.onSurface)
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = AppSpacing.sm)
-                .clip(MaterialTheme.shapes.medium)
-                .focusRing(interaction)
-                .clickableSurface(interaction, onClick, role = Role.Tab, indication = null)
-                .padding(horizontal = AppSpacing.md, vertical = AppSpacing.sm)
-                .semantics { this.selected = selected },
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            imageVector = category.icon,
-            contentDescription = null,
-            tint = iconColor,
-            modifier = Modifier.size(AppIconSize.md),
-        )
-        Spacer(Modifier.width(AppSpacing.md))
-        Text(
-            stringResource(category.label),
-            style = AppType.itemTitle().copy(fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium),
-            color = textColor,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
-
-/** Compact-window index of every category, grouped like the sidebar. */
+/** Compact-window index: one card per category, in declaration order. */
 @Composable
 fun SettingsIndex(
     onOpen: (SettingsCategory) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        SettingsCategory.grouped.forEach { (group, categories) ->
-            SettingsGroupLabel(stringResource(group.label))
-            categories.forEach { category ->
-                SettingsNavRow(category = category, onClick = { onOpen(category) })
-            }
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
+    ) {
+        SettingsCategory.entries.forEach { category ->
+            SettingsNavCard(category = category, onClick = { onOpen(category) })
         }
     }
 }
 
-/** One drill-down entry of the compact index. */
+/**
+ * One category as a filled card.
+ *
+ * On a compact window it is the index entry: a semibold label and a chevron.
+ * With [selected] set it is the wide sidebar's item instead, where the open page
+ * takes the `surfaceSelected` fill and the accent label in place of the chevron.
+ * Hover, focus and press blend the shared state layer over the fill, so the card
+ * keeps its own colour while it answers the pointer.
+ */
 @Composable
-private fun SettingsNavRow(
+fun SettingsNavCard(
     category: SettingsCategory,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    selected: Boolean? = null,
 ) {
     val interaction = rememberInteraction()
+    val active = selected == true
+    val card = AppColors.surfaceCard
+    val fill =
+        if (active) {
+            MaterialTheme.colorScheme.primary
+                .copy(alpha = AppAlpha.SELECTED_CARD)
+                .compositeOver(card)
+        } else {
+            card
+        }
     Row(
         modifier =
-            Modifier
+            modifier
                 .fillMaxWidth()
-                .padding(vertical = AppSpacing.xxs)
-                .clip(MaterialTheme.shapes.medium)
+                .clip(MaterialTheme.shapes.large)
+                .background(interactionHighlight(interaction, fill))
                 .focusRing(interaction)
-                .clickableSurface(interaction, onClick, indication = null)
-                .padding(horizontal = AppSpacing.md, vertical = AppSpacing.md),
+                .clickableSurface(interaction, onClick, role = if (selected == null) Role.Button else Role.Tab)
+                .padding(AppSizes.cardPadding)
+                .semantics { selected?.let { this.selected = it } },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(
-            imageVector = category.icon,
-            contentDescription = null,
-            tint = navContentColor(selected = false, interaction, idleColor = MaterialTheme.colorScheme.primary),
-            modifier = Modifier.size(AppIconSize.md),
+        Text(
+            stringResource(category.label),
+            style = AppType.itemTitle().copy(fontWeight = FontWeight.SemiBold),
+            color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
         )
-        Spacer(Modifier.width(AppSpacing.md))
-        Column(Modifier.weight(1f)) {
-            Text(stringResource(category.label), style = AppType.itemTitle().copy(fontWeight = FontWeight.Medium))
-            Text(
-                stringResource(category.subtitle),
-                style = AppType.caption(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+        if (selected == null) {
+            Spacer(Modifier.width(AppSpacing.sm))
+            Icon(
+                imageVector = MaterialIcons.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(AppIconSize.md).mirrorInRtl(),
             )
         }
-        Spacer(Modifier.width(AppSpacing.sm))
-        Icon(
-            imageVector = MaterialIcons.ChevronRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(AppIconSize.sm).mirrorInRtl(),
-        )
     }
 }
 
-/** Title and description of the selected page, with its category glyph. */
+/** Title and description of the selected page. */
 @Composable
 fun SettingsCategoryHeader(category: SettingsCategory) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier =
-                Modifier
-                    .size(AppSizes.settingsBadge)
-                    .clip(MaterialTheme.shapes.medium)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = AppAlpha.SELECTED_SURFACE)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = category.icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(AppIconSize.md),
-            )
-        }
-        Spacer(Modifier.width(AppSpacing.md))
-        Column {
-            Text(
-                stringResource(category.label),
-                style = AppType.sectionTitle(),
-                modifier = Modifier.sectionHeading(),
-            )
-            Text(
-                stringResource(category.subtitle),
-                style = AppType.bodySecondary(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+    Column {
+        Text(
+            stringResource(category.label),
+            style = AppType.sectionTitle(),
+            modifier = Modifier.sectionHeading(),
+        )
+        Text(
+            stringResource(category.subtitle),
+            style = AppType.bodySecondary(),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
-/** Heading that separates the groups of rows inside one page. */
+/** Bold label that separates the cards of one page. */
 @Composable
 fun SettingsSubsection(
     title: String,
@@ -257,7 +219,7 @@ fun SettingsSubsection(
     Column {
         Text(
             title,
-            style = AppType.cardTitle().copy(fontWeight = FontWeight.Medium),
+            style = AppType.bodySecondary().copy(fontWeight = FontWeight.SemiBold),
             modifier = Modifier.sectionHeading(),
         )
         if (subtitle != null) {
@@ -270,7 +232,12 @@ fun SettingsSubsection(
     }
 }
 
-/** Filled, bordered box that frames a run of rows. */
+/**
+ * Card that frames a run of rows.
+ *
+ * It shares the fill, radius and borderless edge of [SettingsNavCard], so the
+ * index and the pages are made of the same surface.
+ */
 @Composable
 fun SettingsPanel(
     modifier: Modifier = Modifier,
@@ -281,8 +248,7 @@ fun SettingsPanel(
             modifier
                 .fillMaxWidth()
                 .clip(MaterialTheme.shapes.large)
-                .background(MaterialTheme.colorScheme.background)
-                .border(AppSizes.borderWidth, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.large),
+                .background(AppColors.surfaceCard),
         content = content,
     )
 }
@@ -294,7 +260,7 @@ fun SettingsPanel(
  * row copy rather than cutting the panel in half.
  */
 @Composable
-fun SettingsDivider(startInset: Dp = AppSpacing.lg) {
+fun SettingsDivider(startInset: Dp = AppSizes.cardPadding) {
     HorizontalDivider(
         modifier = Modifier.padding(start = startInset),
         thickness = AppSizes.borderWidth,
@@ -321,7 +287,7 @@ fun SettingsRow(
             modifier = Modifier.weight(1f).padding(end = if (trailing != null) AppSpacing.md else 0.dp),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
         ) {
-            Text(title, style = AppType.itemTitle().copy(fontWeight = FontWeight.Medium))
+            Text(title, style = AppType.itemTitle().copy(fontWeight = FontWeight.SemiBold))
             if (description != null) {
                 Text(
                     description,
@@ -341,13 +307,13 @@ fun SettingsRow(
                     .background(interactionHighlight(interaction))
                     .focusRing(interaction)
                     .clickableSurface(interaction, onClick)
-                    .padding(AppSpacing.lg),
+                    .padding(AppSizes.cardPadding),
             verticalAlignment = Alignment.CenterVertically,
             content = content,
         )
     } else {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(AppSpacing.lg),
+            modifier = Modifier.fillMaxWidth().padding(AppSizes.cardPadding),
             verticalAlignment = Alignment.CenterVertically,
             content = content,
         )
@@ -391,9 +357,9 @@ fun <T> SettingsSelectRow(
     label: (T) -> String,
     onSelect: (T) -> Unit,
 ) {
-    Column(Modifier.fillMaxWidth().padding(AppSpacing.lg)) {
+    Column(Modifier.fillMaxWidth().padding(AppSizes.cardPadding)) {
         Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-            Text(title, style = AppType.itemTitle().copy(fontWeight = FontWeight.Medium))
+            Text(title, style = AppType.itemTitle().copy(fontWeight = FontWeight.SemiBold))
             Text(
                 description,
                 style = AppType.bodySecondary(),
@@ -429,11 +395,11 @@ fun <T> SettingsChipRow(
     onSelect: (T) -> Unit,
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth().padding(AppSpacing.lg),
+        modifier = Modifier.fillMaxWidth().padding(AppSizes.cardPadding),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-            Text(title, style = AppType.itemTitle().copy(fontWeight = FontWeight.Medium))
+            Text(title, style = AppType.itemTitle().copy(fontWeight = FontWeight.SemiBold))
             Text(
                 description,
                 style = AppType.bodySecondary(),
@@ -509,8 +475,7 @@ fun <T> SettingsSelect(
                     .fillMaxWidth()
                     .heightIn(min = AppSizes.controlHeight)
                     .clip(MaterialTheme.shapes.small)
-                    .background(AppColors.surfaceSelected)
-                    .border(AppSizes.borderWidth, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.small)
+                    .border(AppSizes.borderWidth, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
                     .focusRing(interaction)
                     .clickableSurface(interaction, { expanded = true }, role = Role.DropdownList)
                     .padding(horizontal = AppSpacing.md, vertical = AppSpacing.sm),
@@ -600,7 +565,7 @@ private fun <T> SettingsSelectSheet(
             Text(
                 title,
                 style = AppType.sectionTitle(),
-                modifier = Modifier.padding(horizontal = AppSpacing.lg, vertical = AppSpacing.md).sectionHeading(),
+                modifier = Modifier.padding(AppSizes.cardPadding).sectionHeading(),
             )
             SettingsDivider(startInset = 0.dp)
             options.forEach { option ->
