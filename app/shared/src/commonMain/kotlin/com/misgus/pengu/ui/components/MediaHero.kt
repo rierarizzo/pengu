@@ -1,5 +1,6 @@
 package com.misgus.pengu.ui.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -9,6 +10,10 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -189,7 +194,9 @@ private fun runtimeLabel(minutes: Int): String {
  *
  * [loading] keeps [minLines] reserved without showing the preview copy, so the
  * layout does not jump when the real synopsis arrives. The measure is capped
- * here, so Home and Detail wrap the description at the same width.
+ * here, so Home and Detail wrap the description at the same width. With
+ * [expandable], a truncated synopsis expands to its full text on tap and
+ * collapses again.
  */
 @Composable
 fun HeroSynopsis(
@@ -197,15 +204,23 @@ fun HeroSynopsis(
     modifier: Modifier = Modifier,
     loading: Boolean = false,
     minLines: Int = 1,
+    expandable: Boolean = false,
 ) {
+    var expanded by remember(text) { mutableStateOf(false) }
+    var truncated by remember(text) { mutableStateOf(false) }
+    val canToggle = expandable && !loading && truncated
     Text(
         text = if (loading) "" else text.orEmpty(),
         minLines = minLines,
-        maxLines = AppSynopsis.MAX_LINES,
-        overflow = TextOverflow.Ellipsis,
+        maxLines = if (expanded) Int.MAX_VALUE else AppSynopsis.MAX_LINES,
+        overflow = if (expanded) TextOverflow.Clip else TextOverflow.Ellipsis,
         style = AppType.heroBody(),
         color = MaterialTheme.colorScheme.onSurface.copy(alpha = AppAlpha.HERO_SYNOPSIS),
-        modifier = modifier.widthIn(max = AppSynopsis.maxWidth),
+        onTextLayout = { layout -> if (!expanded) truncated = layout.hasVisualOverflow },
+        modifier =
+            modifier
+                .widthIn(max = AppSynopsis.maxWidth)
+                .then(if (canToggle) Modifier.clickable { expanded = !expanded } else Modifier),
     )
 }
 

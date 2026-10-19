@@ -24,6 +24,10 @@ class TmdbMapperTest {
         assertEquals("tt0133093", title.imdbId)
         assertEquals(listOf("Action"), title.genres)
         assertEquals(listOf("United States of America"), title.countries)
+        assertEquals("Released", title.status)
+        assertEquals("English", title.originalLanguage)
+        assertEquals(63_000_000L, title.budget)
+        assertEquals(467_678_144L, title.revenue)
         assertEquals("Keanu Reeves", title.cast.single().name)
     }
 
@@ -62,6 +66,11 @@ class TmdbMapperTest {
               "backdrop_path": "/backdrop.jpg",
               "release_date": "1999-03-31",
               "runtime": 136,
+              "status": "Released",
+              "original_language": "en",
+              "spoken_languages": [{"iso_639_1": "en", "name": "English"}],
+              "budget": 63000000,
+              "revenue": 467678144,
               "genres": [{"id": 28, "name": "Action"}],
               "production_countries": [{"iso_3166_1": "US", "name": "United States of America"}],
               "external_ids": {"imdb_id": "tt0133093"},

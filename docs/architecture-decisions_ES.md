@@ -318,7 +318,10 @@ leer/escribir/borrar vive una sola vez.
   `AppType.heroBody` la dimensiona y pondera (17sp / 15sp en teléfono, Normal) en
   ambos. Solo difiere el orden por pantalla: el billboard de Home lee título,
   metadata, sinopsis y luego acciones, mientras que el de detalle mantiene las
-  acciones por encima de la sinopsis. También difieren donde difiere el
+  acciones por encima de la sinopsis. El billboard de detalle pasa
+  `expandable`, así que una sinopsis que desborda sus tres líneas se expande al
+  texto completo con un toque y se colapsa con otro; el de Home mantiene el
+  teaser fijo. También difieren donde difiere el
   contenido: el billboard de Home integra el tipo de contenido, el año de
   estreno ya parseado y solo el primer género en la línea de metadata
   (`Movie • año • primer género • ★ rating`)
@@ -364,6 +367,14 @@ leer/escribir/borrar vive una sola vez.
   siendo alcanzable en vez de amontonar la cabecera. El rail de episodios vuelve
   a su primera tarjeta al cambiar de temporada, así pasar de S1 a mitad de lista
   no abre S2 en el mismo offset.
+- **La página de detalle lista la metadata como una tabla.** La sección
+  "Details" renderiza filas de etiqueta/valor — Released, Country, Status,
+  Original language, Seasons, Episodes, Budget y Revenue — separadas por un
+  hairline y solo para las filas que una fuente rellenó de verdad. TMDB da el
+  status en inglés, así que se mapea a un string localizado; budget y revenue son
+  importes enteros en dólares. El cast y el crew reutilizan los roles de caption
+  del catálogo (`PosterCaption`), con el personaje atenuado como el año de un
+  póster, para que una ficha de persona y un póster se lean igual.
 - **Edge-to-edge e insets del sistema.** Android ejecuta la activity edge-to-edge
   (`enableEdgeToEdge`, con iconos de barra de sistema claros forzados porque la
   app siempre pinta oscuro), y el `Scaffold` ya no reserva las barras del sistema
@@ -692,7 +703,9 @@ leer/escribir/borrar vive una sola vez.
   solo pase de pantalla completa mediante el alpha compuesto, y una diapositiva
   encajada no se desplaza al deslizar, porque el overscan del parallax volvería a
   recortar sus lados. El backdrop del detalle toma la misma decisión de póster
-  sin texto en un teléfono, recortado para llenar. El preloader de Home pasa por
+  sin texto en un teléfono, recortado para llenar, y ahí suelta el scrim de
+  legibilidad de izquierda a derecha, así que el arte solo se oscurece abajo,
+  bajo el copy. El preloader de Home pasa por
   el mismo helper, así que siempre precarga la URL que la capa va a dibujar, y el
   set destacado se enriquece antes del primer pintado del billboard, así que
   nunca muestra el arte del catálogo y luego lo cambia por el de TMDB.

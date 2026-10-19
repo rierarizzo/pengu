@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -87,12 +86,14 @@ internal fun PeopleRow(
     Column {
         Text(
             title,
-            modifier = Modifier.padding(horizontal = windowSize.screenPadding),
+            modifier = Modifier.padding(horizontal = windowSize.screenPadding).sectionHeading(),
             style = AppType.sectionTitle(),
         )
         Spacer(Modifier.height(AppSpacing.md))
         LazyRow(
-            modifier = Modifier.height(200.dp),
+            // Just tall enough for the avatar plus its two caption lines, so the
+            // section leaves no dead space under it.
+            modifier = Modifier.height(88.dp + PosterCaption.blockHeight()),
             contentPadding = PaddingValues(horizontal = windowSize.screenPadding),
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
         ) {
@@ -134,34 +135,53 @@ private fun PersonCard(person: MetaPerson) {
             textAlign = TextAlign.Center,
         )
         person.character?.takeIf { it.isNotEmpty() }?.let {
-            MarqueeText(
-                text = it,
-                style = PosterCaption.meta(),
-                active = interaction.active,
+            Text(
+                it,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,
+                style = PosterCaption.meta(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
 }
 
-/** Label/value block with release data (released date, country, ...). */
+/** Titled table of label/value rows for a title's extra metadata. */
 @Composable
-internal fun DetailsSection(entries: List<Pair<String, String>>) {
+internal fun DetailsSection(
+    title: String,
+    entries: List<Pair<String, String>>,
+) {
     val windowSize = LocalWindowSize.current
     Column {
-        Row(
-            modifier = Modifier.padding(horizontal = windowSize.screenPadding),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xl * 2),
-        ) {
-            entries.forEach { (label, value) ->
-                Column {
+        Text(
+            title,
+            style = AppType.sectionTitle(),
+            modifier = Modifier.padding(horizontal = windowSize.screenPadding).sectionHeading(),
+        )
+        Spacer(Modifier.height(AppSpacing.md))
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = windowSize.screenPadding)) {
+            entries.forEachIndexed { index, (label, value) ->
+                if (index > 0) {
+                    Box(Modifier.fillMaxWidth().height(AppSizes.borderWidth).background(MaterialTheme.colorScheme.outlineVariant))
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = AppSpacing.sm),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Text(
                         label.uppercase(),
                         style = AppType.caption(),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
                     )
-                    Spacer(Modifier.height(AppSpacing.xs))
-                    Text(value, style = AppType.body())
+                    Text(
+                        value,
+                        style = AppType.body(),
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.weight(1f),
+                    )
                 }
             }
         }
@@ -182,10 +202,10 @@ internal fun SimilarRow(
     Column {
         Text(
             stringResource(Res.string.detail_you_may_also_like),
-            modifier = Modifier.padding(horizontal = AppSpacing.xl).sectionHeading(),
+            modifier = Modifier.padding(horizontal = windowSize.screenPadding).sectionHeading(),
             style = AppType.sectionTitle(),
         )
-        Spacer(Modifier.height(AppSpacing.sm))
+        Spacer(Modifier.height(AppSpacing.md))
         val cardWidth = posterSize.cellWidth(windowSize)
         LazyRow(
             modifier = Modifier.height(posterCardHeight(cardWidth, settings.hideLabels)),
@@ -289,7 +309,9 @@ internal fun EpisodesSection(
         Spacer(Modifier.height(AppSpacing.md))
         LazyRow(
             state = episodesState,
-            modifier = Modifier.heightIn(min = 190.dp),
+            // The card's 16:9 thumbnail plus its caption block; a fixed minimum
+            // used to leave a gap under the rail.
+            modifier = Modifier.height(EpisodeCardWidth * 9f / 16f + PosterCaption.blockHeight()),
             contentPadding = PaddingValues(horizontal = windowSize.screenPadding),
             horizontalArrangement = Arrangement.spacedBy(windowSize.gridSpacing),
         ) {
@@ -346,6 +368,9 @@ internal fun formatReleaseDate(raw: String?): String? {
     return "${day.toInt()} $monthName $year"
 }
 
+/** Width of one episode card; the rail height derives from it. */
+private val EpisodeCardWidth = 220.dp
+
 @Composable
 private fun EpisodeCard(
     video: MetaVideo,
@@ -360,7 +385,7 @@ private fun EpisodeCard(
             animationSpec = motionTween(),
             label = "borderColor",
         )
-    Column(modifier = Modifier.width(220.dp).clickableSurface(interaction, onTap, indication = null)) {
+    Column(modifier = Modifier.width(EpisodeCardWidth).clickableSurface(interaction, onTap, indication = null)) {
         Box(
             Modifier
                 .fillMaxWidth()
@@ -377,7 +402,13 @@ private fun EpisodeCard(
             active = interaction.active,
         )
         formatReleaseDate(video.released)?.let {
-            Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis, style = PosterCaption.meta())
+            Text(
+                it,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                style = PosterCaption.meta(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

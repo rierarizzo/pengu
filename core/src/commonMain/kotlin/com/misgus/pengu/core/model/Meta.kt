@@ -60,6 +60,18 @@ data class MetaDetail(
     val writer: List<String> = emptyList(),
     val released: String? = null,
     val country: String? = null,
+    /** Lifecycle status (`Released`, `Ended`, ...), when the source reports it. */
+    val status: String? = null,
+    /** Original language, as a display name. */
+    val originalLanguage: String? = null,
+    /** Number of seasons, for a series. */
+    val seasonCount: Int? = null,
+    /** Number of episodes, for a series. */
+    val episodeCount: Int? = null,
+    /** Production budget in USD, when reported above zero. */
+    val budget: Long? = null,
+    /** Worldwide revenue in USD, when reported above zero. */
+    val revenue: Long? = null,
 )
 
 /** One video of a [MetaDetail] (an episode, or the movie itself). */

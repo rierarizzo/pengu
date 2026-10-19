@@ -30,6 +30,18 @@ data class TmdbTitle(
     val runtimeMinutes: Int? = null,
     val genres: List<String> = emptyList(),
     val countries: List<String> = emptyList(),
+    /** Lifecycle status as TMDB spells it (`Released`, `Ended`, ...). */
+    val status: String? = null,
+    /** Original language, as a display name when TMDB localizes it. */
+    val originalLanguage: String? = null,
+    /** Season count, for a series. */
+    val seasonCount: Int? = null,
+    /** Episode count, for a series. */
+    val episodeCount: Int? = null,
+    /** Production budget in USD, when TMDB reports one above zero. */
+    val budget: Long? = null,
+    /** Worldwide revenue in USD, when TMDB reports one above zero. */
+    val revenue: Long? = null,
     val cast: List<MetaPerson> = emptyList(),
     /** IMDb id, when TMDB knows one. Used to enrich, never to replace the addon id. */
     val imdbId: String? = null,

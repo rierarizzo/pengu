@@ -47,6 +47,12 @@ fun MetaDetail?.enrichedWith(tmdb: TmdbTitle?): MetaDetail? {
         cast = base.cast.ifEmpty { tmdb.cast },
         released = base.released.nonEmpty() ?: tmdb.releaseDate,
         country = base.country.nonEmpty() ?: tmdb.country(),
+        status = base.status.nonEmpty() ?: tmdb.status,
+        originalLanguage = base.originalLanguage.nonEmpty() ?: tmdb.originalLanguage,
+        seasonCount = base.seasonCount ?: tmdb.seasonCount,
+        episodeCount = base.episodeCount ?: tmdb.episodeCount,
+        budget = base.budget ?: tmdb.budget,
+        revenue = base.revenue ?: tmdb.revenue,
     )
 }
 
@@ -67,6 +73,12 @@ fun TmdbTitle.toMetaDetail(): MetaDetail =
         cast = cast,
         released = releaseDate,
         country = country(),
+        status = status,
+        originalLanguage = originalLanguage,
+        seasonCount = seasonCount,
+        episodeCount = episodeCount,
+        budget = budget,
+        revenue = revenue,
     )
 
 /**

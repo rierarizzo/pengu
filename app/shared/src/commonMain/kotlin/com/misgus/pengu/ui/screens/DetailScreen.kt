@@ -301,7 +301,11 @@ private fun DetailBackdrop(
                 modifier = Modifier.fillMaxSize().graphicsLayer { alpha = imageAlpha },
             )
         }
-        Box(Modifier.fillMaxSize().background(AppScrim.mediaHorizontal))
+        // A phone only darkens the bottom, where the copy sits: a left-to-right
+        // scrim there washed out the whole right side of the artwork.
+        if (!compact) {
+            Box(Modifier.fillMaxSize().background(AppScrim.mediaHorizontal))
+        }
         Box(Modifier.fillMaxSize().background(AppScrim.mediaBottom))
         // Scroll-linked darkening over the whole viewport, so the artwork stays
         // behind the content all the way down, never fully black. No blur: a
@@ -367,6 +371,7 @@ private fun HeroContent(
                 text = state.description,
                 loading = !state.hasLoaded,
                 minLines = AppSynopsis.MAX_LINES,
+                expandable = true,
             )
             if (state.genres.isNotEmpty()) {
                 Spacer(Modifier.height(AppSpacing.sm))

@@ -297,7 +297,9 @@ so the atomic read/write/delete logic lives once.
   `AppType.heroBody` sizes and weights it (17sp / 15sp on a phone, Normal) on
   both. Only the running order differs by screen: the Home billboard reads
   title, metadata, synopsis then actions, while the detail billboard keeps
-  actions above the synopsis. They also differ where the content does: the
+  actions above the synopsis. The detail billboard passes `expandable`, so a
+  synopsis that overflows its three lines expands to the full text on tap and
+  collapses on a second tap; the Home billboard keeps the fixed teaser. They also differ where the content does: the
   Home billboard folds the content type, the parsed release year and only the
   first genre into the metadata line (`Movie • year • first genre • ★ rating`)
   while the detail hero keeps the runtime there and shows genres under the
@@ -339,6 +341,14 @@ so the atomic read/write/delete logic lives once.
   rail, so a series with many seasons stays reachable instead of crowding the
   header. The episode rail resets to its first card on a season change, so
   switching from S1 mid-list does not open S2 at the same offset.
+- **The detail page lists a title's metadata as a table.** The "Details" section
+  renders label/value rows — Released, Country, Status, Original language,
+  Seasons, Episodes, Budget and Revenue — each split by a hairline and only for
+  the rows a source actually filled. TMDB reports status in English, so it is
+  mapped to a localized string; budget and revenue are whole US-dollar amounts.
+  Cast and crew reuse the catalog's caption roles (`PosterCaption`), with the
+  character dimmed like a poster's year, so a person card and a poster read the
+  same.
 - **Edge-to-edge and system insets.** Android runs the activity edge-to-edge
   (`enableEdgeToEdge`, with light system-bar icons forced because the app always
   paints dark), and the `Scaffold` no longer reserves the system bars
@@ -645,7 +655,8 @@ so the atomic read/write/delete logic lives once.
   into one full-screen fill through the composite alpha, and a fitted slide
   does not drift during a swipe, because the parallax overscan would trim its
   sides again. The detail backdrop makes the same textless choice on a phone,
-  cropped to fill. The Home preloader goes through the same helper, so it always
+  cropped to fill, and there drops the left-to-right readability scrim so the
+  artwork is only darkened at the bottom, under the copy. The Home preloader goes through the same helper, so it always
   warms the URL the layer will draw, and the featured set is enriched before the
   billboard's first paint, so it never shows the catalog artwork and then swaps
   to TMDB's.
