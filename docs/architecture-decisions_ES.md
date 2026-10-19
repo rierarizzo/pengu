@@ -129,8 +129,15 @@ leer/escribir/borrar vive una sola vez.
   las categorías como una barra lateral agrupada junto a la página seleccionada;
   una ventana compacta pinta los mismos grupos como índice y apila cada página
   como `ContentRoute.SettingsPage`, así que un móvil entra en una categoría cada
-  vez mientras cada ajuste se define una sola vez. `labels.hidden` suprime las
-  etiquetas de título y año bajo cada
+  vez mientras cada ajuste se define una sola vez.
+- **Los controles de ajustes son componentes de la app, no Material de serie.**
+  Una fila de toggle es ella misma el target y su switch usa el track de acento;
+  un conjunto corto de opciones son chips, uno largo abre un popover en desktop y
+  una bottom sheet en táctil (`isDesktop`, en `ui/platform`); los divisores se
+  insetan al texto de la fila; y un grupo es un panel relleno con borde. Así un
+  ajuste se ve como la app y no como un formulario, mientras cada color sigue
+  saliendo del esquema.
+- **`labels.hidden`** suprime las etiquetas de título y año bajo cada
   póster (Home, rejillas de catálogo, Discover, Search, el "More like this" del
   detalle y la biblioteca) para que el artwork se lea solo; un card sin labels
   colapsa al ratio 2:3 del artwork (`POSTER_ART_ASPECT`) en vez de estirar la

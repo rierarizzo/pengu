@@ -353,7 +353,7 @@ private fun InterfaceSection(
             onCheckedChange = { value -> save { settings.setAnimationsEnabled(value) } },
         )
         SettingsDivider()
-        SettingsSelectRow(
+        SettingsChipRow(
             title = stringResource(Res.string.settings_poster_size),
             description = stringResource(Res.string.settings_poster_size_subtitle),
             options = PosterSize.entries,
@@ -431,7 +431,7 @@ private fun HeroSection(
     }
 
     SettingsPanel {
-        SettingsSelectRow(
+        SettingsChipRow(
             title = stringResource(Res.string.settings_hero_source),
             description = stringResource(Res.string.settings_hero_source_subtitle),
             options = HeroSource.entries,

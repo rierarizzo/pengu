@@ -269,8 +269,9 @@ existe, y contrólalo con `StandardTestDispatcher` + `advanceUntilIdle()` (ver
 2. Añade el getter/setter a `SettingsRepository` y la clave en
    `JsonSettingsRepository`.
 3. Añade el control a la página correspondiente en `SettingsScreen.kt`;
-   `SettingsCategory` elige la página. El fichero JSON sigue siendo editable a
-   mano.
+   `SettingsCategory` elige la página. Usa `SettingsChipRow` para un conjunto
+   corto de opciones y `SettingsSelectRow` para uno largo. El fichero JSON sigue
+   siendo editable a mano.
 
 **Añadir un tema**
 1. Añade un valor a `AppTheme`, una paleta a `AppThemes` (`ui/theme/Tokens.kt`),

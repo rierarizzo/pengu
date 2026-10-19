@@ -235,6 +235,9 @@ object AppSizes {
 
     /** Side of the square badge behind a settings category glyph. */
     val settingsBadge: Dp = 40.dp
+
+    /** Side of the rounded tile behind a sidebar category glyph. */
+    val settingsNavIcon: Dp = 32.dp
 }
 
 /** Scale factors shared by interactive surfaces. */
@@ -390,8 +393,8 @@ object AppAlpha {
     /** Translucent fill behind the selected top-navigation item. */
     const val NAV_SELECTED = 0.12f
 
-    /** Tint of the badge behind a settings category glyph. */
-    const val SETTINGS_BADGE = 0.14f
+    /** Fill of a selected chip, badge or icon tile inside a settings page. */
+    const val SELECTED_SURFACE = 0.15f
 }
 
 /**

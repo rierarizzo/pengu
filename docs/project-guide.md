@@ -264,7 +264,8 @@ not exist, and drive it with `StandardTestDispatcher` + `advanceUntilIdle()`
 2. Add the getter/setter to `SettingsRepository` and the key in
    `JsonSettingsRepository`.
 3. Add the control to the matching page in `SettingsScreen.kt`; `SettingsCategory`
-   picks the page. The JSON file stays hand-editable.
+   picks the page. Use `SettingsChipRow` for a short option set and
+   `SettingsSelectRow` for a longer one. The JSON file stays hand-editable.
 
 **Add a theme**
 1. Add a value to `AppTheme`, a palette to `AppThemes` (`ui/theme/Tokens.kt`) and

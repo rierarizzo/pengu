@@ -120,7 +120,14 @@ so the atomic read/write/delete logic lives once.
   as a grouped sidebar beside the selected page; a compact window renders the
   same groups as an index and pushes each page as a `ContentRoute.SettingsPage`,
   so a phone walks into one category at a time while each setting is defined
-  once. `labels.hidden` suppresses the title and year captions under every
+  once.
+- **Settings controls are app components, not stock Material.** A toggle row is
+  itself the target and its switch takes the accent track; a short option set is
+  a chip row, a longer one opens a popover on desktop and a bottom sheet on
+  touch (`isDesktop`, in `ui/platform`); the dividers are inset to the row copy;
+  and a group is a filled, bordered panel. A setting then looks like the app
+  rather than a form, while every colour still comes from the scheme.
+- **`labels.hidden`** suppresses the title and year captions under every
   poster (Home, catalog grids, Discover, Search, the detail's "More like this"
   and the library) so the artwork reads on its own; a label-less card collapses
   to the artwork's 2:3 ratio (`POSTER_ART_ASPECT`) instead of stretching the art
