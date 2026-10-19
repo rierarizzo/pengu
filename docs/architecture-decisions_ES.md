@@ -680,8 +680,9 @@ leer/escribir/borrar vive una sola vez.
   pesos de baja
   énfasis para el selector de temporadas, y un `trailingIcon` opcional añade un
   glifo al final. `AppTextField` fija los campos de formulario a
-  `shapes.small`, un contenedor `surfaceContainerLow` y un borde ámbar al
-  enfocar, con una variante `AppSearchField` (lupa a la izquierda, acción de
+  `shapes.small` y un borde ámbar al enfocar, sin relleno propio, así que el
+  campo lee la superficie sobre la que se coloca como el resto de controles
+  planos, con una variante `AppSearchField` (lupa a la izquierda, acción de
   limpiar) para Search y streams. `AppIconButton` es el único control de icono —
   cabeceras de media, el reproductor (atrás, play/pausa, avance, subtítulos,
   audio, pantalla completa y el botón de play centrado), los toggles de

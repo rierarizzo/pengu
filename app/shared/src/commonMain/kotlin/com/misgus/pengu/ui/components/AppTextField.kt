@@ -107,10 +107,11 @@ fun AppSearchField(
 /**
  * Colours for [AppTextField].
  *
- * All values come from the scheme: the field sits on `surfaceContainerLow`, the
- * border is `outlineVariant` at rest and `primary` on focus, and every icon,
- * label and placeholder reads an on-surface role instead of Material's
- * untouched defaults.
+ * All values come from the scheme: the field carries no fill of its own, so it
+ * reads the surface it is placed on like every other flat control, and the
+ * border is `outlineVariant` at rest and `primary` on focus. Every icon, label
+ * and placeholder reads an on-surface role instead of Material's untouched
+ * defaults.
  */
 @Composable
 private fun appTextFieldColors() =
@@ -118,10 +119,6 @@ private fun appTextFieldColors() =
         focusedBorderColor = MaterialTheme.colorScheme.primary,
         unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
         errorBorderColor = MaterialTheme.colorScheme.error,
-        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        errorContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         cursorColor = MaterialTheme.colorScheme.primary,
         errorCursorColor = MaterialTheme.colorScheme.error,
         focusedLabelColor = MaterialTheme.colorScheme.primary,

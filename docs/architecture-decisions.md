@@ -633,8 +633,9 @@ so the atomic read/write/delete logic lives once.
   inline — caps it to one ellipsised
   line, and steps the whole control down slightly while pressed; a `selected`
   flag turns the low-emphasis weights amber for the season picker, and an
-  optional `trailingIcon` adds a trailing glyph. `AppTextField` pins the form fields to `shapes.small`, a
-  `surfaceContainerLow` container and an amber-on-focus border, with an
+  optional `trailingIcon` adds a trailing glyph. `AppTextField` pins the form fields to `shapes.small` and an
+  amber-on-focus border, with no fill of its own, so the field reads the
+  surface it is placed on like every other flat control, plus an
   `AppSearchField` variant (leading magnifier, clear action) for Search and
   streams. `AppIconButton` is the one icon control — media headers, the player
   (back, play/pause, seek, subtitles, audio, fullscreen and the centred play
