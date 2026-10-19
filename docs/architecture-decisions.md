@@ -777,6 +777,41 @@ not a one-file change. They are grouped by the axis they change, not by effort.
   `ProgressRepository` and `AddonRepository` against the Stremio datastore.
   The auth adapter is the small part; the data repositories are the bulk.
 
+### Default catalogs
+
+- **A first-party catalog source, on by default.** Home would ship six rows
+  built from TMDB (trending, popular films, popular series, top rated,
+  upcoming, and a curated genre row) so the app is useful on first launch,
+  without a catalog addon installed. The addons stay: they keep adding rows and
+  resolving playback, they are not removed. This needs a small server of its
+  own, because the TMDB API key has to live there and never in the client (an
+  embedded key is extractable). The six rows are composed and cached in one
+  response; the cache is per-row TTL (trending expires in hours, popular and
+  top rated in days), stale-while-revalidate so no one waits on an expiry, and
+  single-flight so a cold row costs one TMDB request instead of one per waiting
+  client, bounded and caching empty responses too. Images are already cached by
+  Coil (memory + disk); the lever is the requested size, which `TmdbMapper`
+  already sets (`w500` / `w1280`).
+
+  Two things need designing. TMDB's list endpoints do not return `imdb_id`, so
+  tapping a catalog item needs the `/external_ids` lookup before the addons can
+  resolve streams (the `TmdbIdResolver` machinery exists for the detail screen);
+  without a cache the Home paints fast but every tap pays an extra hop. And the
+  TMDB terms of use have to be checked for cache lifetime, commercial use and a
+  single shared key, with the server adding its own per-client rate limiting.
+  The in-repo seam is `BackendKind` + `createBackend`; `CatalogRef` is
+  addon-shaped today, so the default rows need a source-agnostic ref or a
+  `CatalogRepository` decorator that merges both sources and dedupes by `key`.
+  A separate `:server` module keeps the client talking only to its own DTOs,
+  never to TMDB's raw JSON.
+
+- **Dropping Nuvio for self-hosted accounts is a separate decision.** Owning
+  user creation replaces `NuvioAccountRepository` with password hashing, session
+  and refresh handling, and the per-row authorization Supabase provided, plus
+  migrating existing users. It shares the `:server` module but not the catalog
+  work, and it is worth doing only when the identity itself is the goal, not as
+  a way to make the default catalogs work.
+
 ### Playback
 
 - **The Linux runtime, when the Linux target is addressed.** The desktop

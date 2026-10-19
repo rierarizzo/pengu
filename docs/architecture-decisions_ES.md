@@ -832,6 +832,45 @@ que cambian, no por esfuerzo.
   `ProgressRepository` y `AddonRepository` contra el datastore de Stremio. El
   adaptador de auth es la parte pequeña; los repositorios de datos son el grueso.
 
+### Catálogos por defecto
+
+- **Una fuente de catálogos de primera parte, activada por defecto.** Home
+  incluiría seis filas construidas desde TMDB (tendencias, películas populares,
+  series populares, mejor valoradas, próximos estrenos y una fila de género
+  curada) para que la app sea útil en el primer arranque, sin un addon de
+  catálogos instalado. Los addons se mantienen: siguen añadiendo filas y
+  resolviendo la reproducción, no se eliminan. Esto necesita un servidor propio
+  pequeño, porque la API key de TMDB tiene que vivir ahí y nunca en el cliente
+  (una key embebida es extraíble). Las seis filas se componen y se cachean en
+  una sola respuesta; la caché es TTL por fila (tendencias caduca en horas,
+  populares y mejor valoradas en días), stale-while-revalidate para que nadie
+  espere a una expiración, y single-flight para que una fila fría cueste una
+  petición a TMDB en vez de una por cliente en espera, acotada y cacheando
+  también las respuestas vacías. Las imágenes ya las cachea Coil (memoria +
+  disco); el lever es el tamaño pedido, que `TmdbMapper` ya fija (`w500` /
+  `w1280`).
+
+  Hay dos cosas que diseñar. Los endpoints de lista de TMDB no devuelven
+  `imdb_id`, así que pulsar un elemento del catálogo necesita el lookup a
+  `/external_ids` antes de que los addons puedan resolver streams (la maquinaria
+  de `TmdbIdResolver` ya existe para la pantalla de detalle); sin caché el Home
+  pinta rápido pero cada pulsación paga un salto extra. Y hay que revisar los
+  términos de uso de TMDB en cuanto a tiempo de caché, uso comercial y una key
+  compartida única, con el servidor añadiendo su propio rate limiting por
+  cliente. La costura en el repo es `BackendKind` + `createBackend`; `CatalogRef`
+  hoy tiene forma de addon, así que las filas por defecto necesitan una ref
+  agnóstica de la fuente o un decorador de `CatalogRepository` que una ambas
+  fuentes y deduplique por `key`. Un módulo `:server` aparte deja al cliente
+  hablando solo con sus propios DTOs, nunca con el JSON crudo de TMDB.
+
+- **Dejar Nuvio por cuentas autoalojadas es una decisión aparte.** Poseer la
+  creación de usuarios sustituye `NuvioAccountRepository` por hashing de
+  contraseñas, manejo de sesión y refresh, y la autorización por filas que daba
+  Supabase, además de migrar a los usuarios existentes. Comparte el módulo
+  `:server` pero no el trabajo de catálogos, y merece la pena solo cuando el
+  objetivo es la identidad en sí, no una forma de que funcionen los catálogos
+  por defecto.
+
 ### Reproducción
 
 - **El runtime de Linux, cuando se aborde el target de Linux.** La raíz de
