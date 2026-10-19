@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -21,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.misgus.pengu.app.shared.generated.resources.Res
@@ -148,12 +150,12 @@ private fun HomeContent(
                 title = stringResource(Res.string.home_error_title),
                 message = stringResource(state.error.toUserMessage()),
             )
-        // Nothing is known yet: the first load has not resolved continue
-        // watching, the library and the catalog list. No placeholder skeleton;
-        // the sections paint as soon as the data arrives.
-        !state.hasLoaded ->
-            Box(Modifier.fillMaxSize())
-        state.rows.isEmpty() && state.continueWatching.isEmpty() && !state.isLoading ->
+        // The screen paints after the first catalog batch; until a row is in, a
+        // full-screen loading indicator stands in for it. A refresh behind keeps
+        // the loaded rows, so it never gets here.
+        state.rows.isEmpty() && (state.isLoading || !state.hasLoaded) ->
+            HomeLoading()
+        state.rows.isEmpty() && state.continueWatching.isEmpty() ->
             Message(
                 icon = FluentIcons.Compass,
                 title = stringResource(Res.string.empty_nothing_to_show),
@@ -161,22 +163,7 @@ private fun HomeContent(
             )
         else -> {
             val compact = windowSize == WindowSize.COMPACT
-            // The billboard is sized from the screen, not the window, so resizing
-            // the window on either axis never changes it: it always matches the
-            // height it has on a maximized window.
-            val screenHeight = LocalAppServices.current.window.screenWorkAreaHeight
-            val referenceHeight =
-                if (screenHeight.value.isFinite() && screenHeight > 0.dp) {
-                    screenHeight
-                } else {
-                    LocalWindowHeight.current
-                }
-            val heroHeight =
-                if (referenceHeight.value.isFinite()) {
-                    (referenceHeight * HOME_HERO_SCREEN_FRACTION).coerceAtLeast(HOME_HERO_MIN_HEIGHT)
-                } else {
-                    HOME_HERO_MIN_HEIGHT
-                }
+            val heroHeight = homeHeroHeight()
             // Pull the first section up over the hero's faded bottom, so it does
             // not sit a full header gap below it.
             val liftPx = with(LocalDensity.current) { HOME_CONTENT_LIFT.roundToPx() }
@@ -259,6 +246,14 @@ private fun HomeContent(
     }
 }
 
+/** Full-screen loading indicator shown while the first catalog batch is fetched. */
+@Composable
+private fun HomeLoading() {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator()
+    }
+}
+
 /**
  * How often the featured billboard rotates to a new random mix of the rows.
  *
@@ -281,6 +276,29 @@ private const val HOME_HERO_SCREEN_FRACTION = 0.55f
 
 /** Floor for the billboard height, so a short screen cannot shrink it under its copy. */
 private val HOME_HERO_MIN_HEIGHT = 480.dp
+
+/**
+ * Height of the wide billboard.
+ *
+ * Taken from the screen work area, not the window, so a resize changes how much
+ * artwork is revealed, not how tall the billboard is. The compact billboard
+ * keeps its own aspect ratio ([HERO_COMPACT_HEIGHT_RATIO]).
+ */
+@Composable
+private fun homeHeroHeight(): Dp {
+    val screenHeight = LocalAppServices.current.window.screenWorkAreaHeight
+    val referenceHeight =
+        if (screenHeight.value.isFinite() && screenHeight > 0.dp) {
+            screenHeight
+        } else {
+            LocalWindowHeight.current
+        }
+    return if (referenceHeight.value.isFinite()) {
+        (referenceHeight * HOME_HERO_SCREEN_FRACTION).coerceAtLeast(HOME_HERO_MIN_HEIGHT)
+    } else {
+        HOME_HERO_MIN_HEIGHT
+    }
+}
 
 /**
  * How far the rows below the hero are raised, so the first section sits closer to

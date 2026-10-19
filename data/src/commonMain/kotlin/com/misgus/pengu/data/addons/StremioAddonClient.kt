@@ -12,6 +12,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.statement.readRawBytes
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.JsonObject
@@ -47,6 +48,14 @@ class StremioAddonClient(
      */
     private val manifestMutex = Mutex()
     private var cachedManifest: AddonManifest? = null
+
+    /**
+     * In-flight GETs by URL, so a duplicate request joins the first one instead
+     * of opening a second round-trip. An entry is dropped once the request
+     * settles, so a later caller still gets fresh data.
+     */
+    private val inFlightMutex = Mutex()
+    private val inFlight = mutableMapOf<String, CompletableDeferred<JsonObject>>()
 
     suspend fun fetchManifest(): AddonManifest {
         cachedManifest?.let { return it }
@@ -132,7 +141,40 @@ class StremioAddonClient(
         return "$path/$segment.json"
     }
 
+    /**
+     * Fetches [url], sharing one request with any concurrent caller that wants the
+     * same URL.
+     *
+     * A catalog can be requested by more than one screen at once (Home, Discover,
+     * the catalog grid), and the same addon can be asked for the same URL twice;
+     * the in-flight map turns that into a single request instead of a duplicate
+     * round-trip.
+     */
     private suspend fun getJson(url: String): JsonObject {
+        val (deferred, isOwner) =
+            inFlightMutex.withLock {
+                val existing = inFlight[url]
+                if (existing != null) {
+                    existing to false
+                } else {
+                    CompletableDeferred<JsonObject>().also { inFlight[url] = it } to true
+                }
+            }
+        if (!isOwner) return deferred.await()
+        return try {
+            fetchJson(url).also(deferred::complete)
+        } catch (cancellation: CancellationException) {
+            deferred.cancel(cancellation)
+            throw cancellation
+        } catch (error: Throwable) {
+            deferred.completeExceptionally(error)
+            throw error
+        } finally {
+            inFlightMutex.withLock { inFlight.remove(url) }
+        }
+    }
+
+    private suspend fun fetchJson(url: String): JsonObject {
         val response =
             try {
                 client.get(url)

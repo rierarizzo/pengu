@@ -36,6 +36,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlin.random.Random
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 /** A library title with progress, shown in "Continue watching". */
@@ -70,11 +72,12 @@ data class HomeUiState(
  * Loads Home: a featured set, "Continue watching" and catalog rows.
  *
  * Catalogs come from the addons; continue watching comes from the backend
- * (watch progress joined with the library). Continue watching and the rows are
- * published as they arrive, so Home paints without waiting for the slowest
- * catalog, and the watched badges and the TMDB enrichment are resolved after
- * the paint. Every browsable catalog gets a row; only the items per row are
- * capped.
+ * (watch progress joined with the library). Catalogs load in batches and the
+ * screen paints after the first one, with the featured artwork already enriched
+ * so the billboard never swaps; later batches only append rows. Re-entering the
+ * section keeps the loaded content and refreshes behind it. The watched badges
+ * are resolved after the paint. Every browsable catalog gets a row; only the
+ * items per row are capped.
  */
 class HomeViewModel(
     account: AccountRepository,
@@ -92,6 +95,9 @@ class HomeViewModel(
 
     /** In-flight load, so the screen effect and the account observer cannot double-load. */
     private var loadJob: Job? = null
+
+    /** When the last load finished, so a re-entry refreshes only when stale. */
+    private var lastLoadedAt: Instant? = null
 
     init {
         // A save or a remove made elsewhere (the detail screen, the library)
@@ -117,11 +123,19 @@ class HomeViewModel(
         // inside the coroutine, so a second call arriving before it starts (the
         // screen's effect and the account observer both fire on entry) would slip
         // past a state check and load twice.
-        if (loadJob?.isActive == true || (_state.value.hasLoaded && !force)) return
-        loadJob = viewModelScope.launch { doLoad() }
+        if (loadJob?.isActive == true) return
+        if (_state.value.hasLoaded && !force) {
+            // Re-entering Home keeps the loaded rows on screen and refreshes
+            // behind them, unless the last load is recent enough to reuse.
+            val last = lastLoadedAt
+            if (last != null && Clock.System.now() - last < HOME_REFRESH_INTERVAL) return
+            loadJob = viewModelScope.launch { doLoad(refresh = true) }
+            return
+        }
+        loadJob = viewModelScope.launch { doLoad(refresh = false) }
     }
 
-    private suspend fun doLoad() {
+    private suspend fun doLoad(refresh: Boolean) {
         _state.update { it.copy(isLoading = true, error = null) }
         var progressEntries: List<WatchProgress> = emptyList()
         var loaded = false
@@ -150,54 +164,67 @@ class HomeViewModel(
                         ContinueEntry(item, entry)
                     }.sortedByDescending { it.progress.lastWatched ?: Instant.fromEpochMilliseconds(0) }
                     .take(MAX_CONTINUE)
+            val savedIds = libraryItems.mapTo(mutableSetOf()) { item -> item.contentId }
 
-            // Continue watching and the saved set do not depend on the catalogs,
-            // so they are published before the rows: Home paints while the
-            // catalogs stream in instead of waiting for the slowest one.
-            _state.update {
-                it.copy(
-                    hasLoaded = true,
-                    continueWatching = continueWatching,
-                    savedIds = libraryItems.map { item -> item.contentId }.toSet(),
-                )
-            }
-            loaded = true
-
-            // Each catalog is fetched behind a small semaphore, so a phone with
-            // many addons does not open one socket per catalog at once. Each row
-            // is published as it arrives and the featured set grows from the rows
-            // already on screen, so the billboard never waits for the last one.
+            // Catalogs load in batches and the screen paints after the first one,
+            // instead of waiting for the slowest catalog. The featured set is
+            // picked and enriched from the rows on screen before that first paint,
+            // so the billboard never shows the catalog artwork and then swaps to
+            // TMDB's; later batches only append rows and leave the billboard alone.
+            // A refresh keeps the billboard that is already on screen.
             val order = refs.mapIndexed { index, ref -> ref.key to index }.toMap()
-            val permits = Semaphore(MAX_ROW_CONCURRENCY)
-            coroutineScope {
-                refs
-                    .map { ref ->
-                        async {
-                            val row = permits.withPermit { loadRow(ref) }
-                            if (row != null) publishRow(row, order)
-                        }
-                    }.awaitAll()
+            val batches = refs.chunked(HOME_CATALOG_FETCH_BATCH_SIZE)
+            val rows = mutableListOf<HomeRow>()
+            var featured = if (refresh) _state.value.featured else emptyList()
+
+            batches.forEachIndexed { batchIndex, batch ->
+                val results = coroutineScope { batch.map { ref -> async { loadRow(ref) } }.awaitAll() }
+                rows += results.filterNotNull()
+                rows.sortBy { order[it.ref.key] ?: Int.MAX_VALUE }
+                val firstContentPaint = featured.isEmpty() && rows.isNotEmpty()
+                if (firstContentPaint) {
+                    featured = enrichFeatured(pickFeatured(rows, MAX_FEATURED, random))
+                }
+                val last = batchIndex == batches.lastIndex
+                val publishNow =
+                    !refresh &&
+                        (batchIndex == 0 || (batchIndex + 1) % HOME_CATALOG_PUBLISH_INTERVAL == 0 || last)
+                if (publishNow || firstContentPaint) {
+                    publishContent(isLoading = true, continueWatching, savedIds, rows, featured)
+                }
             }
 
-            // Enrichment runs after the paint, like the detail screen: the
-            // billboard shows the catalog artwork first and swaps to TMDB's when
-            // the lookup lands, instead of holding the whole screen back for it.
-            // A title TMDB has no match for keeps its catalog artwork, and with no
-            // key the set is unchanged.
-            val featured = _state.value.featured
-            if (featured.isNotEmpty()) {
-                _state.update { it.copy(featured = enrichFeatured(featured)) }
-            }
-            _state.update { it.copy(isLoading = false) }
+            publishContent(isLoading = false, continueWatching, savedIds, rows, featured)
+            lastLoadedAt = Clock.System.now()
+            loaded = true
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (error: Throwable) {
             _state.update { it.copy(isLoading = false, error = error) }
-            loaded = false
         }
         // Home paints without waiting for the watch history; the checks fill in
         // when the lookup finishes.
         if (loaded) syncWatched(progressEntries)
+    }
+
+    /** Publishes the loaded content, keeping [rows] stable for the state. */
+    private fun publishContent(
+        isLoading: Boolean,
+        continueWatching: List<ContinueEntry>,
+        savedIds: Set<String>,
+        rows: List<HomeRow>,
+        featured: List<MetaPreview>,
+    ) {
+        _state.update {
+            it.copy(
+                isLoading = isLoading,
+                hasLoaded = true,
+                continueWatching = continueWatching,
+                savedIds = savedIds,
+                rows = rows.toList(),
+                featured = featured,
+            )
+        }
     }
 
     /** Loads one catalog row, or `null` when it is empty or fails. */
@@ -206,35 +233,6 @@ class HomeViewModel(
             val items = catalogs.items(ref)
             if (items.isEmpty()) null else HomeRow(ref, ref.name, items.take(MAX_ITEMS_PER_ROW))
         }.getOrNull()
-
-    /**
-     * Adds [row] to the state and grows the featured set from the rows known so
-     * far.
-     *
-     * Rows keep the addon's order even though they arrive in completion order:
-     * the list is re-sorted against [order] on every insert. The featured set is
-     * only appended to, never re-picked, so a row that arrives late does not
-     * reshuffle the billboard that is already on screen.
-     */
-    private fun publishRow(
-        row: HomeRow,
-        order: Map<String, Int>,
-    ) {
-        _state.update { state ->
-            val rows = (state.rows + row).sortedBy { order[it.ref.key] ?: Int.MAX_VALUE }
-            state.copy(rows = rows, featured = growFeatured(state.featured, rows))
-        }
-    }
-
-    /** Appends up to [MAX_FEATURED] items picked from [rows], skipping [current]. */
-    private fun growFeatured(
-        current: List<MetaPreview>,
-        rows: List<HomeRow>,
-    ): List<MetaPreview> {
-        if (current.size >= MAX_FEATURED) return current
-        val exclude = current.mapTo(mutableSetOf()) { it.type to it.id }
-        return current + pickFeatured(rows, MAX_FEATURED - current.size, random, exclude)
-    }
 
     private suspend fun syncWatched(progressEntries: List<WatchProgress>) {
         val candidates =
@@ -364,6 +362,7 @@ class HomeViewModel(
     private fun clear() {
         loadJob?.cancel()
         loadJob = null
+        lastLoadedAt = null
         watchedSync.invalidate()
         _state.value = HomeUiState()
     }
@@ -375,12 +374,16 @@ class HomeViewModel(
         const val MAX_ENRICH_CONCURRENCY = 4
 
         /**
-         * Catalogs fetched at once. Small on purpose: a phone's HTTP engine
-         * opens a bounded number of connections per host, so a wider fan-out
-         * would only build a queue. The semaphore keeps the concurrency
-         * explicit and portable across both engines.
+         * Catalogs fetched per batch, and how often a batch is published while
+         * the first load streams in. The screen paints after the first batch, so
+         * a phone with many addons does not wait for the slowest catalog; the
+         * batch size is also the fetch concurrency.
          */
-        const val MAX_ROW_CONCURRENCY = 6
+        const val HOME_CATALOG_FETCH_BATCH_SIZE = 4
+        const val HOME_CATALOG_PUBLISH_INTERVAL = 2
+
+        /** A re-entry refreshes behind only when the loaded content is this old. */
+        val HOME_REFRESH_INTERVAL = 5.minutes
     }
 }
 

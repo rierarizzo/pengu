@@ -87,7 +87,8 @@ so the atomic read/write/delete logic lives once.
   Stremio repositories through `StremioAddonRepositories`, which hands them the
   same pool. A manifest is then fetched once per process, not once per
   repository, even when catalog rows and metadata lookups hit the same addons
-  back to back.
+  back to back. A client also joins a concurrent GET for the same URL, so two
+  screens asking for the same catalog share one round-trip.
 - **Stremio**: `StremioAddonClient` plus the four repositories. Same rules as
   the original: metadata is first-wins across addons, streams/subtitles are
   aggregated in parallel, and catalog `extra` values are encoded while keeping
@@ -138,8 +139,7 @@ so the atomic read/write/delete logic lives once.
   preview still plays. Both
   the resolved id and the payload are cached for the process. The addon answer is
   published first and the enrichment lands right after, so a slow lookup never
-  delays the page: the detail hero and the Home billboard both paint the addon
-  artwork first and swap to TMDB's when the lookup lands. The "You may also like" row is built from TMDB's
+  delays the page. The "You may also like" row is built from TMDB's
   recommendations (its similar list as a fallback), and falls back to the addon's
   own similar catalog when there is no key or no match. Without a key the
   repository short-circuits and no request leaves the app. The key lives in
@@ -153,9 +153,10 @@ so the atomic read/write/delete logic lives once.
   concrete implementations, replacing the Flutter `backend_factory.dart`.
 - **Parallel I/O and caching.** Independent reads run together instead of in a
   row: Home loads watch progress, the library and the catalog list concurrently,
-  publishes continue watching as soon as they land and then streams each catalog
-  row in behind a small semaphore, so the first sections paint without waiting
-  for the slowest catalog; Library loads the library and its progress together; the watched-badge
+  then fetches the catalogs in batches of four and paints after the first one,
+  with the featured artwork already enriched, so a phone does not wait for the
+  slowest catalog; re-entering the section keeps the loaded rows and refreshes
+  behind them. Library loads the library and its progress together; the watched-badge
   resolver reads the two progress sources in parallel and its metadata lookups
   are bounded but concurrent; `watched_items` chunks are queried together;
   catalog manifests are fetched in parallel and cached per addon (a manifest is
@@ -259,11 +260,11 @@ so the atomic read/write/delete logic lives once.
 - **The Home hero draws from every catalog.** `pickFeatured` (in
   `HomeViewModel`) takes the pool of every row's items, dedupes by `type:id`,
   balances movies and series, and shuffles, so the billboard is not tied to the
-  first catalog. Rows stream in and the featured set grows with them — appended
-  up to six, never re-picked — so the billboard paints from the rows already
-  loaded instead of waiting for the last catalog; the periodic rotation re-picks
-  from the full pool. Well-rated titles (IMDb >= 6, unknown passes) come first
-  and low ratings are only used when there is not enough good content. The six
+  first catalog. The featured set is picked from the rows on screen at the first
+  content paint and enriched before it, then left alone as later batches append
+  rows, so the billboard never changes under the user. Well-rated titles
+  (IMDb >= 6, unknown passes) come first and low ratings are only used when there
+  is not enough good content. The six
   slides auto-advance every `HERO_AUTO_ADVANCE_INTERVAL` (7 s, in the usual 5-8 s
   carousel range), and a manual change pauses that rotation for
   `HERO_MANUAL_COOLDOWN` (60 s): the watcher keys on `PagerState.isScrollInProgress`
@@ -603,10 +604,9 @@ so the atomic read/write/delete logic lives once.
   hover and dialogs fade/scale in. Loading screens are skeletons driven by a
   single shimmer read in the draw phase: the poster grid derives its cell count
   from the viewport, so it never stops halfway down a wide window, and the
-  static gradient stops are built once instead of on every frame. Home has no
-  skeleton on purpose: it paints continue watching as soon as it lands and streams
-  the rows in behind it, instead of
-  flashing a billboard placeholder that then changes shape. The detail hero does not paint the library fallback as if it were the final
+  static gradient stops are built once instead of on every frame. Home shows a
+  full-screen loading indicator until the first catalog batch lands, then paints
+  the billboard and the rows together. The detail hero does not paint the library fallback as if it were the final
   artwork: it reserves the logo's space without drawing a placeholder, and the
   logo and backdrop fade in when the image itself is ready (`RemoteImage(fadeIn)`),
   so a slow load never pops. The player is deliberately outside the route

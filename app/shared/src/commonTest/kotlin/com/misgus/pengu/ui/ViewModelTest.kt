@@ -163,37 +163,32 @@ class HomeViewModelTest {
         }
 
     @Test
-    fun publishesEachRowWhileTheSlowestCatalogIsStillLoading() =
+    fun publishesTheFirstBatchBeforeTheRestIsLoaded() =
         runTest(dispatcher) {
-            val slow =
-                CatalogRef(
-                    addonName = "Addon",
-                    addonBaseUrl = "https://addon",
-                    type = ContentType("movie"),
-                    id = "slow",
-                    name = "Slow",
-                )
-            val fast =
-                CatalogRef(
-                    addonName = "Addon",
-                    addonBaseUrl = "https://addon",
-                    type = ContentType("movie"),
-                    id = "fast",
-                    name = "Fast",
-                )
+            val refs =
+                (0 until 6).map { index ->
+                    CatalogRef(
+                        addonName = "Addon",
+                        addonBaseUrl = "https://addon",
+                        type = ContentType("movie"),
+                        id = "c$index",
+                        name = "C$index",
+                    )
+                }
+            val items =
+                refs.associate { ref ->
+                    ref.key to listOf(MetaPreview(id = ref.id, type = ContentType("movie"), name = ref.name))
+                }
+            // The second batch (c4, c5) is held; the first (c0..c3) is free.
             val gate = CompletableDeferred<Unit>()
             val viewModel =
                 HomeViewModel(
                     account = FakeAccountRepository(),
                     catalogs =
                         FakeCatalogRepository(
-                            refs = listOf(slow, fast),
-                            items =
-                                mapOf(
-                                    slow.key to listOf(MetaPreview(id = "tt-slow", type = ContentType("movie"), name = "Slow")),
-                                    fast.key to listOf(MetaPreview(id = "tt-fast", type = ContentType("movie"), name = "Fast")),
-                                ),
-                            gates = mapOf(slow.key to gate),
+                            refs = refs,
+                            items = items,
+                            gates = mapOf(refs[4].key to gate, refs[5].key to gate),
                         ),
                     library = FakeLibraryRepository(),
                     progress = FakeProgressRepository(),
@@ -202,27 +197,25 @@ class HomeViewModelTest {
             viewModel.load()
             advanceUntilIdle()
 
-            // The fast catalog is on screen, and already leads the billboard,
-            // while the slow one has not answered.
+            // The first batch is on screen, and already leads the billboard, while
+            // the second is still loading.
             assertEquals(
-                listOf("fast"),
+                listOf("c0", "c1", "c2", "c3"),
                 viewModel.state.value.rows
                     .map { it.ref.id },
             )
-            assertEquals(
-                "tt-fast",
+            assertTrue(
                 viewModel.state.value.featured
-                    .single()
-                    .id,
+                    .isNotEmpty(),
             )
             assertTrue(viewModel.state.value.isLoading)
 
             gate.complete(Unit)
             advanceUntilIdle()
 
-            // Rows keep the catalog order even though they arrived out of order.
+            // Rows keep the catalog order once every batch is in.
             assertEquals(
-                listOf("slow", "fast"),
+                listOf("c0", "c1", "c2", "c3", "c4", "c5"),
                 viewModel.state.value.rows
                     .map { it.ref.id },
             )

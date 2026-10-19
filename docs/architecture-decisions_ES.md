@@ -93,6 +93,8 @@ leer/escribir/borrar vive una sola vez.
   `StremioAddonRepositories`, que les entrega el mismo pool. Así un manifiesto se
   pide una vez por proceso, no una vez por repositorio, incluso cuando las filas
   de catálogo y las búsquedas de metadata golpean los mismos addons seguidos.
+  Además, un cliente une un GET concurrente de la misma URL, así dos pantallas que
+  piden el mismo catálogo comparten una sola vuelta de red.
 - **Stremio**: `StremioAddonClient` más los cuatro repositorios. Mismas reglas
   que el original: la metadata es "el primero que responde gana" entre addons,
   streams/subtítulos se agregan en paralelo, y los valores `extra` de los
@@ -145,9 +147,7 @@ leer/escribir/borrar vive una sola vez.
   streams, así que un preview `tmdb:` igual reproduce. Tanto el id resuelto como
   el payload se cachean durante el proceso.
   La respuesta del addon se publica primero y el enriquecimiento llega justo
-  después, así que una búsqueda lenta nunca retrasa la página: el hero de detalle
-  y el billboard de Home pintan primero el artwork del addon y cambian al de TMDB
-  cuando llega la búsqueda. La fila "More like
+  después, así que una búsqueda lenta nunca retrasa la página. La fila "More like
   this" se construye con las recomendaciones de TMDB (su lista similar como
   respaldo) y cae al catálogo similar del addon cuando no hay clave o no hay
   match. Sin clave el repositorio corta y ninguna petición sale de la app. La
@@ -163,10 +163,10 @@ leer/escribir/borrar vive una sola vez.
   implementaciones concretas, reemplazando `backend_factory.dart` de Flutter.
 - **I/O en paralelo y caché.** Las lecturas independientes se ejecutan juntas en
   lugar de en fila: Home carga el progreso, la biblioteca y la lista de catálogos
-  de forma concurrente, publica "continuar viendo" en cuanto llega y luego emite
-  cada fila de catálogo tras un semáforo pequeño, así las primeras secciones
-  pintan sin esperar al catálogo más lento; Library carga la biblioteca y su
-  progreso juntos; el
+  de forma concurrente, luego pide los catálogos en lotes de cuatro y pinta tras
+  el primero, con el artwork destacado ya enriquecido, así un teléfono no espera
+  al catálogo más lento; al volver a la sección conserva las filas cargadas y
+  refresca detrás. Library carga la biblioteca y su progreso juntos; el
   resolver de badges lee las dos fuentes de progreso en paralelo y sus búsquedas
   de metadata son acotadas pero concurrentes; los chunks de `watched_items` se
   consultan juntos; los manifiestos de catálogo se piden en paralelo y se cachean
@@ -277,12 +277,12 @@ leer/escribir/borrar vive una sola vez.
 - **El hero de Home toma de todos los catálogos.** `pickFeatured` (en
   `HomeViewModel`) arma el pool con los ítems de todas las filas, deduplica por
   `type:id`, balancea películas y series y baraja, así que el billboard no queda
-  atado al primer catálogo. Las filas se emiten y el set destacado crece con
-  ellas —se agrega hasta seis, nunca se re-elige—, así el billboard pinta con las
-  filas ya cargadas en vez de esperar al último catálogo; la rotación periódica
-  vuelve a elegir del pool completo. Los títulos bien calificados (IMDb >= 6,
-  desconocido pasa) van primero y los de baja calificación solo se usan cuando no
-  alcanza el buen contenido. Los seis slides auto-avanzan cada `HERO_AUTO_ADVANCE_INTERVAL`
+  atado al primer catálogo. El set destacado se elige de las filas en pantalla en
+  el primer pintado de contenido y se enriquece antes, y luego se deja quieto
+  mientras los lotes siguientes agregan filas, así el billboard nunca cambia bajo
+  el usuario. Los títulos bien calificados (IMDb >= 6, desconocido pasa) van
+  primero y los de baja calificación solo se usan cuando no alcanza el buen
+  contenido. Los seis slides auto-avanzan cada `HERO_AUTO_ADVANCE_INTERVAL`
   (7 s, dentro del rango usual de 5-8 s para carruseles), y un cambio manual
   pausa esa rotación durante `HERO_MANUAL_COOLDOWN` (60 s): el watcher se apoya en
   `PagerState.isScrollInProgress` y marca todo scroll que el carrusel no inició
@@ -645,9 +645,9 @@ leer/escribir/borrar vive una sola vez.
   movidos por un único shimmer leído en la fase de dibujo: la rejilla de pósters
   deriva su número de celdas del viewport, así que nunca se detiene a mitad de
   una ventana ancha, y los stops de degradado estáticos se construyen una vez en
-  vez de cada frame. Home no tiene skeleton a propósito: pinta el "continuar
-  viendo" en cuanto llega y emite las filas detrás, en vez de mostrar un
-  placeholder de billboard que luego cambia de forma. El hero de detalle no pinta el fallback de la biblioteca como
+  vez de cada frame. Home muestra una pantalla de carga a pantalla completa hasta
+  que llega el primer lote de catálogos, y luego pinta el billboard y las filas
+  juntas. El hero de detalle no pinta el fallback de la biblioteca como
   si fuera el artwork final: reserva el espacio del logo sin dibujar un
   placeholder, y el logo y el backdrop se funden cuando la imagen está lista
   (`RemoteImage(fadeIn)`), así que una carga lenta nunca aparece de golpe. El
