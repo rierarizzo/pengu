@@ -32,6 +32,8 @@ internal data class BrandPalette(
     val surface: Color,
     /** Hover / selected surfaces. */
     val surfaceHigh: Color,
+    /** Fill of a selected settings row, chip or sidebar entry. */
+    val surfaceSelected: Color,
     /**
      * Brand / attention colour (amber): selection, active states, badges and
      * the featured call to action on a media billboard. Off media, the default
@@ -79,6 +81,7 @@ internal object AppThemes {
             background = Color(0xFF0B0803),
             surface = Color(0xFF151518),
             surfaceHigh = Color(0xFF1F1F24),
+            surfaceSelected = Color(0xFF1A1814),
             accent = Color(0xFFF4AE52),
             onAccent = Color(0xFF2A1A0E),
             accentContainer = Color(0xFFD4621A),
@@ -117,6 +120,10 @@ internal val LocalBrandPalette = staticCompositionLocalOf { AppThemes.Coffee }
 object AppColors {
     /** Dark scrim over media, used behind badges and progress tracks. */
     val mediaScrim = Color.Black.copy(alpha = 0.54f)
+
+    /** Fill of a selected settings row, chip or sidebar entry. */
+    val surfaceSelected: Color
+        @Composable get() = LocalBrandPalette.current.surfaceSelected
 
     /** Hero carousel dots over artwork: muted grey when idle, bright when active. */
     val heroIndicatorInactive: Color
@@ -235,9 +242,6 @@ object AppSizes {
 
     /** Side of the square badge behind a settings category glyph. */
     val settingsBadge: Dp = 40.dp
-
-    /** Side of the rounded tile behind a sidebar category glyph. */
-    val settingsNavIcon: Dp = 32.dp
 }
 
 /** Scale factors shared by interactive surfaces. */

@@ -76,6 +76,28 @@ fun Modifier.clickableSurface(
     )
 
 /**
+ * Content colour of a navigation item, following the rail's language.
+ *
+ * The selected item keeps [selectedColor]; a hovered, focused or pressed one
+ * brightens to `onSurface`; the rest stay at [idleColor]. The app rail draws
+ * icon-only items and a settings row draws an icon with copy, so the selected
+ * colour is a parameter (the glyph uses the accent, the label the text colour)
+ * while the hover step is the same everywhere.
+ */
+@Composable
+fun navContentColor(
+    selected: Boolean,
+    state: InteractionState,
+    selectedColor: Color = MaterialTheme.colorScheme.primary,
+    idleColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+): Color =
+    when {
+        selected -> selectedColor
+        state.active || state.pressed -> MaterialTheme.colorScheme.onSurface
+        else -> idleColor
+    }
+
+/**
  * Background tint for [state], on top of [base].
  *
  * The state layer uses the `onSurface` role, per Material's state-layer spec, so

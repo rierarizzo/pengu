@@ -125,8 +125,11 @@ so the atomic read/write/delete logic lives once.
   itself the target and its switch takes the accent track; a short option set is
   a chip row, a longer one opens a popover on desktop and a bottom sheet on
   touch (`isDesktop`, in `ui/platform`); the dividers are inset to the row copy;
-  and a group is a filled, bordered panel. A setting then looks like the app
-  rather than a form, while every colour still comes from the scheme.
+  and a group is a bordered panel on the page background. The category list marks
+  the open category with the accent icon alone (no selected fill) and brightens
+  the icon and label on hover, like the rail (`navContentColor`), while a selected
+  chip or picker uses the `surfaceSelected` palette role. A setting then looks like
+  the app rather than a form, while every colour still comes from the scheme.
 - **`labels.hidden`** suppresses the title and year captions under every
   poster (Home, catalog grids, Discover, Search, the detail's "More like this"
   and the library) so the artwork reads on its own; a label-less card collapses

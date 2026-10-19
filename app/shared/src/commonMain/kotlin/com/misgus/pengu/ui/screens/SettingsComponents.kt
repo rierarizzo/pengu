@@ -50,11 +50,13 @@ import com.misgus.pengu.ui.components.clickableSurface
 import com.misgus.pengu.ui.components.focusRing
 import com.misgus.pengu.ui.components.interactionHighlight
 import com.misgus.pengu.ui.components.mirrorInRtl
+import com.misgus.pengu.ui.components.navContentColor
 import com.misgus.pengu.ui.components.rememberInteraction
 import com.misgus.pengu.ui.components.sectionHeading
 import com.misgus.pengu.ui.icons.FluentIcons
 import com.misgus.pengu.ui.platform.isDesktop
 import com.misgus.pengu.ui.theme.AppAlpha
+import com.misgus.pengu.ui.theme.AppColors
 import com.misgus.pengu.ui.theme.AppIconSize
 import com.misgus.pengu.ui.theme.AppSizes
 import com.misgus.pengu.ui.theme.AppSpacing
@@ -118,46 +120,31 @@ private fun SettingsSidebarItem(
     onClick: () -> Unit,
 ) {
     val interaction = rememberInteraction()
-    val base = if (selected) MaterialTheme.colorScheme.surfaceContainerHigh else Color.Transparent
+    val iconColor = navContentColor(selected, interaction)
+    val textColor = navContentColor(selected, interaction, selectedColor = MaterialTheme.colorScheme.onSurface)
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .padding(horizontal = AppSpacing.sm)
                 .clip(MaterialTheme.shapes.medium)
-                .background(interactionHighlight(interaction, base))
                 .focusRing(interaction)
-                .clickableSurface(interaction, onClick, role = Role.Tab)
+                .clickableSurface(interaction, onClick, role = Role.Tab, indication = null)
                 .padding(horizontal = AppSpacing.md, vertical = AppSpacing.sm)
                 .semantics { this.selected = selected },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            modifier =
-                Modifier
-                    .size(AppSizes.settingsNavIcon)
-                    .clip(MaterialTheme.shapes.medium)
-                    .background(
-                        if (selected) {
-                            MaterialTheme.colorScheme.primary.copy(alpha = AppAlpha.SELECTED_SURFACE)
-                        } else {
-                            Color.Transparent
-                        },
-                    ),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = category.icon,
-                contentDescription = null,
-                tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(AppIconSize.sm),
-            )
-        }
+        Icon(
+            imageVector = category.icon,
+            contentDescription = null,
+            tint = iconColor,
+            modifier = Modifier.size(AppIconSize.md),
+        )
         Spacer(Modifier.width(AppSpacing.md))
         Text(
             stringResource(category.label),
             style = AppType.itemTitle().copy(fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium),
-            color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+            color = textColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -193,27 +180,17 @@ private fun SettingsNavRow(
                 .fillMaxWidth()
                 .padding(vertical = AppSpacing.xxs)
                 .clip(MaterialTheme.shapes.medium)
-                .background(interactionHighlight(interaction))
                 .focusRing(interaction)
-                .clickableSurface(interaction, onClick)
+                .clickableSurface(interaction, onClick, indication = null)
                 .padding(horizontal = AppSpacing.md, vertical = AppSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            modifier =
-                Modifier
-                    .size(AppSizes.settingsNavIcon)
-                    .clip(MaterialTheme.shapes.medium)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = AppAlpha.SELECTED_SURFACE)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = category.icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(AppIconSize.sm),
-            )
-        }
+        Icon(
+            imageVector = category.icon,
+            contentDescription = null,
+            tint = navContentColor(selected = false, interaction, idleColor = MaterialTheme.colorScheme.primary),
+            modifier = Modifier.size(AppIconSize.md),
+        )
         Spacer(Modifier.width(AppSpacing.md))
         Column(Modifier.weight(1f)) {
             Text(stringResource(category.label), style = AppType.itemTitle().copy(fontWeight = FontWeight.Medium))
@@ -303,7 +280,7 @@ fun SettingsPanel(
             modifier
                 .fillMaxWidth()
                 .clip(MaterialTheme.shapes.large)
-                .background(MaterialTheme.colorScheme.surface)
+                .background(MaterialTheme.colorScheme.background)
                 .border(AppSizes.borderWidth, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.large),
         content = content,
     )
@@ -484,12 +461,7 @@ private fun SettingsChip(
     onClick: () -> Unit,
 ) {
     val interaction = rememberInteraction()
-    val fill =
-        if (selected) {
-            MaterialTheme.colorScheme.primary.copy(alpha = AppAlpha.SELECTED_SURFACE)
-        } else {
-            Color.Transparent
-        }
+    val fill = if (selected) AppColors.surfaceSelected else Color.Transparent
     val borderColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
     Row(
         modifier =
@@ -536,7 +508,7 @@ fun <T> SettingsSelect(
                     .fillMaxWidth()
                     .heightIn(min = AppSizes.controlHeight)
                     .clip(MaterialTheme.shapes.small)
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .background(AppColors.surfaceSelected)
                     .border(AppSizes.borderWidth, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.small)
                     .focusRing(interaction)
                     .clickableSurface(interaction, { expanded = true }, role = Role.DropdownList)
@@ -562,7 +534,7 @@ fun <T> SettingsSelect(
             DropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false },
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                containerColor = AppColors.surfaceSelected,
                 shape = MaterialTheme.shapes.medium,
             ) {
                 options.forEach { option ->
@@ -614,7 +586,7 @@ private fun <T> SettingsSelectSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        containerColor = AppColors.surfaceSelected,
     ) {
         Column(Modifier.fillMaxWidth().padding(bottom = AppSpacing.md)) {
             Text(

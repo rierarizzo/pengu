@@ -33,6 +33,7 @@ import com.misgus.pengu.core.model.BackendProfile
 import com.misgus.pengu.ui.components.ProfileAvatar
 import com.misgus.pengu.ui.components.clickableSurface
 import com.misgus.pengu.ui.components.focusRing
+import com.misgus.pengu.ui.components.navContentColor
 import com.misgus.pengu.ui.components.rememberInteraction
 import com.misgus.pengu.ui.theme.AppIconSize
 import com.misgus.pengu.ui.theme.AppSizes
@@ -159,12 +160,7 @@ private fun SectionNavItem(
     modifier: Modifier = Modifier,
 ) {
     val interaction = rememberInteraction()
-    val contentColor =
-        when {
-            selected -> MaterialTheme.colorScheme.primary
-            interaction.active || interaction.pressed -> MaterialTheme.colorScheme.onSurface
-            else -> MaterialTheme.colorScheme.onSurfaceVariant
-        }
+    val contentColor = navContentColor(selected, interaction)
     Box(
         modifier =
             modifier

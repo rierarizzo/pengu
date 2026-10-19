@@ -134,9 +134,12 @@ leer/escribir/borrar vive una sola vez.
   Una fila de toggle es ella misma el target y su switch usa el track de acento;
   un conjunto corto de opciones son chips, uno largo abre un popover en desktop y
   una bottom sheet en táctil (`isDesktop`, en `ui/platform`); los divisores se
-  insetan al texto de la fila; y un grupo es un panel relleno con borde. Así un
-  ajuste se ve como la app y no como un formulario, mientras cada color sigue
-  saliendo del esquema.
+  insetan al texto de la fila; y un grupo es un panel con borde sobre el fondo de
+  página. La lista de categorías marca la abierta solo con el ícono de acento
+  (sin relleno de selección) y aclara ícono y label en hover, como el rail
+  (`navContentColor`), mientras un chip o picker seleccionado usa el rol
+  `surfaceSelected`. Así un ajuste se ve como la app y no como un formulario,
+  mientras cada color sigue saliendo del esquema.
 - **`labels.hidden`** suprime las etiquetas de título y año bajo cada
   póster (Home, rejillas de catálogo, Discover, Search, el "More like this" del
   detalle y la biblioteca) para que el artwork se lea solo; un card sin labels
