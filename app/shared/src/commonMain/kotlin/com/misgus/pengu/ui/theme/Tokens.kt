@@ -352,10 +352,10 @@ object AppSynopsis {
 /**
  * Shared icon sizes.
  *
- * [md] is Material 3's standard 24dp and is the default for icon controls,
- * navigation, text fields and list affordances; [sm] is for compact, inline and
- * in-button glyphs. Keeping the two roles distinct stops an in-button glyph from
- * being sized like a standalone control.
+ * [md] is Material 3's standard 24dp and is the default for icon controls, text
+ * fields and list affordances; [sm] is for compact, inline and in-button glyphs.
+ * Keeping the roles distinct stops an in-button glyph from being sized like a
+ * standalone control. [nav] is the navigation chrome, which carries no labels.
  */
 object AppIconSize {
     val sm: Dp = 20.dp
@@ -363,6 +363,14 @@ object AppIconSize {
 
     /** Prominent controls over artwork. */
     val lg: Dp = 28.dp
+
+    /**
+     * Navigation rail and bottom bar glyphs.
+     *
+     * A step above [md]: both navigations are icon-only, so the glyph alone
+     * carries the section and needs more weight than an in-row affordance.
+     */
+    val nav: Dp = lg
 }
 
 /** Reusable overlay alphas, so scrims and shadows stay consistent. */

@@ -315,11 +315,12 @@ leer/escribir/borrar vive una sola vez.
   glifos usados; son trazos de un solo color, así que el estado seleccionado es
   un tinte, no un cambio de relleno. La escala
   `AppIconSize` de `theme/Tokens.kt` es la única fuente del tamaño de icono:
-  `md` (24dp) es el default de Material 3 para navegación, campos y listas,
-  `sm` (20dp) es para glifos compactos y dentro de botones, y `lg` (28dp) es para
-  controles prominentes sobre artwork. Todos los sitios de uso dimensionan cada
-  icono mediante esos tokens, para que el rail, la barra inferior y los campos
-  de texto queden en el mismo tamaño óptico.
+  `md` (24dp) es el default de Material 3 para campos y listas,
+  `sm` (20dp) es para glifos compactos y dentro de botones, `nav` (28dp,
+  compartido con `lg`) es el rail de navegación y la barra inferior, cuyos items
+  solo-iconos necesitan más peso, y `lg` (28dp) es para controles prominentes
+  sobre artwork. Todos los sitios de uso dimensionan cada icono mediante esos
+  tokens, para que el rail y la barra inferior queden en el mismo tamaño óptico.
 - **Ciclo de vida de Compose.** `PenguApp` reutiliza el `ViewModelStoreOwner`
   del host cuando existe — una `Activity` de Android, para que los ViewModels de
   sección sobrevivan a un cambio de configuración — y cae a un owner con scope
@@ -610,7 +611,9 @@ leer/escribir/borrar vive una sola vez.
   avatar de perfil y los items de sección en la ventana, y pinta el fondo de
   página en vez de un color de panel, así que se funde con el contenido. Los
   glifos son Material Symbols Sharp (`MaterialIcons`), así que el estado
-  seleccionado es solo el tinte. La barra añade un borde hairline `outlineVariant` arriba y mide
+  seleccionado es solo el tinte. El glifo se dimensiona con `AppIconSize.nav`
+  (28dp) en vez del default de 24dp de las filas, porque el item no muestra nada
+  más. La barra añade un borde hairline `outlineVariant` arriba y mide
   64dp de alto
   (`bottomBarHeight`), no los 80dp de la barra con etiqueta que no tiene etiqueta
   que llenar. La selección se ve desde el primer frame en vez de aparecer solo

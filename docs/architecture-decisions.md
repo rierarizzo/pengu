@@ -292,11 +292,12 @@ so the atomic read/write/delete logic lives once.
   `materialIconsExtended` at all, so only the used glyphs ship; the glyphs are
   single-colour paths, so a selected state is a tint, not a fill swap.
   The `AppIconSize` scale in `theme/Tokens.kt` is the single source of icon
-  size: `md` (24dp) is Material 3's default for navigation, fields and list
-  affordances, `sm` (20dp) is for compact and in-button glyphs, and `lg` (28dp)
-  is for prominent controls over artwork. Call sites size every icon through
-  those tokens, so the rail, the bottom bar and the text fields stay on the same
-  optical size.
+  size: `md` (24dp) is Material 3's default for fields and list affordances,
+  `sm` (20dp) is for compact and in-button glyphs, `nav` (28dp, shared with `lg`)
+  is the navigation rail and the bottom bar, whose icon-only items need more
+  weight, and `lg` (28dp) is for prominent controls over artwork. Call sites size
+  every icon through those tokens, so the rail and the bottom bar stay on the
+  same optical size.
 - **Compose lifecycle.** `PenguApp` reuses the host's
   `ViewModelStoreOwner` when there is one — an Android `Activity`, so section
   ViewModels survive a configuration change — and falls back to a
@@ -570,8 +571,10 @@ so the atomic read/write/delete logic lives once.
   drops the labels to stay narrow, centers the profile avatar and the section
   items in the window, and paints the page background instead of a panel colour,
   so it blends into the content. The glyphs are Material Symbols Sharp
-  (`MaterialIcons`), so the selected state is the tint alone. The bar adds a hairline
-  `outlineVariant` top edge and stands 64dp tall
+  (`MaterialIcons`), so the selected state is the tint alone. The glyph is sized
+  `AppIconSize.nav` (28dp) rather than the 24dp in-row default, because the item
+  shows nothing else. The bar adds a hairline `outlineVariant` top edge and
+  stands 64dp tall
   (`bottomBarHeight`), not Material's 80dp label height that it has no label to
   fill. Selection reads from the first frame instead of appearing only once the
   item is focused. The compact bar is an overlay over the edge-to-edge content,

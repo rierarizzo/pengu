@@ -150,7 +150,9 @@ fun BottomNav(
  *
  * The glyph carries the state — amber when selected, brighter on hover, focus or
  * press — with no state-layer box, so both navigations read as bare icons. Press
- * joins the cue so a touch, which has no hover, still answers.
+ * joins the cue so a touch, which has no hover, still answers. The glyph is sized
+ * [AppIconSize.nav], larger than the in-row default, since it is the only thing
+ * the item shows.
  */
 @Composable
 private fun SectionNavItem(
@@ -174,7 +176,7 @@ private fun SectionNavItem(
             imageVector = section.icon,
             contentDescription = section.label,
             tint = contentColor,
-            modifier = Modifier.size(AppIconSize.md),
+            modifier = Modifier.size(AppIconSize.nav),
         )
     }
 }
