@@ -210,7 +210,7 @@
     <string name="settings_video_url">Video URL</string>
     <string name="settings_play_url">Play URL</string>
     <string name="settings_open_local">Open local file</string>
-    <string name="settings_metadata">Metadata (TMDB)</string>
+    <string name="settings_metadata">Metadata</string>
     <string name="settings_metadata_subtitle">Fill missing artwork, synopses and cast, and build &quot;You may also like&quot;, from TMDB.</string>
     <string name="settings_tmdb_api_key">TMDB API key</string>
     <string name="settings_tmdb_api_key_subtitle">A v3 API key or a v4 read access token. Leave empty to disable.</string>
