@@ -289,12 +289,16 @@ leer/escribir/borrar vive una sola vez.
   borde/progreso, `AppAlpha` posee toda la opacidad de overlays, y
   `Modifier.focusRing` (en `Interaction.kt`) da a cada control enfocable el mismo
   anillo de teclado.
-- **Los iconos se vendorizan, no son una dependencia.** `ui/icons/FluentIcons.kt`
-  contiene los glifos de Fluent UI System Icons (MIT, Microsoft) que usa toda la
-  UI como `ImageVector`s, cada uno construido de forma perezosa desde el path SVG
-  oficial de Fluent mediante `PathParser`, en su viewport de 24dp;
-  `scripts/gen_fluent_icons.mjs` regenera el fichero desde el set Fluent de
-  Iconify. La flecha de volver y los
+- **Los iconos se vendorizan, no son una dependencia.** `ui/icons/MaterialIcons.kt`
+  contiene los glifos de Material Symbols Sharp (Apache-2.0, Google) que usa toda
+  la UI como `ImageVector`s, cada uno construido de forma perezosa desde el path
+  SVG oficial mediante `PathParser`; `scripts/gen_icons.mjs` regenera el fichero
+  desde el paquete `@material-symbols/svg-400`. Sharp es el estilo que
+  rectifica las esquinas, y encaja mejor con el lenguaje de iconos plano y de
+  solo tinte de la app que un set más redondeado. Los glifos viven en un grid de
+  960x960 cuyo eje y va de -960 a 0, así que cada vector se construye dentro de
+  un grupo trasladado +960 mientras los sitios de uso lo siguen dimensionando a
+  24dp. La flecha de volver y los
   glifos de inicio/cierre de sesión llevan `autoMirror = true`, que es lo que
   hacían las variantes auto-espejadas de Material. Los botones de caption de
   Windows conservan sus glifos nativos (`WindowsCaptionIcons` en
@@ -597,8 +601,8 @@ leer/escribir/borrar vive una sola vez.
   seleccionada. El rail elimina las etiquetas para mantenerse estrecho, centra el
   avatar de perfil y los items de sección en la ventana, y pinta el fondo de
   página en vez de un color de panel, así que se funde con el contenido. Los
-  glifos son el set Fluent (`FluentIcons`), así que el estado seleccionado es
-  solo el tinte. La barra añade un borde hairline `outlineVariant` arriba y mide
+  glifos son Material Symbols Sharp (`MaterialIcons`), así que el estado
+  seleccionado es solo el tinte. La barra añade un borde hairline `outlineVariant` arriba y mide
   64dp de alto
   (`bottomBarHeight`), no los 80dp de la barra con etiqueta que no tiene etiqueta
   que llenar. La selección se ve desde el primer frame en vez de aparecer solo

@@ -29,7 +29,7 @@ import com.misgus.pengu.ui.components.Message
 import com.misgus.pengu.ui.components.MetaPosterCard
 import com.misgus.pengu.ui.components.SkeletonPosterGrid
 import com.misgus.pengu.ui.components.toUserMessage
-import com.misgus.pengu.ui.icons.FluentIcons
+import com.misgus.pengu.ui.icons.MaterialIcons
 import com.misgus.pengu.ui.theme.AppSpacing
 import com.misgus.pengu.ui.theme.LocalWindowSize
 import com.misgus.pengu.ui.theme.gridCells
@@ -60,7 +60,7 @@ fun DiscoverFeed(
         state.error != null && state.items.isEmpty() ->
             Box(modifier, contentAlignment = Alignment.Center) {
                 Message(
-                    icon = FluentIcons.Error,
+                    icon = MaterialIcons.Error,
                     title = stringResource(Res.string.discover_error_title),
                     message = stringResource(state.error.toUserMessage()),
                 )
@@ -68,7 +68,7 @@ fun DiscoverFeed(
         state.items.isEmpty() ->
             Box(modifier, contentAlignment = Alignment.Center) {
                 Message(
-                    icon = FluentIcons.Compass,
+                    icon = MaterialIcons.Compass,
                     title = stringResource(Res.string.discover_empty_title),
                     message = stringResource(Res.string.discover_empty_message),
                 )

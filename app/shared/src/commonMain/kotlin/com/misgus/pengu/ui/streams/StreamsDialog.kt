@@ -58,7 +58,7 @@ import com.misgus.pengu.ui.components.AppIconButton
 import com.misgus.pengu.ui.components.AppSearchField
 import com.misgus.pengu.ui.components.Message
 import com.misgus.pengu.ui.components.PosterImage
-import com.misgus.pengu.ui.icons.FluentIcons
+import com.misgus.pengu.ui.icons.MaterialIcons
 import com.misgus.pengu.ui.platform.clipEntryOfText
 import com.misgus.pengu.ui.services.LocalAppServices
 import com.misgus.pengu.ui.shell.RouteViewModelStoreOwner
@@ -172,12 +172,12 @@ private fun Header(
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
         ) {
             AppIconButton(
-                icon = FluentIcons.Refresh,
+                icon = MaterialIcons.Refresh,
                 contentDescription = stringResource(Res.string.action_refresh),
                 onClick = onRefresh,
             )
             AppIconButton(
-                icon = FluentIcons.Close,
+                icon = MaterialIcons.Close,
                 contentDescription = stringResource(Res.string.action_close),
                 onClick = onClose,
             )
@@ -214,12 +214,12 @@ private fun Content(
             }
         state.error != null && !state.hasLoaded ->
             Message(
-                icon = FluentIcons.Error,
+                icon = MaterialIcons.Error,
                 title = stringResource(Res.string.streams_error),
             )
         state.entries.isEmpty() ->
             Message(
-                icon = FluentIcons.SearchOff,
+                icon = MaterialIcons.SearchOff,
                 title =
                     if (state.groups.isEmpty()) {
                         stringResource(Res.string.streams_empty)
@@ -265,7 +265,7 @@ private fun StreamCard(
         verticalAlignment = Alignment.Top,
     ) {
         AppIconButton(
-            icon = FluentIcons.Play,
+            icon = MaterialIcons.Play,
             contentDescription = stringResource(Res.string.action_play),
             onClick = onPlay,
         )
@@ -285,7 +285,7 @@ private fun StreamCard(
             Text(it, style = AppType.bodySecondary())
         }
         AppIconButton(
-            icon = FluentIcons.Copy,
+            icon = MaterialIcons.Copy,
             contentDescription = stringResource(Res.string.streams_copy_link),
             onClick = {
                 (stream.url ?: stream.externalUrl)?.let { url ->

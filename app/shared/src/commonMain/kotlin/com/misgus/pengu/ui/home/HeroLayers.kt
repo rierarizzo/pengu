@@ -33,7 +33,7 @@ import com.misgus.pengu.ui.components.HeroSynopsis
 import com.misgus.pengu.ui.components.MediaTitle
 import com.misgus.pengu.ui.components.MetadataRow
 import com.misgus.pengu.ui.components.metadataParts
-import com.misgus.pengu.ui.icons.FluentIcons
+import com.misgus.pengu.ui.icons.MaterialIcons
 import com.misgus.pengu.ui.theme.AppLogoSize
 import com.misgus.pengu.ui.theme.AppScrim
 import com.misgus.pengu.ui.theme.AppSpacing
@@ -206,7 +206,7 @@ internal fun BoxScope.HeroCopy(
         ) {
             ActionButton(
                 text = stringResource(Res.string.action_stream_now),
-                icon = FluentIcons.Play,
+                icon = MaterialIcons.Play,
                 onClick = onPlay,
                 style = ActionButtonStyle.Text,
             )

@@ -53,7 +53,7 @@ import com.misgus.pengu.ui.components.mirrorInRtl
 import com.misgus.pengu.ui.components.navContentColor
 import com.misgus.pengu.ui.components.rememberInteraction
 import com.misgus.pengu.ui.components.sectionHeading
-import com.misgus.pengu.ui.icons.FluentIcons
+import com.misgus.pengu.ui.icons.MaterialIcons
 import com.misgus.pengu.ui.platform.isDesktop
 import com.misgus.pengu.ui.theme.AppAlpha
 import com.misgus.pengu.ui.theme.AppColors
@@ -204,7 +204,7 @@ private fun SettingsNavRow(
         }
         Spacer(Modifier.width(AppSpacing.sm))
         Icon(
-            imageVector = FluentIcons.ChevronRight,
+            imageVector = MaterialIcons.ChevronRight,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(AppIconSize.sm).mirrorInRtl(),
@@ -524,7 +524,7 @@ fun <T> SettingsSelect(
             )
             Spacer(Modifier.width(AppSpacing.sm))
             Icon(
-                imageVector = FluentIcons.ChevronDown,
+                imageVector = MaterialIcons.ChevronDown,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(AppIconSize.sm),
@@ -547,7 +547,7 @@ fun <T> SettingsSelect(
                         trailingIcon = {
                             if (option == selected) {
                                 Icon(
-                                    imageVector = FluentIcons.Check,
+                                    imageVector = MaterialIcons.Check,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(AppIconSize.sm),
@@ -605,7 +605,7 @@ private fun <T> SettingsSelectSheet(
                     trailing = {
                         if (option == selected) {
                             Icon(
-                                imageVector = FluentIcons.Check,
+                                imageVector = MaterialIcons.Check,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(AppIconSize.sm),

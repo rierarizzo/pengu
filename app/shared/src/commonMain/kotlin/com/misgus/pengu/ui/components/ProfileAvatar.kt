@@ -17,7 +17,7 @@ import androidx.compose.ui.unit.Dp
 import com.misgus.pengu.app.shared.generated.resources.Res
 import com.misgus.pengu.app.shared.generated.resources.label_profile
 import com.misgus.pengu.core.model.BackendProfile
-import com.misgus.pengu.ui.icons.FluentIcons
+import com.misgus.pengu.ui.icons.MaterialIcons
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -56,7 +56,7 @@ fun ProfileAvatar(
             }
             else ->
                 Icon(
-                    FluentIcons.User,
+                    MaterialIcons.User,
                     contentDescription = stringResource(Res.string.label_profile),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(size * 0.56f),

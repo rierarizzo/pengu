@@ -18,7 +18,7 @@ import com.misgus.pengu.app.shared.generated.resources.settings_playback
 import com.misgus.pengu.app.shared.generated.resources.settings_playback_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_theme
 import com.misgus.pengu.app.shared.generated.resources.settings_theme_subtitle
-import com.misgus.pengu.ui.icons.FluentIcons
+import com.misgus.pengu.ui.icons.MaterialIcons
 import org.jetbrains.compose.resources.StringResource
 
 /** A titled cluster of [SettingsCategory] entries in the settings sidebar. */
@@ -49,43 +49,43 @@ enum class SettingsCategory(
     PLAYBACK(
         label = Res.string.settings_playback,
         subtitle = Res.string.settings_playback_subtitle,
-        icon = FluentIcons.Play,
+        icon = MaterialIcons.Play,
         group = SettingsGroup.PLAYBACK,
     ),
     INTERFACE(
         label = Res.string.settings_interface,
         subtitle = Res.string.settings_interface_subtitle,
-        icon = FluentIcons.Layout,
+        icon = MaterialIcons.Layout,
         group = SettingsGroup.APP,
     ),
     THEME(
         label = Res.string.settings_theme,
         subtitle = Res.string.settings_theme_subtitle,
-        icon = FluentIcons.Palette,
+        icon = MaterialIcons.Palette,
         group = SettingsGroup.APP,
     ),
     HERO(
         label = Res.string.settings_hero,
         subtitle = Res.string.settings_hero_subtitle,
-        icon = FluentIcons.Sparkle,
+        icon = MaterialIcons.Sparkle,
         group = SettingsGroup.APP,
     ),
     METADATA(
         label = Res.string.settings_metadata,
         subtitle = Res.string.settings_metadata_subtitle,
-        icon = FluentIcons.Database,
+        icon = MaterialIcons.Database,
         group = SettingsGroup.APP,
     ),
     ACCOUNT(
         label = Res.string.settings_account,
         subtitle = Res.string.settings_account_subtitle,
-        icon = FluentIcons.Account,
+        icon = MaterialIcons.Account,
         group = SettingsGroup.APP,
     ),
     ADVANCED(
         label = Res.string.settings_advanced,
         subtitle = Res.string.settings_advanced_subtitle,
-        icon = FluentIcons.Wrench,
+        icon = MaterialIcons.Wrench,
         group = SettingsGroup.APP,
     ),
     ;

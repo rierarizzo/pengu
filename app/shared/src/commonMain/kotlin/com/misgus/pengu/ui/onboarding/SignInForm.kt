@@ -29,7 +29,7 @@ import com.misgus.pengu.ui.components.ActionButton
 import com.misgus.pengu.ui.components.AppIconButton
 import com.misgus.pengu.ui.components.AppTextField
 import com.misgus.pengu.ui.components.toUserMessage
-import com.misgus.pengu.ui.icons.FluentIcons
+import com.misgus.pengu.ui.icons.MaterialIcons
 import com.misgus.pengu.ui.services.LocalAppServices
 import com.misgus.pengu.ui.theme.AppSpacing
 import com.misgus.pengu.ui.theme.AppType
@@ -97,7 +97,7 @@ fun SignInForm(modifier: Modifier = Modifier) {
             keyboardActions = KeyboardActions(onDone = { submit() }),
             trailingIcon = {
                 AppIconButton(
-                    icon = if (passwordVisible) FluentIcons.VisibilityOff else FluentIcons.Visibility,
+                    icon = if (passwordVisible) MaterialIcons.VisibilityOff else MaterialIcons.Visibility,
                     contentDescription =
                         stringResource(
                             if (passwordVisible) Res.string.field_password_hide else Res.string.field_password_show,
@@ -120,7 +120,7 @@ fun SignInForm(modifier: Modifier = Modifier) {
         ActionButton(
             text = stringResource(Res.string.action_sign_in),
             onClick = submit,
-            icon = FluentIcons.Login,
+            icon = MaterialIcons.Login,
             enabled = email.isNotBlank() && password.isNotEmpty(),
             loading = busy,
             modifier = Modifier.fillMaxWidth(),

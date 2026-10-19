@@ -9,7 +9,7 @@ import com.misgus.pengu.app.shared.generated.resources.Res
 import com.misgus.pengu.app.shared.generated.resources.detail_add_to_library
 import com.misgus.pengu.app.shared.generated.resources.detail_remove_from_library
 import com.misgus.pengu.app.shared.generated.resources.status_watched
-import com.misgus.pengu.ui.icons.FluentIcons
+import com.misgus.pengu.ui.icons.MaterialIcons
 import com.misgus.pengu.ui.theme.AppIconSize
 import com.misgus.pengu.ui.theme.AppSizes
 import com.misgus.pengu.ui.theme.AppSpacing
@@ -59,7 +59,7 @@ fun HeroActionRow(
 ) {
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(AppSpacing.md)) {
         AppIconButton(
-            icon = if (actions.saved) FluentIcons.Check else FluentIcons.Plus,
+            icon = if (actions.saved) MaterialIcons.Check else MaterialIcons.Plus,
             contentDescription =
                 stringResource(
                     if (actions.saved) Res.string.detail_remove_from_library else Res.string.detail_add_to_library,
@@ -71,7 +71,7 @@ fun HeroActionRow(
         )
         onToggleWatched?.let { onToggleWatched ->
             AppIconButton(
-                icon = if (actions.watched) FluentIcons.CheckCircle else FluentIcons.CheckCircleOutline,
+                icon = if (actions.watched) MaterialIcons.CheckCircle else MaterialIcons.CheckCircleOutline,
                 contentDescription = stringResource(Res.string.status_watched),
                 onClick = onToggleWatched,
                 enabled = !actions.watchedBusy,

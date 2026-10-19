@@ -114,7 +114,7 @@ import com.misgus.pengu.ui.components.AppTextField
 import com.misgus.pengu.ui.components.contentTypeLabel
 import com.misgus.pengu.ui.components.sectionHeading
 import com.misgus.pengu.ui.components.toUserMessage
-import com.misgus.pengu.ui.icons.FluentIcons
+import com.misgus.pengu.ui.icons.MaterialIcons
 import com.misgus.pengu.ui.onboarding.SignInForm
 import com.misgus.pengu.ui.platform.openInDefaultApp
 import com.misgus.pengu.ui.platform.pickVideoFile
@@ -242,7 +242,7 @@ fun SettingsCategoryScreen(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             AppIconButton(
-                icon = FluentIcons.ArrowBack,
+                icon = MaterialIcons.ArrowBack,
                 contentDescription = stringResource(Res.string.action_back),
                 onClick = onBack,
             )
@@ -565,7 +565,7 @@ private fun MetadataSection(
                 modifier = Modifier.fillMaxWidth(),
                 trailingIcon = {
                     AppIconButton(
-                        icon = if (visible) FluentIcons.VisibilityOff else FluentIcons.Visibility,
+                        icon = if (visible) MaterialIcons.VisibilityOff else MaterialIcons.Visibility,
                         contentDescription =
                             stringResource(
                                 if (visible) Res.string.settings_tmdb_api_key_hide else Res.string.settings_tmdb_api_key_show,
@@ -658,7 +658,7 @@ private fun AccountSection() {
                                     }
                                 }
                             },
-                            icon = FluentIcons.Logout,
+                            icon = MaterialIcons.Logout,
                             style = ActionButtonStyle.Tonal,
                             enabled = !signingOut,
                             loading = signingOut,
@@ -742,7 +742,7 @@ private fun AdvancedSection(
                 ActionButton(
                     text = stringResource(Res.string.settings_play_url),
                     onClick = { onOpenPlayer(PlaybackTarget.raw(url.trim())) },
-                    icon = FluentIcons.Play,
+                    icon = MaterialIcons.Play,
                     enabled = url.isNotBlank(),
                 )
                 ActionButton(
@@ -752,7 +752,7 @@ private fun AdvancedSection(
                             pickVideoFile()?.let { onOpenPlayer(PlaybackTarget.raw(it)) }
                         }
                     },
-                    icon = FluentIcons.FolderOpen,
+                    icon = MaterialIcons.FolderOpen,
                     style = ActionButtonStyle.Tonal,
                 )
             }

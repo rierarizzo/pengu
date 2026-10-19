@@ -14,7 +14,7 @@ below, which keep their own licenses.
 | IBM Plex Sans | alternate UI typeface | SIL Open Font License 1.1 ([IBM-Plex-Sans-OFL.txt](IBM-Plex-Sans-OFL.txt)) |
 | Inter | UI typeface | SIL Open Font License 1.1 ([Inter-OFL.txt](Inter-OFL.txt)) |
 | Inter Tight | compact billboard metadata typeface | SIL Open Font License 1.1 ([Inter-Tight-OFL.txt](Inter-Tight-OFL.txt)) |
-| [Fluent UI System Icons](https://github.com/microsoft/fluentui-system-icons) | vendored UI icon set (`FluentIcons.kt`) | MIT ([FluentUI-System-Icons-MIT.txt](FluentUI-System-Icons-MIT.txt)) |
+| [Material Symbols](https://github.com/google/material-design-icons) | vendored UI icon set (`MaterialIcons.kt`, Sharp style) | Apache-2.0 ([Material-Symbols-Apache-2.0.txt](Material-Symbols-Apache-2.0.txt)) |
 
 The desktop player engine is **mediamp's mpv backend**: it loads libmpv through
 a JNI wrapper and renders into the Compose/Skia canvas, so the video is normal

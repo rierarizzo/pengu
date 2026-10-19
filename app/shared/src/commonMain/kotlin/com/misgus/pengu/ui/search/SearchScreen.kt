@@ -40,7 +40,7 @@ import com.misgus.pengu.ui.components.SectionHeader
 import com.misgus.pengu.ui.components.toUserMessage
 import com.misgus.pengu.ui.discover.DiscoverFeed
 import com.misgus.pengu.ui.discover.DiscoverViewModel
-import com.misgus.pengu.ui.icons.FluentIcons
+import com.misgus.pengu.ui.icons.MaterialIcons
 import com.misgus.pengu.ui.services.LocalAppServices
 import com.misgus.pengu.ui.shell.ContentNavigator
 import com.misgus.pengu.ui.shell.ContentRoute
@@ -132,13 +132,13 @@ private fun SearchResults(
             }
         state.error != null && state.results.isEmpty() ->
             Message(
-                icon = FluentIcons.Error,
+                icon = MaterialIcons.Error,
                 title = stringResource(Res.string.search_failed_title),
                 message = stringResource(state.error.toUserMessage()),
             )
         state.results.isEmpty() && state.hasSearched ->
             Message(
-                icon = FluentIcons.Inbox,
+                icon = MaterialIcons.Inbox,
                 title = stringResource(Res.string.search_no_results_title),
                 message = stringResource(Res.string.search_nothing_matched, state.query.trim()),
             )

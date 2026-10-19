@@ -56,7 +56,7 @@ import com.misgus.pengu.ui.components.RemoteImage
 import com.misgus.pengu.ui.components.metadataParts
 import com.misgus.pengu.ui.detail.DetailUiState
 import com.misgus.pengu.ui.detail.DetailViewModel
-import com.misgus.pengu.ui.icons.FluentIcons
+import com.misgus.pengu.ui.icons.MaterialIcons
 import com.misgus.pengu.ui.services.LocalAppServices
 import com.misgus.pengu.ui.shell.LocalSnackbarHost
 import com.misgus.pengu.ui.streams.StreamsRequest
@@ -241,7 +241,7 @@ fun DetailScreen(
             // shared icon button as the player and the catalog; the fixed top
             // scrim is what keeps it legible.
             AppIconButton(
-                icon = FluentIcons.ArrowBack,
+                icon = MaterialIcons.ArrowBack,
                 contentDescription = stringResource(Res.string.action_back),
                 onClick = onBack,
                 modifier = Modifier.align(Alignment.TopStart).statusBarsPadding().padding(AppSpacing.md),
@@ -344,7 +344,7 @@ private fun HeroContent(
             ) {
                 ActionButton(
                     text = stringResource(Res.string.action_stream_now),
-                    icon = FluentIcons.Play,
+                    icon = MaterialIcons.Play,
                     onClick = onPlay,
                     style = ActionButtonStyle.Accent,
                 )

@@ -9,10 +9,10 @@ import androidx.compose.ui.unit.dp
 /**
  * The Windows caption glyphs.
  *
- * Kept apart from the app's Fluent set on purpose: these are the native-shaped
+ * Kept apart from the app's Material Symbols set on purpose: these are the native-shaped
  * minimize / maximize / restore / close glyphs, so the bar reads as Windows
  * chrome rather than as app content. The app's own icons live in
- * [com.misgus.pengu.ui.icons.FluentIcons].
+ * [com.misgus.pengu.ui.icons.MaterialIcons].
  */
 internal object WindowsCaptionIcons {
     val Minimize: ImageVector by lazy { caption("Minimize", REMOVE) }

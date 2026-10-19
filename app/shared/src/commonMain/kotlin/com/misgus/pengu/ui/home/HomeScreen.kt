@@ -42,7 +42,7 @@ import com.misgus.pengu.ui.components.SectionHeader
 import com.misgus.pengu.ui.components.SyncingIndicator
 import com.misgus.pengu.ui.components.contentTypeLabel
 import com.misgus.pengu.ui.components.toUserMessage
-import com.misgus.pengu.ui.icons.FluentIcons
+import com.misgus.pengu.ui.icons.MaterialIcons
 import com.misgus.pengu.ui.services.LocalAppServices
 import com.misgus.pengu.ui.shell.ContentNavigator
 import com.misgus.pengu.ui.shell.ContentRoute
@@ -148,7 +148,7 @@ private fun HomeContent(
     when {
         state.error != null && state.rows.isEmpty() && state.continueWatching.isEmpty() ->
             Message(
-                icon = FluentIcons.Error,
+                icon = MaterialIcons.Error,
                 title = stringResource(Res.string.home_error_title),
                 message = stringResource(state.error.toUserMessage()),
             )
@@ -159,7 +159,7 @@ private fun HomeContent(
             HomeLoading()
         state.rows.isEmpty() && state.continueWatching.isEmpty() ->
             Message(
-                icon = FluentIcons.Compass,
+                icon = MaterialIcons.Compass,
                 title = stringResource(Res.string.empty_nothing_to_show),
                 message = stringResource(Res.string.home_empty_message),
             )

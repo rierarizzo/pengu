@@ -268,11 +268,15 @@ so the atomic read/write/delete logic lives once.
   widths and the border/progress sizes, `AppAlpha` owns every overlay opacity,
   and `Modifier.focusRing` (in `Interaction.kt`) gives every focusable control
   the same keyboard ring.
-- **Icons are vendored, not a dependency.** `ui/icons/FluentIcons.kt` holds the
-  Fluent UI System Icons (MIT, Microsoft) glyphs the whole UI uses as
+- **Icons are vendored, not a dependency.** `ui/icons/MaterialIcons.kt` holds
+  the Material Symbols Sharp (Apache-2.0, Google) glyphs the whole UI uses as
   `ImageVector`s, each built lazily from the official SVG path through
-  `PathParser` on Fluent's 24dp viewport; `scripts/gen_fluent_icons.mjs`
-  regenerates the file from the Fluent set on Iconify. The back arrow and the
+  `PathParser`; `scripts/gen_icons.mjs` regenerates the file from the
+  `@material-symbols/svg-400` package. Sharp is the style that squares the
+  corners off, which matches the app's flat, tint-only icon language better than
+  a rounder set. The glyphs live on a 960x960 grid whose y axis runs from -960
+  to 0, so each vector is built inside a group translated by +960 while call
+  sites still size it at 24dp. The back arrow and the
   sign-in/out glyphs carry `autoMirror = true`,
   which is what Material's auto-mirrored variants did. The Windows caption
   buttons keep their own native-shaped glyphs (`WindowsCaptionIcons` in
@@ -557,8 +561,8 @@ so the atomic read/write/delete logic lives once.
   a keyboard/D-pad target, and the item is announced as a selected tab. The rail
   drops the labels to stay narrow, centers the profile avatar and the section
   items in the window, and paints the page background instead of a panel colour,
-  so it blends into the content. The glyphs are the Fluent set (`FluentIcons`),
-  so the selected state is the tint alone. The bar adds a hairline
+  so it blends into the content. The glyphs are Material Symbols Sharp
+  (`MaterialIcons`), so the selected state is the tint alone. The bar adds a hairline
   `outlineVariant` top edge and stands 64dp tall
   (`bottomBarHeight`), not Material's 80dp label height that it has no label to
   fill. Selection reads from the first frame instead of appearing only once the
