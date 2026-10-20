@@ -1,8 +1,10 @@
 package com.misgus.pengu.ui
 
 import com.misgus.pengu.core.model.ContentType
+import com.misgus.pengu.core.model.Episode
 import com.misgus.pengu.core.model.LibraryItem
 import com.misgus.pengu.core.model.MetaPreview
+import com.misgus.pengu.core.model.Season
 import com.misgus.pengu.core.model.TmdbMediaType
 import com.misgus.pengu.core.model.TmdbTitle
 import com.misgus.pengu.core.model.WatchProgress
@@ -330,6 +332,80 @@ class HomeViewModelTest {
             val row = viewModel.state.value.continueWatching
             assertEquals(listOf("m1"), row.map { it.item.contentId })
         }
+
+    @Test
+    fun collapsesContinueWatchingToOneRowPerTitle() =
+        runTest(dispatcher) {
+            val progress =
+                FakeProgressRepository(
+                    progress =
+                        listOf(
+                            watchProgress("s1", lastWatched = 1, season = 1, episode = 7),
+                            watchProgress("s1", lastWatched = 5, season = 1, episode = 10),
+                            watchProgress("m1", lastWatched = 3),
+                        ),
+                )
+            val viewModel =
+                HomeViewModel(
+                    account = FakeAccountRepository(),
+                    catalogs = FakeCatalogRepository(),
+                    library = FakeLibraryRepository(listOf(item("s1", "series"), item("m1", "movie"))),
+                    progress = progress,
+                    badges = WatchedBadgeResolver(progress, FakeMetadataRepository()),
+                )
+            viewModel.load()
+            advanceUntilIdle()
+
+            val row = viewModel.state.value.continueWatching
+            // Newest title first, and the series only keeps the episode it is in
+            // the middle of.
+            assertEquals(listOf("s1", "m1"), row.map { it.item.contentId })
+            val newest = row.first()
+            assertEquals(10, newest.progress.episode?.number)
+        }
+
+    @Test
+    fun dropsASeriesWhoseLatestEpisodeIsFinished() =
+        runTest(dispatcher) {
+            val progress =
+                FakeProgressRepository(
+                    progress =
+                        listOf(
+                            watchProgress("s1", lastWatched = 1, season = 1, episode = 3),
+                            watchProgress("s1", lastWatched = 5, position = 96, season = 1, episode = 4),
+                        ),
+                )
+            val viewModel =
+                HomeViewModel(
+                    account = FakeAccountRepository(),
+                    catalogs = FakeCatalogRepository(),
+                    library = FakeLibraryRepository(listOf(item("s1", "series"))),
+                    progress = progress,
+                    badges = WatchedBadgeResolver(progress, FakeMetadataRepository()),
+                )
+            viewModel.load()
+            advanceUntilIdle()
+
+            val row = viewModel.state.value.continueWatching
+            assertTrue(row.isEmpty())
+        }
+
+    private fun watchProgress(
+        contentId: String,
+        lastWatched: Long,
+        position: Int = 30,
+        season: Int? = null,
+        episode: Int? = null,
+    ) = WatchProgress(
+        id = "$contentId-$season-$episode-$lastWatched",
+        contentId = contentId,
+        contentType = ContentType(if (season == null) "movie" else "series"),
+        season = season?.let(::Season),
+        episode = episode?.let(::Episode),
+        position = position.minutes,
+        duration = 100.minutes,
+        lastWatched = Instant.fromEpochMilliseconds(lastWatched),
+    )
 
     private fun item(
         contentId: String,

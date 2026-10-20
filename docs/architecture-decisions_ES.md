@@ -1011,7 +1011,12 @@ escritura se perdiera), y solo cuando esa escritura ha llegado se marca
 dejado a medias aparece al instante en lugar de en la siguiente carga. La marca es
 una señal aparte a propósito: `ProgressRepository.changes` se incrementa en cada
 guardado periódico (cada pocos segundos de reproducción), y una pantalla que
-estuviera suscrita a eso releería el progreso durante toda la película.
+estuviera suscrita a eso releería el progreso durante toda la película. La fila
+en sí tiene una tarjeta por título: el progreso se guarda por episodio, así que
+el ViewModel se queda solo con el `lastWatched` más reciente de cada `contentId`
+— y filtra los que están a medias después, así que un último episodio terminado
+esconde la serie — mientras las filas por episodio se quedan en el repositorio
+para el resume y el badge de visto.
 
 El reproductor se adueña de la pantalla en un teléfono: `PlayerScreen` llama al
 `PlayerWindowMode` de plataforma (`ui/platform`), que bloquea la activity
@@ -1077,14 +1082,6 @@ cubre los stores de fichero y los repositorios locales. El `commonTest` de
 
 ## Bugs conocidos
 
-- **Continue Watching muestra una fila por episodio en vez de una por serie.**
-  `PlaybackProgressReporter` escribe una fila por episodio (progress key
-  `content_s1e7`), y `HomeViewModel` mapea cada entrada de progreso directamente a
-  un `ContinueEntry`: ver S01E07 y luego S01E10 deja las dos filas. El colapso va
-  en el ViewModel — agrupar por `progress.contentId`, quedarse con la entrada de
-  `lastWatched` más reciente y usar la fila de ese episodio — antes de ordenar y
-  de `take(MAX_CONTINUE)`. Las filas por episodio se quedan en el repositorio a
-  propósito: de ahí leen el resume y el badge de visto.
 - **Dolby Vision profile 5 se ve con colores morados y verdes en desktop.**
   Solo el profile 5: es una capa única en ICtCp sin id de compatibilidad
   (`dv_bl_signal_compatibility_id: 0`) y no declara señalización de color

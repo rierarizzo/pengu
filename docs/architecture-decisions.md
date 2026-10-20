@@ -938,7 +938,11 @@ drop the write), and only once that write has landed does it tick
 half-watched appears at once instead of on the next load. The tick is a separate
 signal on purpose: `ProgressRepository.changes` bumps on every periodic save
 (every few seconds of playback), and a screen that listened to it would re-read
-progress all through the film.
+progress all through the film. The row itself holds one card per title: progress
+is stored per episode, so the ViewModel keeps only the newest `lastWatched` of
+each `contentId` — and filters mid-way after that, so a finished last episode
+hides the series — while the per-episode rows stay in the repository for resume
+and the watched badge.
 
 The player owns the screen on a phone: `PlayerScreen` calls the platform
 `PlayerWindowMode` (`ui/platform`), which locks the host activity to sensor
@@ -999,14 +1003,6 @@ parsing, badge resolver with fakes) and the defensive parsers/mappers.
 
 ## Known bugs
 
-- **Continue Watching shows one row per episode instead of one per series.**
-  `PlaybackProgressReporter` writes one row per episode (progress key
-  `content_s1e7`), and `HomeViewModel` maps every progress entry straight to a
-  `ContinueEntry`: watching S01E07 and then S01E10 leaves both rows. The collapse
-  belongs in the ViewModel — group by `progress.contentId`, keep the entry with
-  the newest `lastWatched` and take that episode's row — before sorting and
-  `take(MAX_CONTINUE)`. The per-episode rows stay in the repository on purpose:
-  resume and the watched badge read them.
 - **Dolby Vision profile 5 plays with purple and green colours on desktop.**
   Only profile 5: it is single-layer ICtCp with no compatibility id
   (`dv_bl_signal_compatibility_id: 0`) and declares no usable colour signalling,

@@ -214,25 +214,34 @@ class HomeViewModel(
     }
 
     /**
-     * "Continue watching": progress joined with the saved titles, keeping only the
-     * titles that are actually mid-way, newest first.
+     * "Continue watching": progress joined with the saved titles, one card per
+     * title, keeping only the ones that are actually mid-way, newest first.
+     *
+     * Progress arrives one row per episode, so the entries are collapsed by
+     * `contentId` before anything else: the newest `lastWatched` is what the
+     * title is "in the middle of". Collapsing before the mid-way filter is
+     * deliberate — a finished last episode hides the series even when an older
+     * episode was left unfinished, because that older episode is not where the
+     * user is. The per-episode rows stay in the repository: resume and the
+     * watched badge read them.
      *
      * The join runs against [libraryByContent] instead of a fresh library read, so
      * a refresh after a playback costs one request.
      */
     private fun continueEntries(progressEntries: List<WatchProgress>): List<ContinueEntry> =
         progressEntries
+            .sortedByDescending { it.lastWatched ?: Instant.fromEpochMilliseconds(0) }
+            .distinctBy { it.contentId }
             .mapNotNull { entry ->
-                val item = libraryByContent[entry.contentId] ?: return@mapNotNull null
                 val fraction = entry.fraction ?: 0.0
                 if (fraction <= ProgressThresholds.IN_PROGRESS_MIN ||
                     fraction >= ProgressThresholds.IN_PROGRESS_MAX
                 ) {
                     return@mapNotNull null
                 }
+                val item = libraryByContent[entry.contentId] ?: return@mapNotNull null
                 ContinueEntry(item, entry)
-            }.sortedByDescending { it.progress.lastWatched ?: Instant.fromEpochMilliseconds(0) }
-            .take(MAX_CONTINUE)
+            }.take(MAX_CONTINUE)
 
     private suspend fun doLoad(refresh: Boolean) {
         _state.update { it.copy(isLoading = true, error = null) }
