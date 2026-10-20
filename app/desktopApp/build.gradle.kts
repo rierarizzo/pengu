@@ -13,7 +13,7 @@ dependencies {
     implementation(project(":data"))
 
     implementation(compose.desktop.currentOs)
-    implementation(compose.ui)
+    implementation(libs.compose.ui)
     implementation(libs.kotlinx.coroutinesSwing)
     implementation(libs.ktor.clientCio)
 

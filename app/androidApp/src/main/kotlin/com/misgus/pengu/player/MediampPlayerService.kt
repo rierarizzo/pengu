@@ -99,7 +99,13 @@ class MediampPlayerService(
 
 /** Best-effort MIME type for a side-loaded subtitle, inferred from its file extension. */
 private fun subtitleMimeType(uri: String): String? =
-    when (uri.substringBefore('?').substringBefore('#').substringAfterLast('.', "").lowercase()) {
+    when (
+        uri
+            .substringBefore('?')
+            .substringBefore('#')
+            .substringAfterLast('.', "")
+            .lowercase()
+    ) {
         "ass", "ssa" -> "text/x-ssa"
         "vtt" -> "text/vtt"
         "srt" -> "application/x-subrip"

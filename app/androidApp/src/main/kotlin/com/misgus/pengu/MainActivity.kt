@@ -20,10 +20,10 @@ import com.misgus.pengu.data.store.JsonMapStore
 import com.misgus.pengu.data.store.JsonSettingsRepository
 import com.misgus.pengu.data.tmdb.TmdbMetadataRepository
 import com.misgus.pengu.player.MediampPlayerService
-import io.ktor.client.HttpClient
 import com.misgus.pengu.ui.PenguApp
 import com.misgus.pengu.ui.services.AppServices
 import com.misgus.pengu.ui.window.NoopWindowController
+import io.ktor.client.HttpClient
 
 /**
  * Android entry point.
@@ -54,11 +54,12 @@ class MainActivity : ComponentActivity() {
         player = MediampPlayerService(this)
 
         val httpClient = createHttpClient()
-        backend = createBackend(
-            kind = BackendKind.NUVIO,
-            httpClient = httpClient,
-            sessionStore = FileSessionStore(),
-        )
+        backend =
+            createBackend(
+                kind = BackendKind.NUVIO,
+                httpClient = httpClient,
+                sessionStore = FileSessionStore(),
+            )
         val addons = backend.addons
         val settings = JsonSettingsRepository(JsonMapStore(AppPaths.settingsFile, pretty = true))
         // One client pool for the four Stremio repositories, so an addon's
