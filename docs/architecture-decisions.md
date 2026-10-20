@@ -912,6 +912,23 @@ instead of animating behind two hours of video — and the controls wait 250 ms,
 the reveal itself is only the video. Every duration sits next to the screen and
 every animation is gated by `LocalMotionEnabled`.
 
+A small set of **engine options** is exposed in Settings (Playback page, desktop
+only) because they are the levers that matter when a title looks wrong: the HDR
+**tone-mapping curve** (`auto`, `bt.2390`, `hable`, `mobius`), **debanding**, and
+**hardware decoding** (a switch to software decode, the first thing to try when a
+source shows wrong colours or a black picture). The list is deliberately short and
+renderer-aware: curves that only exist in `vo=gpu-next` (`spline`, `bt.2446a`,
+HDR10+ dynamic curves) are not offered, because the desktop surface draws through
+the libmpv render API, which only implements the legacy GPU backend. The values
+live in `AppSettings` (`player.toneMapping`, `player.deband`,
+`player.hardwareDecoding` in `settings.json`), are mapped to mpv's spelling by a
+pure `MpvPlaybackOptions` (`app:desktopApp`, unit-tested), and are applied twice:
+as construction-time defaults through mediamp's `configureOptions` hook, and again
+before every open, so a change lands on the next video instead of the next launch.
+`auto` is sent rather than skipped — returning to it from another curve has to
+reset the option on a live player. Android hides the panel: its engine has no
+equivalent knob, and a switch that does nothing is worse than no switch.
+
 The player owns the screen on a phone: `PlayerScreen` calls the platform
 `PlayerWindowMode` (`ui/platform`), which locks the host activity to sensor
 landscape and hides the system bars (immersive), restoring both when the player

@@ -79,7 +79,7 @@ fun main(args: Array<String>) {
     application {
         // Created on the Compose (EDT) thread so mediamp captures that same thread as its
         // main dispatcher; commands are then valid from the UI thread and its coroutines.
-        val player = remember { MediampPlayerService() }
+        val player = remember { MediampPlayerService(settings) }
         val windowState = rememberWindowState(width = WINDOW_WIDTH, height = WINDOW_HEIGHT)
         // The custom frame is Windows-only; other targets keep the native decoration.
         val frameState = remember { if (isWindowsOs()) WindowsWindowFrameState() else null }

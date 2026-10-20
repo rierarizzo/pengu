@@ -984,6 +984,24 @@ vídeo — y los controles esperan 250 ms, así que el destape es solo el vídeo
 duración vive junto a la pantalla y cada animación está condicionada por
 `LocalMotionEnabled`.
 
+Un conjunto pequeño de **opciones del motor** se expone en Ajustes (página
+Reproducción, solo en escritorio) porque son las palancas que importan cuando un
+título se ve mal: la **curva de tone-mapping** de HDR (`auto`, `bt.2390`, `hable`,
+`mobius`), el **debanding** y la **decodificación por hardware** (un interruptor a
+decodificación por software, lo primero que hay que probar cuando una fuente se ve
+con colores raros o en negro). La lista es corta y consciente del renderer: las
+curvas que solo existen en `vo=gpu-next` (`spline`, `bt.2446a`, las dinámicas de
+HDR10+) no se ofrecen, porque la superficie de escritorio dibuja con la render API
+de libmpv, que solo implementa el backend GPU legacy. Los valores viven en
+`AppSettings` (`player.toneMapping`, `player.deband`, `player.hardwareDecoding` en
+`settings.json`), se mapean a la grafía de mpv con un `MpvPlaybackOptions` puro
+(`app:desktopApp`, con test unitario) y se aplican dos veces: como valores de
+construcción por el hook `configureOptions` de mediamp, y otra vez antes de cada
+apertura, así que un cambio llega al siguiente vídeo y no al siguiente arranque.
+`auto` se envía en vez de omitirse: volver a él desde otra curva tiene que
+desactivarla en un reproductor vivo. Android oculta el panel: su motor no tiene
+un equivalente, y un interruptor que no hace nada es peor que ninguno.
+
 El reproductor se adueña de la pantalla en un teléfono: `PlayerScreen` llama al
 `PlayerWindowMode` de plataforma (`ui/platform`), que bloquea la activity
 anfitriona a landscape de sensor y oculta las barras del sistema (inmersivo),

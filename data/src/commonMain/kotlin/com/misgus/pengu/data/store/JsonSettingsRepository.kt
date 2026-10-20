@@ -7,6 +7,7 @@ import com.misgus.pengu.core.repository.MAX_HERO_CATALOGS
 import com.misgus.pengu.core.repository.PosterSize
 import com.misgus.pengu.core.repository.SettingsRepository
 import com.misgus.pengu.core.repository.TmdbLanguage
+import com.misgus.pengu.core.repository.ToneMapping
 import com.misgus.pengu.data.boolOrNull
 import com.misgus.pengu.data.stringList
 import com.misgus.pengu.data.stringOrNull
@@ -34,7 +35,10 @@ import kotlinx.serialization.json.JsonPrimitive
  *   "hero.source": "smart",
  *   "hero.catalogs": ["https://addon|movie|top"],
  *   "metadata.tmdbApiKey": "",
- *   "metadata.tmdbLanguage": "system"
+ *   "metadata.tmdbLanguage": "system",
+ *   "player.toneMapping": "auto",
+ *   "player.deband": false,
+ *   "player.hardwareDecoding": true
  * }
  * ```
  *
@@ -79,6 +83,12 @@ class JsonSettingsRepository(
 
     override suspend fun setTmdbLanguage(language: TmdbLanguage) = update { it.copy(tmdbLanguage = language) }
 
+    override suspend fun setToneMapping(mapping: ToneMapping) = update { it.copy(toneMapping = mapping) }
+
+    override suspend fun setDeband(enabled: Boolean) = update { it.copy(deband = enabled) }
+
+    override suspend fun setHardwareDecoding(enabled: Boolean) = update { it.copy(hardwareDecoding = enabled) }
+
     /** Writes first, then publishes, so a failed save leaves the UI unchanged. */
     private suspend fun update(transform: (AppSettings) -> AppSettings) =
         mutex.withLock {
@@ -100,6 +110,9 @@ class JsonSettingsRepository(
         data[KEY_HERO_CATALOGS] = JsonArray(settings.heroCatalogKeys.take(MAX_HERO_CATALOGS).map(::JsonPrimitive))
         data[KEY_TMDB_API_KEY] = JsonPrimitive(settings.tmdbApiKey)
         data[KEY_TMDB_LANGUAGE] = JsonPrimitive(settings.tmdbLanguage.name.lowercase())
+        data[KEY_TONE_MAPPING] = JsonPrimitive(settings.toneMapping.name.lowercase())
+        data[KEY_DEBAND] = JsonPrimitive(settings.deband)
+        data[KEY_HARDWARE_DECODING] = JsonPrimitive(settings.hardwareDecoding)
         store.write(JsonObject(data))
     }
 
@@ -118,6 +131,9 @@ class JsonSettingsRepository(
             heroCatalogKeys = this[KEY_HERO_CATALOGS].stringList().distinct().take(MAX_HERO_CATALOGS),
             tmdbApiKey = this[KEY_TMDB_API_KEY].stringOrNull() ?: "",
             tmdbLanguage = this[KEY_TMDB_LANGUAGE].stringOrNull().toTmdbLanguage() ?: TmdbLanguage.SYSTEM,
+            toneMapping = this[KEY_TONE_MAPPING].stringOrNull().toToneMapping() ?: ToneMapping.AUTO,
+            deband = this[KEY_DEBAND].boolOrNull() ?: false,
+            hardwareDecoding = this[KEY_HARDWARE_DECODING].boolOrNull() ?: true,
         )
 
     private fun String?.toPosterSize(): PosterSize? =
@@ -135,6 +151,13 @@ class JsonSettingsRepository(
 
     private fun String?.toHeroSource(): HeroSource? = HeroSource.entries.firstOrNull { it.name.equals(this, ignoreCase = true) }
 
+    private fun String?.toToneMapping(): ToneMapping? =
+        when (this?.lowercase()) {
+            // The file is hand-editable, so accept the spelling mpv uses too.
+            "bt.2390", "bt2390" -> ToneMapping.BT_2390
+            else -> ToneMapping.entries.firstOrNull { it.name.equals(this, ignoreCase = true) }
+        }
+
     companion object {
         const val KEY_THEME = "appearance.theme"
         const val KEY_ANIMATIONS = "animations.enabled"
@@ -147,5 +170,8 @@ class JsonSettingsRepository(
         const val KEY_HERO_CATALOGS = "hero.catalogs"
         const val KEY_TMDB_API_KEY = "metadata.tmdbApiKey"
         const val KEY_TMDB_LANGUAGE = "metadata.tmdbLanguage"
+        const val KEY_TONE_MAPPING = "player.toneMapping"
+        const val KEY_DEBAND = "player.deband"
+        const val KEY_HARDWARE_DECODING = "player.hardwareDecoding"
     }
 }

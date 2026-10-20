@@ -3,6 +3,8 @@ package com.misgus.pengu.player
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.misgus.pengu.core.player.MediaTrack
+import com.misgus.pengu.core.player.PlaybackTarget
+import com.misgus.pengu.core.repository.SettingsRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.openani.mediamp.features.AudioLevelController
@@ -20,8 +22,34 @@ import org.openani.mediamp.mpv.compose.MpvMediampPlayerSurface
  * engine: its surface, its `AudioLevelController` volume and the mpv command
  * that adds an external addon subtitle.
  */
-class MediampPlayerService : MediampPlayerAdapter(MpvMediampPlayer(Any(), Dispatchers.Default)) {
+class MediampPlayerService(
+    private val settings: SettingsRepository,
+) : MediampPlayerAdapter(
+        MpvMediampPlayer(
+            Any(),
+            Dispatchers.Default,
+            // The settings file is loaded after this service is built, so these are
+            // the defaults the first session starts from; every playback re-applies
+            // the current values below.
+            configureOptions = { handle ->
+                handle.configurePlaybackOptions(settings.state.value.toMpvPlaybackOptions())
+            },
+        ),
+    ) {
     private val mpvPlayer: MpvMediampPlayer get() = player as MpvMediampPlayer
+
+    /**
+     * Re-applies the player settings before mediamp queues the open, which is what
+     * makes a Settings change land on the next video instead of the next launch.
+     *
+     * `onMain` keeps it on mpv's own thread, and it is queued ahead of the open
+     * mediamp launches from [open], so the option is in place before the file is
+     * read.
+     */
+    override fun onOpen(target: PlaybackTarget) {
+        val options = settings.state.value.toMpvPlaybackOptions()
+        onMain { (player.impl as? MPVHandle)?.applyPlaybackOptions(options) }
+    }
 
     override fun createVideoOutput(): VideoSurfaceRenderer =
         object : VideoSurfaceRenderer {

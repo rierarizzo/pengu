@@ -4,6 +4,7 @@ import com.misgus.pengu.core.repository.AppTheme
 import com.misgus.pengu.core.repository.HeroSource
 import com.misgus.pengu.core.repository.PosterSize
 import com.misgus.pengu.core.repository.TmdbLanguage
+import com.misgus.pengu.core.repository.ToneMapping
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -129,5 +130,44 @@ class SettingsRepositoryTest {
             assertEquals("value", (store.read()["custom.key"] as JsonPrimitive).content)
             // The file is written indented, so it can be read and edited by hand.
             assertTrue(File(path).readText().contains('\n'))
+        }
+
+    @Test
+    fun persistsTheDesktopPlayerOptions() =
+        runTest {
+            val path = File(tempDir(), "settings.json").path
+            val settings = JsonSettingsRepository(JsonMapStore(path, pretty = true))
+            settings.load()
+            // Off by default: mpv's own defaults, so an untouched install does not
+            // pay for debanding and keeps hardware decoding.
+            assertEquals(ToneMapping.AUTO, settings.state.value.toneMapping)
+            assertFalse(settings.state.value.deband)
+            assertTrue(settings.state.value.hardwareDecoding)
+
+            settings.setToneMapping(ToneMapping.BT_2390)
+            settings.setDeband(true)
+            settings.setHardwareDecoding(false)
+
+            val reloaded = JsonSettingsRepository(JsonMapStore(path, pretty = true))
+            reloaded.load()
+            assertEquals(ToneMapping.BT_2390, reloaded.state.value.toneMapping)
+            assertTrue(reloaded.state.value.deband)
+            assertFalse(reloaded.state.value.hardwareDecoding)
+        }
+
+    @Test
+    fun readsTheToneMappingSpellingMpvUses() =
+        runTest {
+            val store = JsonMapStore(File(tempDir(), "settings.json").path, pretty = true)
+            store.write(
+                JsonObject(
+                    mapOf(JsonSettingsRepository.KEY_TONE_MAPPING to JsonPrimitive("bt.2390")),
+                ),
+            )
+
+            val settings = JsonSettingsRepository(store)
+            settings.load()
+
+            assertEquals(ToneMapping.BT_2390, settings.state.value.toneMapping)
         }
 }

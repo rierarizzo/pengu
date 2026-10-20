@@ -49,6 +49,10 @@ import com.misgus.pengu.app.shared.generated.resources.settings_autoplay
 import com.misgus.pengu.app.shared.generated.resources.settings_autoplay_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_config_file
 import com.misgus.pengu.app.shared.generated.resources.settings_config_file_subtitle
+import com.misgus.pengu.app.shared.generated.resources.settings_deband
+import com.misgus.pengu.app.shared.generated.resources.settings_deband_subtitle
+import com.misgus.pengu.app.shared.generated.resources.settings_hardware_decoding
+import com.misgus.pengu.app.shared.generated.resources.settings_hardware_decoding_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_hero_catalogs
 import com.misgus.pengu.app.shared.generated.resources.settings_hero_catalogs_empty
 import com.misgus.pengu.app.shared.generated.resources.settings_hero_catalogs_error
@@ -65,6 +69,8 @@ import com.misgus.pengu.app.shared.generated.resources.settings_open_local
 import com.misgus.pengu.app.shared.generated.resources.settings_open_video
 import com.misgus.pengu.app.shared.generated.resources.settings_open_video_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_play_url
+import com.misgus.pengu.app.shared.generated.resources.settings_player_engine
+import com.misgus.pengu.app.shared.generated.resources.settings_player_engine_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_poster_size
 import com.misgus.pengu.app.shared.generated.resources.settings_poster_size_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_reload
@@ -93,6 +99,12 @@ import com.misgus.pengu.app.shared.generated.resources.settings_tmdb_test
 import com.misgus.pengu.app.shared.generated.resources.settings_tmdb_test_invalid
 import com.misgus.pengu.app.shared.generated.resources.settings_tmdb_test_ok
 import com.misgus.pengu.app.shared.generated.resources.settings_tmdb_test_unreachable
+import com.misgus.pengu.app.shared.generated.resources.settings_tone_mapping
+import com.misgus.pengu.app.shared.generated.resources.settings_tone_mapping_auto
+import com.misgus.pengu.app.shared.generated.resources.settings_tone_mapping_bt2390
+import com.misgus.pengu.app.shared.generated.resources.settings_tone_mapping_hable
+import com.misgus.pengu.app.shared.generated.resources.settings_tone_mapping_mobius
+import com.misgus.pengu.app.shared.generated.resources.settings_tone_mapping_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_video_url
 import com.misgus.pengu.app.shared.generated.resources.theme_coffee
 import com.misgus.pengu.core.player.PlaybackTarget
@@ -106,6 +118,7 @@ import com.misgus.pengu.core.repository.SettingsRepository
 import com.misgus.pengu.core.repository.SignInMethod
 import com.misgus.pengu.core.repository.TmdbLanguage
 import com.misgus.pengu.core.repository.TmdbVerifyResult
+import com.misgus.pengu.core.repository.ToneMapping
 import com.misgus.pengu.core.util.runCatchingCancellable
 import com.misgus.pengu.ui.components.ActionButton
 import com.misgus.pengu.ui.components.ActionButtonStyle
@@ -116,6 +129,7 @@ import com.misgus.pengu.ui.components.sectionHeading
 import com.misgus.pengu.ui.components.toUserMessage
 import com.misgus.pengu.ui.icons.MaterialIcons
 import com.misgus.pengu.ui.onboarding.SignInForm
+import com.misgus.pengu.ui.platform.isDesktop
 import com.misgus.pengu.ui.platform.openInDefaultApp
 import com.misgus.pengu.ui.platform.pickVideoFile
 import com.misgus.pengu.ui.services.LocalAppServices
@@ -330,6 +344,59 @@ private fun PlaybackSection(
             description = stringResource(Res.string.settings_autoplay_subtitle),
             checked = state.autoPlayNext,
             onCheckedChange = { value -> save { settings.setAutoPlayNext(value) } },
+        )
+    }
+    // The engine options are mpv's: Android has no equivalent knob, so the panel
+    // is not shown there instead of offering switches that do nothing.
+    if (isDesktop) DesktopPlayerPanel(state, settings, save)
+}
+
+/**
+ * Options handed straight to the mpv engine.
+ *
+ * They are the levers that matter when a title looks wrong (HDR mapped too dark,
+ * banding, a source that only decodes in software), and every one of them takes
+ * effect on the next video: the player re-applies them when it opens a target.
+ */
+@Composable
+private fun DesktopPlayerPanel(
+    state: AppSettings,
+    settings: SettingsRepository,
+    save: Save,
+) {
+    val toneMappingLabels =
+        mapOf(
+            ToneMapping.AUTO to stringResource(Res.string.settings_tone_mapping_auto),
+            ToneMapping.BT_2390 to stringResource(Res.string.settings_tone_mapping_bt2390),
+            ToneMapping.HABLE to stringResource(Res.string.settings_tone_mapping_hable),
+            ToneMapping.MOBIUS to stringResource(Res.string.settings_tone_mapping_mobius),
+        )
+    SettingsSubsection(
+        title = stringResource(Res.string.settings_player_engine),
+        subtitle = stringResource(Res.string.settings_player_engine_subtitle),
+    )
+    SettingsPanel {
+        SettingsChipRow(
+            title = stringResource(Res.string.settings_tone_mapping),
+            description = stringResource(Res.string.settings_tone_mapping_subtitle),
+            options = ToneMapping.entries,
+            selected = state.toneMapping,
+            label = { toneMappingLabels.getValue(it) },
+            onSelect = { value -> save { settings.setToneMapping(value) } },
+        )
+        SettingsDivider()
+        SettingsToggleRow(
+            title = stringResource(Res.string.settings_deband),
+            description = stringResource(Res.string.settings_deband_subtitle),
+            checked = state.deband,
+            onCheckedChange = { value -> save { settings.setDeband(value) } },
+        )
+        SettingsDivider()
+        SettingsToggleRow(
+            title = stringResource(Res.string.settings_hardware_decoding),
+            description = stringResource(Res.string.settings_hardware_decoding_subtitle),
+            checked = state.hardwareDecoding,
+            onCheckedChange = { value -> save { settings.setHardwareDecoding(value) } },
         )
     }
 }

@@ -33,6 +33,22 @@ enum class HeroSource {
     MANUAL,
 }
 
+/**
+ * HDR tone-mapping curve for the desktop player.
+ *
+ * The values are the ones mpv's legacy renderer accepts; `spline` and the
+ * dynamic HDR10+ curves are `gpu-next`-only and are deliberately absent, because
+ * the desktop surface renders through the render API. [AUTO] is mpv's own default
+ * (`bt.2390` on this renderer), so it is safe to send back when the user returns
+ * to it from a curve they tried.
+ */
+enum class ToneMapping {
+    AUTO,
+    BT_2390,
+    HABLE,
+    MOBIUS,
+}
+
 /** How many catalogs a manual billboard may draw from. */
 const val MAX_HERO_CATALOGS = 2
 
@@ -70,6 +86,26 @@ data class AppSettings(
     val tmdbApiKey: String = "",
     /** Language TMDB answers in; [TmdbLanguage.SYSTEM] follows the OS locale. */
     val tmdbLanguage: TmdbLanguage = TmdbLanguage.SYSTEM,
+    /**
+     * HDR tone-mapping curve the desktop player uses to bring HDR into the SDR
+     * window. Desktop only: the Android player has no equivalent knob.
+     */
+    val toneMapping: ToneMapping = ToneMapping.AUTO,
+    /**
+     * The desktop player's debanding filter.
+     *
+     * Off by default, which is mpv's own default: it smooths gradient banding at
+     * a GPU cost, so it is an opt-in rather than something the app turns on.
+     */
+    val deband: Boolean = false,
+    /**
+     * Decode with the GPU in the desktop player.
+     *
+     * On by default (mpv `hwdec=auto`). Turning it off forces software decoding,
+     * which is the first thing to try when a source plays with the wrong colours
+     * or not at all.
+     */
+    val hardwareDecoding: Boolean = true,
 )
 
 /**
@@ -114,6 +150,12 @@ interface SettingsRepository {
     suspend fun setTmdbApiKey(apiKey: String)
 
     suspend fun setTmdbLanguage(language: TmdbLanguage)
+
+    suspend fun setToneMapping(mapping: ToneMapping)
+
+    suspend fun setDeband(enabled: Boolean)
+
+    suspend fun setHardwareDecoding(enabled: Boolean)
 }
 
 /**
@@ -156,6 +198,12 @@ class InMemorySettingsRepository(
     override suspend fun setTmdbApiKey(apiKey: String) = update { it.copy(tmdbApiKey = apiKey.trim()) }
 
     override suspend fun setTmdbLanguage(language: TmdbLanguage) = update { it.copy(tmdbLanguage = language) }
+
+    override suspend fun setToneMapping(mapping: ToneMapping) = update { it.copy(toneMapping = mapping) }
+
+    override suspend fun setDeband(enabled: Boolean) = update { it.copy(deband = enabled) }
+
+    override suspend fun setHardwareDecoding(enabled: Boolean) = update { it.copy(hardwareDecoding = enabled) }
 
     private fun update(transform: (AppSettings) -> AppSettings) {
         _state.value = transform(_state.value)
