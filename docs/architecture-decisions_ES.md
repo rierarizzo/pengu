@@ -150,6 +150,16 @@ leer/escribir/borrar vive una sola vez.
   `outline`) para mantenerse legible sobre la tarjeta, y un chip seleccionado o
   el popover usan `surfaceSelected`. Así un ajuste se ve como la app y no como
   un formulario, mientras cada color sigue saliendo del esquema.
+- **Una card de addon se parte en un móvil.** Bajo el breakpoint
+  `WindowSize.COMPACT` la fila de identidad conserva el logo, el nombre, la
+  versión y los tres controles, y la descripción del manifest pasa a su propia
+  línea a todo el ancho, debajo. En línea junto a esa pila la descripción solo
+  tenía ~100dp para envolver, así que un texto normal llegaba a una docena de
+  líneas y la card crecía más que la pantalla; el ancho completo la resuelve en
+  dos o tres. Esa línea se pliega luego a `AppSynopsis.MAX_LINES` y se expande al
+  toque (`hasVisualOverflow`, la misma medida que usa `HeroSynopsis`), así que ni
+  una descripción larga del manifest puede estirar la card. Una ventana ancha
+  mantiene la descripción en línea, donde la fila tiene sitio para ella.
 - **`labels.hidden`** suprime las etiquetas de título y año bajo cada
   póster (Home, rejillas de catálogo, Discover, Search, el "More like this" del
   detalle y la biblioteca) para que el artwork se lea solo; un card sin labels

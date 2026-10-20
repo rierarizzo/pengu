@@ -1,6 +1,7 @@
 package com.misgus.pengu.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -86,7 +87,10 @@ import com.misgus.pengu.ui.theme.AppColors
 import com.misgus.pengu.ui.theme.AppIconSize
 import com.misgus.pengu.ui.theme.AppSizes
 import com.misgus.pengu.ui.theme.AppSpacing
+import com.misgus.pengu.ui.theme.AppSynopsis
 import com.misgus.pengu.ui.theme.AppType
+import com.misgus.pengu.ui.theme.LocalWindowSize
+import com.misgus.pengu.ui.theme.WindowSize
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -325,7 +329,8 @@ private fun AddonInstallFailure.message(): StringResource =
  *
  * Each card shows the addon's identity, version, description, enable switch,
  * remove action and drag handle. Only the handle starts a drag, so the card
- * itself stays inert and the page scroll keeps its own gesture.
+ * itself stays inert and the page scroll keeps its own gesture. On a phone the
+ * description drops under the identity row, where the full width fits it.
  */
 @Composable
 fun AddonsSection() {
@@ -514,88 +519,171 @@ private fun AddonCard(
     val moveUpLabel = stringResource(Res.string.settings_addons_move_up)
     val moveDownLabel = stringResource(Res.string.settings_addons_move_down)
     val dragLabel = stringResource(Res.string.settings_addons_drag)
-
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .semantics {
-                    customActions =
-                        listOfNotNull(
-                            if (canManage && canMoveUp) {
-                                CustomAccessibilityAction(moveUpLabel) {
-                                    onMove(-1)
-                                    true
-                                }
-                            } else {
-                                null
-                            },
-                            if (canManage && canMoveDown) {
-                                CustomAccessibilityAction(moveDownLabel) {
-                                    onMove(1)
-                                    true
-                                }
-                            } else {
-                                null
-                            },
-                        )
-                }.padding(AppSizes.cardPadding),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        AddonLogo(logo = manifest?.logo, name = name)
-        Spacer(Modifier.width(AppSpacing.md))
-        Column(Modifier.weight(1f)) {
-            Text(
-                name,
-                style = AppType.itemTitle(),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (version != null) {
-                Text(
-                    stringResource(Res.string.settings_addons_version, version),
-                    style = AppType.caption(),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+    val reorderActions =
+        Modifier.semantics {
+            customActions =
+                listOfNotNull(
+                    if (canManage && canMoveUp) {
+                        CustomAccessibilityAction(moveUpLabel) {
+                            onMove(-1)
+                            true
+                        }
+                    } else {
+                        null
+                    },
+                    if (canManage && canMoveDown) {
+                        CustomAccessibilityAction(moveDownLabel) {
+                            onMove(1)
+                            true
+                        }
+                    } else {
+                        null
+                    },
                 )
-            }
-            Text(
-                description,
-                style = AppType.bodySecondary(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
-        if (canManage) {
-            Spacer(Modifier.width(AppSpacing.sm))
-            AppSwitch(
-                checked = addon.enabled,
-                onCheckedChange = onToggle,
-                enabled = !busy,
-                description = toggleLabel,
-            )
-            AppIconButton(
-                icon = MaterialIcons.Delete,
-                contentDescription = stringResource(Res.string.action_remove),
-                onClick = onRemove,
-                enabled = !busy,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Box(
-                modifier =
-                    Modifier
-                        .size(AppSizes.minTouchTarget)
-                        .then(scope.dragHandle)
-                        .semantics { contentDescription = dragLabel },
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = MaterialIcons.DragIndicator,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(AppIconSize.md),
-                )
+    val controls: @Composable () -> Unit = {
+        AddonControls(
+            enabled = addon.enabled,
+            busy = busy,
+            toggleLabel = toggleLabel,
+            dragLabel = dragLabel,
+            scope = scope,
+            onToggle = onToggle,
+            onRemove = onRemove,
+        )
+    }
+
+    // A phone has no room for the copy and the controls side by side: the
+    // description would wrap into a dozen lines and make the card taller than
+    // the screen. It moves under the identity row, where the full width fits it.
+    if (LocalWindowSize.current == WindowSize.COMPACT) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .then(reorderActions)
+                    .padding(AppSizes.cardPadding),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                AddonLogo(logo = manifest?.logo, name = name)
+                Spacer(Modifier.width(AppSpacing.md))
+                Column(Modifier.weight(1f)) { AddonHeading(name, version) }
+                if (canManage) controls()
             }
+            Spacer(Modifier.height(AppSpacing.sm))
+            AddonDescription(description, foldable = true)
+        }
+    } else {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .then(reorderActions)
+                    .padding(AppSizes.cardPadding),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            AddonLogo(logo = manifest?.logo, name = name)
+            Spacer(Modifier.width(AppSpacing.md))
+            Column(Modifier.weight(1f)) {
+                AddonHeading(name, version)
+                AddonDescription(description)
+            }
+            if (canManage) controls()
         }
     }
+}
+
+/** Name and version of an addon, stacked. */
+@Composable
+private fun AddonHeading(
+    name: String,
+    version: String?,
+) {
+    Text(
+        name,
+        style = AppType.itemTitle(),
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
+    if (version != null) {
+        Text(
+            stringResource(Res.string.settings_addons_version, version),
+            style = AppType.caption(),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/** Enable switch, remove action and drag handle of a manageable addon card. */
+@Composable
+private fun AddonControls(
+    enabled: Boolean,
+    busy: Boolean,
+    toggleLabel: String,
+    dragLabel: String,
+    scope: ReorderableCardScope,
+    onToggle: (Boolean) -> Unit,
+    onRemove: () -> Unit,
+) {
+    Spacer(Modifier.width(AppSpacing.sm))
+    AppSwitch(
+        checked = enabled,
+        onCheckedChange = onToggle,
+        enabled = !busy,
+        description = toggleLabel,
+    )
+    AppIconButton(
+        icon = MaterialIcons.Delete,
+        contentDescription = stringResource(Res.string.action_remove),
+        onClick = onRemove,
+        enabled = !busy,
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Box(
+        modifier =
+            Modifier
+                .size(AppSizes.minTouchTarget)
+                .then(scope.dragHandle)
+                .semantics { contentDescription = dragLabel },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = MaterialIcons.DragIndicator,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(AppIconSize.md),
+        )
+    }
+}
+
+/**
+ * The manifest description, or the URL while there is no manifest yet.
+ *
+ * [foldable] is the phone layout: the text folds to [AppSynopsis.MAX_LINES]
+ * lines and expands on tap, the same way [HeroSynopsis] does, so a long blurb
+ * cannot stretch the card. A wide card shows it whole, as it always did.
+ */
+@Composable
+private fun AddonDescription(
+    text: String,
+    modifier: Modifier = Modifier,
+    foldable: Boolean = false,
+) {
+    var expanded by remember(text) { mutableStateOf(false) }
+    var truncated by remember(text) { mutableStateOf(false) }
+    val folded = foldable && !expanded
+    Text(
+        text = text,
+        modifier =
+            modifier.then(
+                if (foldable && truncated) Modifier.clickable { expanded = !expanded } else Modifier,
+            ),
+        style = AppType.bodySecondary(),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        maxLines = if (folded) AppSynopsis.MAX_LINES else Int.MAX_VALUE,
+        overflow = if (folded) TextOverflow.Ellipsis else TextOverflow.Clip,
+        onTextLayout = { layout -> if (folded) truncated = layout.hasVisualOverflow },
+    )
 }
 
 /** Addon logo, or the name's initial while the manifest has none. */

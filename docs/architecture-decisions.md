@@ -141,6 +141,15 @@ so the atomic read/write/delete logic lives once.
   `outline` border) so it stays legible on the card, and a selected chip or the
   popover uses `surfaceSelected`. A setting then looks like
   the app rather than a form, while every colour still comes from the scheme.
+- **An addon card splits on a phone.** Below the `WindowSize.COMPACT`
+  breakpoint the identity row keeps the logo, name, version and the three
+  controls, and the manifest description moves to its own full-width line under
+  it. Inline next to that stack a description only had ~100dp to wrap in, so a
+  normal blurb ran to a dozen lines and the card grew past the screen; the full
+  width fits it in two or three. That line then folds to `AppSynopsis.MAX_LINES`
+  and expands on tap (`hasVisualOverflow`, the same measure `HeroSynopsis` uses),
+  so even a long manifest blurb cannot stretch the card. A wide window keeps the
+  description inline, where the row has room for it.
 - **`labels.hidden`** suppresses the title and year captions under every
   poster (Home, catalog grids, Discover, Search, the detail's "More like this"
   and the library) so the artwork reads on its own; a label-less card collapses
