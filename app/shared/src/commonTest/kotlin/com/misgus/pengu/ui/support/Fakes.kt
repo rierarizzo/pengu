@@ -87,14 +87,21 @@ class FakeLibraryRepository(
 /** In-memory [ProgressRepository] for tests. */
 class FakeProgressRepository(
     private val entries: List<WatchedEntry> = emptyList(),
-    private val progress: List<WatchProgress> = emptyList(),
+    progress: List<WatchProgress> = emptyList(),
 ) : ProgressRepository {
     private val _changes = MutableStateFlow(0L)
     override val changes: StateFlow<Long> = _changes
 
-    override suspend fun all(): List<WatchProgress> = progress
+    private val saved = progress.toMutableList()
 
-    override suspend fun save(progress: WatchProgress) = Unit
+    /** Most recently written first, like the real repository. */
+    override suspend fun all(): List<WatchProgress> = saved.toList()
+
+    override suspend fun save(progress: WatchProgress) {
+        saved.removeAll { it.progressKey == progress.progressKey }
+        saved.add(0, progress)
+        _changes.value += 1
+    }
 
     override suspend fun watchedEntries(candidateIds: Collection<String>): List<WatchedEntry> =
         entries.filter { it.contentId in candidateIds }

@@ -23,6 +23,9 @@ import com.misgus.pengu.core.watched.WatchedBadgeResolver
 import com.misgus.pengu.core.watched.WatchedSeriesCache
 import com.misgus.pengu.ui.shell.AppChrome
 import com.misgus.pengu.ui.window.WindowController
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 /**
  * App-wide repositories and platform services, handed down the composition.
@@ -70,6 +73,16 @@ class AppServices(
     val chrome: AppChrome = AppChrome(),
     /** Addons installed in the account; used by the addon repository layer. */
     val addons: AddonRepository = NoopAddonRepository(),
+    /** Playback session signals, read by the screens that show progress. */
+    val playbackUpdates: PlaybackUpdates = PlaybackUpdates(),
+    /**
+     * Work that has to outlive the screen that started it.
+     *
+     * The one use is the final progress write when the player closes: a
+     * composable's own scope is cancelled as it leaves, which used to drop the
+     * last position (see `PlayerScreen`).
+     */
+    val appScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
 ) {
     /** Watched-badge resolver, shared by the library and Home. */
     val watchedBadges: WatchedBadgeResolver =

@@ -929,6 +929,17 @@ before every open, so a change lands on the next video instead of the next launc
 reset the option on a live player. Android hides the panel: its engine has no
 equivalent knob, and a switch that does nothing is worse than no switch.
 
+Closing the player is also when the screen the user is about to see is computed.
+The final position is written from `AppServices.appScope`, not from the
+composable's own scope (which is cancelled as the player leaves, which used to
+drop the write), and only once that write has landed does it tick
+`PlaybackUpdates.closed`. Home observes the tick and re-reads progress to repaint
+"Continue watching" against the library items it already had, so a title left
+half-watched appears at once instead of on the next load. The tick is a separate
+signal on purpose: `ProgressRepository.changes` bumps on every periodic save
+(every few seconds of playback), and a screen that listened to it would re-read
+progress all through the film.
+
 The player owns the screen on a phone: `PlayerScreen` calls the platform
 `PlayerWindowMode` (`ui/platform`), which locks the host activity to sensor
 landscape and hides the system bars (immersive), restoring both when the player
@@ -996,14 +1007,6 @@ parsing, badge resolver with fakes) and the defensive parsers/mappers.
   the newest `lastWatched` and take that episode's row — before sorting and
   `take(MAX_CONTINUE)`. The per-episode rows stay in the repository on purpose:
   resume and the watched badge read them.
-- **Leaving mid-playback does not refresh Continue Watching.** `PlayerScreen`
-  flushes the last position from its `onDispose` through
-  `rememberCoroutineScope()`, which is cancelled as the player leaves, so the
-  final write can be dropped (and `player.stop()` runs right after it). Even when
-  it lands, Home keeps the `continueWatching` it loaded while the player was open
-  — the section stays composed — and nothing re-reads progress on exit, so the
-  row only appears on the next load. Needs a service-scoped flush plus an
-  invalidation (or a state update) when the player leaves.
 - **Dolby Vision plays with purple and green colours on desktop.** A DV source
   (`Hyper.Knife.S01E01…DV.H.265` from a debrid stream) shows the classic
   profile-5 colour shift, which means the render path is not mapping the DV

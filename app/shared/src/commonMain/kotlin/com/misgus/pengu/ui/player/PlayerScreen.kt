@@ -12,7 +12,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,7 +68,6 @@ fun PlayerScreen(
     val chrome = services.chrome
     val window = services.window
     val snackbar = LocalSnackbarHost.current
-    val scope = rememberCoroutineScope()
     val state by player.state.collectAsStateWithLifecycle()
     val reporter = remember(target) { PlaybackProgressReporter(services.progress, services.settings, target) }
     val focusRequester = remember { FocusRequester() }
@@ -110,7 +108,15 @@ fun PlayerScreen(
         player.open(target)
         onDispose {
             chrome.exitImmersive()
-            scope.launch { reporter.flush(force = true) }
+            // The last position has to survive the screen: this composable's own
+            // scope is cancelled as it leaves, which used to drop the final write
+            // (and Continue watching never saw it). The save runs on the app scope
+            // and ticks the update only once it has landed, so the screens that
+            // show progress repaint from the data that was actually stored.
+            services.appScope.launch {
+                reporter.flush(force = true)
+                services.playbackUpdates.notifyClosed()
+            }
             player.stop()
         }
     }

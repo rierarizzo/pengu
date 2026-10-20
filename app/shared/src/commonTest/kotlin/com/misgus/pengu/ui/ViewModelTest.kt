@@ -5,10 +5,12 @@ import com.misgus.pengu.core.model.LibraryItem
 import com.misgus.pengu.core.model.MetaPreview
 import com.misgus.pengu.core.model.TmdbMediaType
 import com.misgus.pengu.core.model.TmdbTitle
+import com.misgus.pengu.core.model.WatchProgress
 import com.misgus.pengu.core.repository.CatalogRef
 import com.misgus.pengu.core.watched.WatchedBadgeResolver
 import com.misgus.pengu.ui.home.HomeViewModel
 import com.misgus.pengu.ui.library.LibraryViewModel
+import com.misgus.pengu.ui.services.PlaybackUpdates
 import com.misgus.pengu.ui.support.FakeAccountRepository
 import com.misgus.pengu.ui.support.FakeCatalogRepository
 import com.misgus.pengu.ui.support.FakeLibraryRepository
@@ -27,6 +29,8 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Instant
 
 class LibraryViewModelTest {
     private val dispatcher = StandardTestDispatcher()
@@ -289,4 +293,46 @@ class HomeViewModelTest {
 
             assertEquals(0, repository.lookups)
         }
+
+    @Test
+    fun repaintsContinueWatchingWhenAPlaybackCloses() =
+        runTest(dispatcher) {
+            val progress = FakeProgressRepository()
+            val updates = PlaybackUpdates()
+            val viewModel =
+                HomeViewModel(
+                    account = FakeAccountRepository(),
+                    catalogs = FakeCatalogRepository(),
+                    library = FakeLibraryRepository(listOf(item("m1", "movie"))),
+                    progress = progress,
+                    badges = WatchedBadgeResolver(progress, FakeMetadataRepository()),
+                    playbackUpdates = updates,
+                )
+            viewModel.load()
+            advanceUntilIdle()
+            val before = viewModel.state.value.continueWatching
+            assertTrue(before.isEmpty())
+
+            // The player persisted a mid-way position and closed.
+            progress.save(
+                WatchProgress(
+                    id = "p1",
+                    contentId = "m1",
+                    contentType = ContentType("movie"),
+                    position = 30.minutes,
+                    duration = 100.minutes,
+                    lastWatched = Instant.fromEpochMilliseconds(1),
+                ),
+            )
+            updates.notifyClosed()
+            advanceUntilIdle()
+
+            val row = viewModel.state.value.continueWatching
+            assertEquals(listOf("m1"), row.map { it.item.contentId })
+        }
+
+    private fun item(
+        contentId: String,
+        type: String,
+    ) = LibraryItem(id = contentId, contentId = contentId, contentType = ContentType(type), name = contentId)
 }

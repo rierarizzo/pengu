@@ -1002,6 +1002,17 @@ apertura, así que un cambio llega al siguiente vídeo y no al siguiente arranqu
 desactivarla en un reproductor vivo. Android oculta el panel: su motor no tiene
 un equivalente, y un interruptor que no hace nada es peor que ninguno.
 
+Cerrar el reproductor es también cuando se calcula la pantalla que el usuario va a
+ver. La posición final se escribe desde `AppServices.appScope`, no desde el scope
+del composable (que se cancela al salir del reproductor, y eso hacía que la
+escritura se perdiera), y solo cuando esa escritura ha llegado se marca
+`PlaybackUpdates.closed`. Home observa esa marca y relee el progreso para repintar
+"Continue watching" con los títulos de biblioteca que ya tenía, así que un título
+dejado a medias aparece al instante en lugar de en la siguiente carga. La marca es
+una señal aparte a propósito: `ProgressRepository.changes` se incrementa en cada
+guardado periódico (cada pocos segundos de reproducción), y una pantalla que
+estuviera suscrita a eso releería el progreso durante toda la película.
+
 El reproductor se adueña de la pantalla en un teléfono: `PlayerScreen` llama al
 `PlayerWindowMode` de plataforma (`ui/platform`), que bloquea la activity
 anfitriona a landscape de sensor y oculta las barras del sistema (inmersivo),
@@ -1074,15 +1085,6 @@ cubre los stores de fichero y los repositorios locales. El `commonTest` de
   `lastWatched` más reciente y usar la fila de ese episodio — antes de ordenar y
   de `take(MAX_CONTINUE)`. Las filas por episodio se quedan en el repositorio a
   propósito: de ahí leen el resume y el badge de visto.
-- **Salir a mitad de reproducción no refresca Continue Watching.** `PlayerScreen`
-  escribe la posición final desde su `onDispose` con
-  `rememberCoroutineScope()`, que se cancela al salir del reproductor, así que la
-  escritura final puede perderse (y `player.stop()` corre justo después). Aunque
-  llegue, Home conserva el `continueWatching` que cargó mientras el reproductor
-  estaba abierto — la sección sigue compuesta — y nada relee el progreso al
-  salir, así que la fila solo aparece en la siguiente carga. Necesita un flush en
-  un scope de servicio más una invalidación (o una actualización de estado) al
-  salir del reproductor.
 - **Dolby Vision se ve con colores morados y verdes en desktop.** Una fuente DV
   (`Hyper.Knife.S01E01…DV.H.265` de un stream de debrid) muestra el clásico
   desplazamiento de color de profile 5, lo que significa que el camino de render

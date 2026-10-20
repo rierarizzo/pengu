@@ -45,6 +45,7 @@ fun SectionHost(
                         snapshot = services.homeSnapshot,
                         addons = services.addons,
                         settings = services.settings,
+                        playbackUpdates = services.playbackUpdates,
                     )
                 }
             HomeScreen(viewModel, navigator, onOpenStreams)

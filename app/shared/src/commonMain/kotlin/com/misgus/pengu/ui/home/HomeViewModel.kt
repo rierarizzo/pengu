@@ -31,6 +31,7 @@ import com.misgus.pengu.core.watched.WatchedBadgeResolver
 import com.misgus.pengu.core.watched.WatchedCandidate
 import com.misgus.pengu.ui.common.AccountScopedViewModel
 import com.misgus.pengu.ui.common.WatchedBadgeSync
+import com.misgus.pengu.ui.services.PlaybackUpdates
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -105,6 +106,7 @@ class HomeViewModel(
     private val snapshot: HomeSnapshotStore = NoopHomeSnapshotStore(),
     addons: AddonRepository = NoopAddonRepository(),
     private val settings: SettingsRepository = InMemorySettingsRepository(),
+    private val playbackUpdates: PlaybackUpdates = PlaybackUpdates(),
     private val random: Random = Random.Default,
     private val now: () -> Instant = { Clock.System.now() },
 ) : AccountScopedViewModel(account) {
@@ -118,6 +120,14 @@ class HomeViewModel(
 
     /** When the last load finished, so a re-entry refreshes only when stale. */
     private var lastLoadedAt: Instant? = null
+
+    /**
+     * The saved titles from the last load, by content id.
+     *
+     * Kept so repainting "Continue watching" after a playback does not re-read
+     * the library: only the progress changed.
+     */
+    private var libraryByContent: Map<String, LibraryItem> = emptyMap()
 
     /**
      * When the billboard set was picked.
@@ -151,6 +161,14 @@ class HomeViewModel(
                 .drop(1)
                 .collect { if (_state.value.rows.isNotEmpty()) rotateFeatured() }
         }
+        // A playback just saved its last position and closed. The section stays
+        // composed while the player is open, so nothing else would notice: without
+        // this tick the row only changes on the next load.
+        viewModelScope.launch {
+            playbackUpdates.closed.drop(1).collect {
+                if (_state.value.hasLoaded && account.state.value.isSignedIn) refreshContinueWatching()
+            }
+        }
     }
 
     override fun onAccountReady() = load(force = true)
@@ -179,6 +197,43 @@ class HomeViewModel(
         loadJob = viewModelScope.launch { doLoad(refresh = false) }
     }
 
+    /**
+     * Re-reads watch progress and repaints only the "Continue watching" row.
+     *
+     * The catalogs are left alone on purpose: a playback only changes progress,
+     * and reloading the rows would re-fetch every addon for nothing.
+     */
+    private fun refreshContinueWatching() {
+        // A full load is already computing the row from fresher data.
+        if (loadJob?.isActive == true) return
+        viewModelScope.launch {
+            val entries = runCatchingCancellable { progress.all() }.getOrNull() ?: return@launch
+            val row = continueEntries(entries)
+            _state.update { it.copy(continueWatching = row) }
+        }
+    }
+
+    /**
+     * "Continue watching": progress joined with the saved titles, keeping only the
+     * titles that are actually mid-way, newest first.
+     *
+     * The join runs against [libraryByContent] instead of a fresh library read, so
+     * a refresh after a playback costs one request.
+     */
+    private fun continueEntries(progressEntries: List<WatchProgress>): List<ContinueEntry> =
+        progressEntries
+            .mapNotNull { entry ->
+                val item = libraryByContent[entry.contentId] ?: return@mapNotNull null
+                val fraction = entry.fraction ?: 0.0
+                if (fraction <= ProgressThresholds.IN_PROGRESS_MIN ||
+                    fraction >= ProgressThresholds.IN_PROGRESS_MAX
+                ) {
+                    return@mapNotNull null
+                }
+                ContinueEntry(item, entry)
+            }.sortedByDescending { it.progress.lastWatched ?: Instant.fromEpochMilliseconds(0) }
+            .take(MAX_CONTINUE)
+
     private suspend fun doLoad(refresh: Boolean) {
         _state.update { it.copy(isLoading = true, error = null) }
         var progressEntries: List<WatchProgress> = emptyList()
@@ -201,20 +256,8 @@ class HomeViewModel(
                     Triple(progressDeferred.await(), libraryDeferred.await(), catalogsDeferred.await())
                 }
             progressEntries = entries
-            val byContent = libraryItems.associateBy { it.contentId }
-            val continueWatching =
-                progressEntries
-                    .mapNotNull { entry ->
-                        val item = byContent[entry.contentId] ?: return@mapNotNull null
-                        val fraction = entry.fraction ?: 0.0
-                        if (fraction <= ProgressThresholds.IN_PROGRESS_MIN ||
-                            fraction >= ProgressThresholds.IN_PROGRESS_MAX
-                        ) {
-                            return@mapNotNull null
-                        }
-                        ContinueEntry(item, entry)
-                    }.sortedByDescending { it.progress.lastWatched ?: Instant.fromEpochMilliseconds(0) }
-                    .take(MAX_CONTINUE)
+            libraryByContent = libraryItems.associateBy { it.contentId }
+            val continueWatching = continueEntries(progressEntries)
             val savedIds = libraryItems.mapTo(mutableSetOf()) { item -> item.contentId }
 
             // Catalogs load in batches and the screen paints after the first one,
