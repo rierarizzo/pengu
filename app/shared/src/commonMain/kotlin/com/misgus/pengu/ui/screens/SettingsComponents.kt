@@ -25,9 +25,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetValue
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchColors
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
@@ -48,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.misgus.pengu.ui.components.AppSwitch
 import com.misgus.pengu.ui.components.clickableSurface
 import com.misgus.pengu.ui.components.focusRing
 import com.misgus.pengu.ui.components.interactionHighlight
@@ -338,10 +336,10 @@ fun SettingsToggleRow(
         description = description,
         onClick = { onCheckedChange(!checked) },
         trailing = {
-            Switch(
+            AppSwitch(
                 checked = checked,
                 onCheckedChange = onCheckedChange,
-                colors = settingsSwitchColors(),
+                description = title,
             )
         },
     )
@@ -590,18 +588,3 @@ private fun <T> SettingsSelectSheet(
         }
     }
 }
-
-/**
- * Colours of a settings switch.
- *
- * The accent fills the track and the thumb stays dark, so a switch reads as part
- * of the app instead of a stock Material control.
- */
-@Composable
-private fun settingsSwitchColors(): SwitchColors =
-    SwitchDefaults.colors(
-        checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-        checkedTrackColor = MaterialTheme.colorScheme.primary,
-        uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        uncheckedTrackColor = MaterialTheme.colorScheme.outlineVariant,
-    )

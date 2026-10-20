@@ -305,6 +305,7 @@ private fun SettingsCategoryContent(
             SettingsCategory.INTERFACE -> InterfaceSection(state, settings, save)
             SettingsCategory.THEME -> ThemeSection(state, settings, save)
             SettingsCategory.HERO -> HeroSection(state, settings, save)
+            SettingsCategory.ADDONS -> AddonsSection()
             SettingsCategory.METADATA -> MetadataSection(state, settings, save)
             SettingsCategory.ACCOUNT -> AccountSection()
             SettingsCategory.ADVANCED ->

@@ -68,6 +68,20 @@ class NuvioRest(
         )
     }
 
+    /** Patches the rows of [table] matching the PostgREST [filter]. */
+    suspend fun update(
+        table: String,
+        filter: String,
+        row: JsonObject,
+    ) {
+        authenticated(
+            "PATCH",
+            "${transport.baseUrl}/rest/v1/$table?$filter",
+            body = row,
+            extraHeaders = mapOf("Prefer" to "return=minimal"),
+        )
+    }
+
     /** Deletes the rows of [table] matching the PostgREST [filter]. */
     suspend fun delete(
         table: String,

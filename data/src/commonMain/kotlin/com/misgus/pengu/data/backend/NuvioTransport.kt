@@ -9,6 +9,7 @@ import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
@@ -47,6 +48,14 @@ class NuvioTransport(
                 "GET" -> http.get(url) { applyNuvioHeaders(apiKey, token, extraHeaders) }
                 "POST" ->
                     http.post(url) {
+                        applyNuvioHeaders(apiKey, token, extraHeaders)
+                        if (body != null) {
+                            contentType(ContentType.Application.Json)
+                            setBody(body.toString())
+                        }
+                    }
+                "PATCH" ->
+                    http.patch(url) {
                         applyNuvioHeaders(apiKey, token, extraHeaders)
                         if (body != null) {
                             contentType(ContentType.Application.Json)

@@ -48,6 +48,8 @@ const icons = [
   ["Copy", "content_copy", false],
   ["Login", "login", true],
   ["Logout", "logout", true],
+  ["DragIndicator", "drag_indicator", false],
+  ["Delete", "delete", false],
 ];
 
 const constName = (kotlin) =>

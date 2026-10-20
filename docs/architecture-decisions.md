@@ -98,7 +98,7 @@ so the atomic read/write/delete logic lives once.
 - **Nuvio/Supabase**: raw HTTP split by responsibility, instead of one client
   class: `NuvioTransport` (verbs and base URL), `NuvioDiscovery`
   (`/.well-known/nuvio` and the publishable key), `NuvioAuth` (session, sign-in,
-  refresh, sign-out) and `NuvioRest` (PostgREST select/insert/delete and the
+  refresh, sign-out) and `NuvioRest` (PostgREST select/insert/update/delete and the
   `sync_*` RPCs). Repositories take the slice they need. Session tokens live in
   `data/`, never in the domain.
 - **Local store**: `JsonFileStore`/`JsonMapStore` and the session / snapshot /
@@ -122,7 +122,8 @@ so the atomic read/write/delete logic lives once.
   walks into one category at a time while each setting is defined
   once.
 - **Settings controls are app components, not stock Material.** A toggle row is
-  itself the target and its switch takes the accent track; a short option set is
+  itself the target and its switch is the shared compact `AppSwitch` (40x22,
+  accent track), not Material's 52x32 control; a short option set is
   a chip row, a longer one opens a popover on desktop and a bottom sheet on
   touch (`isDesktop`, in `ui/platform`); the dividers are inset to the row copy;
   and a group is a borderless card on the page background, filled with the
@@ -223,7 +224,28 @@ so the atomic read/write/delete logic lives once.
   to before reloading its rows. The list used to sit in front of every catalog
   request — session, profile, `addons` query, manifest, catalog — so this removes
   one round-trip from the cold path; a device without a network keeps working
-  from the snapshot.
+  from the snapshot. The snapshot keeps every installed addon, enabled or not;
+  `all()` filters the disabled ones out for the content path.
+- **Addons are managed from Settings.** `AddonRepository` exposes
+  `installed()`, `install`, `setEnabled`, `remove`, `reorder` and `canManage`
+  next to the content read. `NuvioAddonRepository` validates a pasted URL by
+  fetching its manifest through the cached addon client before writing, stores
+  the normalized manifest URL and name, and scopes every write by `profile_id`
+  (`NuvioRest.update` sends PostgREST `PATCH`; `remove` sends `DELETE`). A
+  `stremio://` install link is normalized to `https://` before that check.
+  Every write re-reads the list, refreshes the snapshot and emits `changes`, so
+  Home reloads its catalogs after an addon is toggled, reordered or removed. The
+  Settings → Addons page opens the install form in a dialog and shows the addons
+  as cards: logo, name, version, full manifest description, enable switch, a
+  remove icon and the drag handle. Only the handle starts a drag, so the card itself is
+  inert (a click does nothing) and the switch or the remove action keeps its own
+  target. `ReorderableCardColumn` (`ui/components`) owns the gesture and the
+  animated gap; the page persists the new order once, on drop. Move up/down
+  remain as accessibility actions on the card, not visible buttons. Each card
+  shows the manifest's logo and description, with the URL only as a fallback
+  when the manifest cannot be read. A backend that cannot write (local mode)
+  lists its fixed set read-only and hides the install action and the card
+  controls.
 - **Home paints the last session before the first request.**
   `FileHomeSnapshotStore` keeps the rows and the billboard that were on screen
   (`HomeSnapshot`, keyed by profile id) and `HomeViewModel` publishes them before
@@ -989,8 +1011,9 @@ parsing, badge resolver with fakes) and the defensive parsers/mappers.
   accepts side-loaded subtitle files when the media is prepared, so choosing an
   external addon subtitle reloads the source and briefly re-buffers at the same
   position; embedded tracks, audio selection and the rest are unaffected.
-- The Nuvio addon metadata/edit screens are still placeholders, as they were
-  in the Flutter app.
+- The Nuvio addon metadata/edit screens are available from Settings → Addons
+  (install, enable, reorder and remove). Local mode keeps its fixed
+  `PENGU_LOCAL_ADDONS` list read-only, because there is no backend to write to.
 - **Calendar** uses a Cinemeta convention when an addon exposes it: a
   `calendar-videos` catalog (Cinemeta and AIOMetadata declare it) returns
   `metasDetailed` — the full meta per series — for the library's series in one

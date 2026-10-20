@@ -54,6 +54,7 @@ inject in-memory fakes.
 | Change the player overlay (header, seek bar, controls) | `app/shared/.../ui/player/` (`PlayerControls.kt`, `PlayerSeekBar.kt`) |
 | Change the desktop player's engine options (mpv) | `app/desktopApp/.../player/` (`MpvPlaybackOptions.kt`), `core/.../repository/SettingsRepository.kt`, the Playback page in `SettingsScreen.kt` |
 | Add or change a settings category | `app/shared/.../ui/screens/SettingsCategory.kt`, `SettingsScreen.kt` |
+| Manage installed addons | `core/.../repository/AddonRepository.kt`, `data/.../backend/NuvioAddonRepository.kt`, `app/shared/.../ui/screens/AddonsSettings.kt` |
 | Change a screen's logic/state | `app/shared/.../ui/<feature>/<Feature>ViewModel.kt` + `<Feature>Screen.kt` |
 | Share behavior across data sections | `app/shared/.../ui/common/` (`AccountScopedViewModel`, `WatchedBadgeSync`) |
 | Change colors, spacing, type, motion | `app/shared/.../ui/theme/` (`Tokens.kt`, `AppTheme.kt`, `AppType.kt`, `Motion.kt`, `WindowSize.kt`, `PosterSize.kt`) |
@@ -106,6 +107,10 @@ These exist so the same concern is not re-implemented per screen:
   rule; subclasses implement `onAccountReady()` / `onAccountCleared()`.
 - **`WatchedBadgeSync`** (`ui/common`) — resolves watched badges and drops stale
   results, so Home and Library do not duplicate the request-ticket logic.
+- **`ReorderableCardColumn`** (`ui/components`) — a short list of cards reordered
+  by dragging the handle of one of them; the caller owns the list and persists
+  the new order once, on drop. Used by Settings → Addons; reuse it for any other
+  card list that needs an order.
 - **`StremioAddonRepositories`** (`data/addons`) — builds the catalog, metadata,
   stream and subtitle repositories over one `AddonClientPool`, so a cached
   `StremioAddonClient` (and its addon manifest) is shared instead of rebuilt per
@@ -114,7 +119,9 @@ These exist so the same concern is not re-implemented per screen:
   `requireActiveProfile()`, used by every profile-scoped Nuvio repository.
 - **`AddonSnapshotStore` / `HomeSnapshotStore`** (`core` contracts,
   `data/store` file implementations) — the last known addon list and the last
-  Home paint, per profile. They are the local-first layer: `NuvioAddonRepository`
+  Home paint, per profile. The addon snapshot keeps every installed addon,
+  enabled or not, so `AddonsSettings` can manage them while `all()` filters the
+  disabled ones out. They are the local-first layer: `NuvioAddonRepository`
   answers from its snapshot and refreshes behind it, and `HomeViewModel`
   publishes its snapshot before the first request and rewrites it after a
   successful load. Both degrade to "nothing stored" when the file is missing or
@@ -169,6 +176,13 @@ read it — keep such literals local (see `WINDOW_TITLE` in `Main.kt`).
 **Modifier order matters** — `Modifier.padding().background()` is not the same as
 `background().padding()`. The code follows "clip → background → click → padding"
 for custom surfaces (see `components/Interaction.kt`).
+
+**Drag reordering** — Foundation has no reorderable `Column` API, so
+`ReorderableCardColumn` builds one from `pointerInput` +
+`detectDragGestures` on the handle, `onGloballyPositioned` to measure the card
+centers, `targetIndex()` to pick the insertion slot and
+`animateFloatAsState` to open the gap. Only the handle starts the drag; the card
+itself stays inert so nested controls and the page scroll keep their gestures.
 
 **Draw-phase reads** — `motionLayer`/`motionBorder` read animated values inside
 `graphicsLayer` / `drawWithContent` lambdas, so animations don't recompose per

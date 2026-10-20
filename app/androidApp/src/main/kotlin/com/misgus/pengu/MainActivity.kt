@@ -54,19 +54,21 @@ class MainActivity : ComponentActivity() {
         player = MediampPlayerService(this)
 
         val httpClient = createHttpClient()
+        // One client pool for the four Stremio repositories, so an addon's
+        // manifest is fetched once per process instead of once per repository.
+        // Addon traffic gets its own client: it is the only traffic cached on
+        // disk, so a stale read cannot show data the user just changed. The
+        // addon repository also validates new addons with it.
+        addonHttpClient = createAddonHttpClient()
         backend =
             createBackend(
                 kind = BackendKind.NUVIO,
                 httpClient = httpClient,
+                addonHttpClient = addonHttpClient,
                 sessionStore = FileSessionStore(),
             )
         val addons = backend.addons
         val settings = JsonSettingsRepository(JsonMapStore(AppPaths.settingsFile, pretty = true))
-        // One client pool for the four Stremio repositories, so an addon's
-        // manifest is fetched once per process instead of once per repository.
-        // Addon traffic gets its own client: it is the only traffic cached on
-        // disk, so a stale read cannot show data the user just changed.
-        addonHttpClient = createAddonHttpClient()
         val stremio = StremioAddonRepositories(addons, addonHttpClient)
         val services =
             AppServices(

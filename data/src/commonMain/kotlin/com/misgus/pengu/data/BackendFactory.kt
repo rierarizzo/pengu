@@ -74,6 +74,7 @@ class BackendBundle(
 fun createBackend(
     kind: BackendKind = BackendKind.NUVIO,
     httpClient: HttpClient = createHttpClient(),
+    addonHttpClient: HttpClient = httpClient,
     baseUrl: String? = null,
     sessionStore: SessionStore = NoopSessionStore(),
     localDir: String? = null,
@@ -85,6 +86,7 @@ fun createBackend(
             createNuvioBackend(
                 baseUrl = baseUrl ?: NuvioTransport.DEFAULT_BASE_URL,
                 httpClient = httpClient,
+                addonHttpClient = addonHttpClient,
                 sessionStore = sessionStore,
                 addonSnapshots = addonSnapshots,
             )
@@ -98,7 +100,7 @@ fun createBackend(
                         store = JsonFileStore("$dir/progress.json"),
                         watched = JsonFileStore("$dir/watched.json"),
                     ),
-                addons = LocalAddonRepository(localAddons ?: emptyList()),
+                addons = LocalAddonRepository(localAddons ?: emptyList(), addonHttpClient),
             )
         }
     }
@@ -107,6 +109,7 @@ fun createBackend(
 fun createNuvioBackend(
     baseUrl: String = NuvioTransport.DEFAULT_BASE_URL,
     httpClient: HttpClient,
+    addonHttpClient: HttpClient = httpClient,
     sessionStore: SessionStore = NoopSessionStore(),
     addonSnapshots: AddonSnapshotStore = FileAddonSnapshotStore(),
 ): BackendBundle {
@@ -124,7 +127,7 @@ fun createNuvioBackend(
         account = account,
         library = NuvioLibraryRepository(rest, auth, account),
         progress = NuvioProgressRepository(rest, account),
-        addons = NuvioAddonRepository(rest, account, addonSnapshots, addonScope),
+        addons = NuvioAddonRepository(rest, account, auth, addonHttpClient, addonSnapshots, addonScope),
         close = {
             addonScope.cancel()
             transport.close()

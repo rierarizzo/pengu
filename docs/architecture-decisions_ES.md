@@ -104,7 +104,7 @@ leer/escribir/borrar vive una sola vez.
 - **Nuvio/Supabase**: HTTP crudo dividido por responsabilidad, en lugar de una
   única clase cliente: `NuvioTransport` (verbos y URL base), `NuvioDiscovery`
   (`/.well-known/nuvio` y la clave publicable), `NuvioAuth` (sesión, inicio de
-  sesión, refresco, cierre) y `NuvioRest` (select/insert/delete de PostgREST y
+  sesión, refresco, cierre) y `NuvioRest` (select/insert/update/delete de PostgREST y
   las RPC `sync_*`). Los repositorios toman la parte que necesitan. Los tokens de
   sesión viven en `data/`, nunca en el dominio.
 - **Almacén local**: `JsonFileStore`/`JsonMapStore` y los stores de sesión /
@@ -131,8 +131,9 @@ leer/escribir/borrar vive una sola vez.
   como `ContentRoute.SettingsPage`, así que un móvil entra en una categoría cada
   vez mientras cada ajuste se define una sola vez.
 - **Los controles de ajustes son componentes de la app, no Material de serie.**
-  Una fila de toggle es ella misma el target y su switch usa el track de acento;
-  un conjunto corto de opciones son chips, uno largo abre un popover en desktop y
+  Una fila de toggle es ella misma el target y su switch es el `AppSwitch`
+  compacto compartido (40x22, track de acento), no el control de 52x32 de
+  Material; un conjunto corto de opciones son chips, uno largo abre un popover en desktop y
   una bottom sheet en táctil (`isDesktop`, en `ui/platform`); los divisores se
   insetan al texto de la fila; y un grupo es una tarjeta sin borde sobre el
   fondo de página, rellena con el rol `surfaceCard` para que el índice y las
@@ -239,7 +240,31 @@ leer/escribir/borrar vive una sola vez.
   `AddonRepository.changes`, que Home escucha antes de recargar sus filas. La
   lista estaba antes delante de cada petición de catálogo — sesión, perfil, query
   de `addons`, manifiesto, catálogo — así que esto quita un round-trip del camino
-  frío; un dispositivo sin red sigue funcionando desde el snapshot.
+  frío; un dispositivo sin red sigue funcionando desde el snapshot. El snapshot
+  guarda todos los addons instalados, activos o no; `all()` filtra los
+  desactivados para el camino de contenido.
+- **Los addons se administran desde Ajustes.** `AddonRepository` expone
+  `installed()`, `install`, `setEnabled`, `remove`, `reorder` y `canManage`
+  junto a la lectura de contenido. `NuvioAddonRepository` valida la URL pegada
+  leyendo su manifiesto con el cliente de addons cacheado antes de escribir,
+  guarda la URL normalizada del manifiesto y su nombre, y acota cada escritura
+  por `profile_id` (`NuvioRest.update` envía `PATCH` de PostgREST; `remove`
+  envía `DELETE`). Un enlace de instalación `stremio://` se normaliza a
+  `https://` antes de esa comprobación. Cada escritura vuelve a leer la lista,
+  actualiza el snapshot y emite `changes`, así que Home recarga sus catálogos
+  cuando un addon se activa, desactiva, reordena o elimina. La página Ajustes →
+  Addons abre el formulario de instalación en un diálogo y muestra los addons
+  como cards: logo, nombre, versión, descripción completa del manifiesto, switch
+  de activación, icono de eliminar y handle de arrastre. Solo el handle inicia el
+  drag, así que la card es inerte (un clic no hace nada) y el switch o la acción
+  de eliminar conservan su propio objetivo. `ReorderableCardColumn`
+  (`ui/components`) posee el gesto y el hueco animado; la página persiste el
+  nuevo orden una sola vez, al soltar. Move up/down siguen existiendo como
+  acciones de accesibilidad en la card, no como botones visibles. Cada card
+  muestra el logo y la descripción del manifiesto, con la URL solo como respaldo
+  cuando el manifiesto no se puede leer. Un backend que no puede escribir (modo
+  local) lista su conjunto fijo en solo lectura y oculta la acción de instalar y
+  los controles de la card.
 - **Home pinta la última sesión antes de la primera petición.**
   `FileHomeSnapshotStore` guarda las filas y el billboard que estaban en pantalla
   (`HomeSnapshot`, por id de perfil) y `HomeViewModel` los publica antes de
@@ -1067,8 +1092,10 @@ cubre los stores de fichero y los repositorios locales. El `commonTest` de
   elegir un subtítulo externo de addon recarga la fuente y vuelve a bufferizar
   brevemente en la misma posición; las pistas embebidas, la selección de audio y
   el resto no cambian.
-- Las pantallas de metadata/edición de addons de Nuvio siguen siendo
-  placeholders, como lo eran en la app de Flutter.
+- Las pantallas de metadata/edición de addons de Nuvio están disponibles en
+  Ajustes → Addons (instalar, activar, reordenar y eliminar). El modo local
+  mantiene su lista fija de `PENGU_LOCAL_ADDONS` en solo lectura, porque no hay
+  backend donde escribir.
 - **Calendar** usa una convención de Cinemeta cuando un addon la expone: un
   catálogo `calendar-videos` (Cinemeta y AIOMetadata lo declaran) devuelve
   `metasDetailed` — la meta completa por serie — para las series de la biblioteca

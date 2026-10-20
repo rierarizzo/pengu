@@ -226,13 +226,23 @@ class StremioAddonClient(
  * Turns an addon URL into its base URL.
  *
  * Accepts a manifest URL (`https://x/manifest.json`), with or without a query
- * string, or a plain base (`https://x/`), and returns `https://x`.
+ * string, a plain base (`https://x/`), or Stremio's install scheme
+ * (`stremio://x/manifest.json`), and returns `https://x`. The Stremio scheme is
+ * a deep link, not a transport: the addon itself is always served over HTTPS.
  */
 fun normalizeAddonBaseUrl(url: String): String {
     val withoutQuery = url.substringBefore('?')
-    val withoutManifest = withoutQuery.removeSuffix("/manifest.json")
+    val withScheme =
+        if (withoutQuery.startsWith(STREMIO_SCHEME, ignoreCase = true)) {
+            "https://" + withoutQuery.substring(STREMIO_SCHEME.length)
+        } else {
+            withoutQuery
+        }
+    val withoutManifest = withScheme.removeSuffix("/manifest.json")
     return withoutManifest.trimEnd('/')
 }
+
+private const val STREMIO_SCHEME = "stremio://"
 
 private const val HEX = "0123456789ABCDEF"
 

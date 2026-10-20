@@ -1,6 +1,7 @@
 package com.misgus.pengu.ui.support
 
 import com.misgus.pengu.core.model.Addon
+import com.misgus.pengu.core.model.AddonManifest
 import com.misgus.pengu.core.model.BackendProfile
 import com.misgus.pengu.core.model.ContentType
 import com.misgus.pengu.core.model.Episode
@@ -13,6 +14,7 @@ import com.misgus.pengu.core.model.WatchProgress
 import com.misgus.pengu.core.model.WatchedEntry
 import com.misgus.pengu.core.repository.AccountRepository
 import com.misgus.pengu.core.repository.AccountState
+import com.misgus.pengu.core.repository.AddonInstallException
 import com.misgus.pengu.core.repository.AddonRepository
 import com.misgus.pengu.core.repository.CatalogRef
 import com.misgus.pengu.core.repository.CatalogRepository
@@ -174,9 +176,50 @@ class FakeStreamRepository(
 
 /** In-memory [AddonRepository] for tests. */
 class FakeAddonRepository(
-    private val addons: List<Addon> = emptyList(),
+    initial: List<Addon> = emptyList(),
+    override val canManage: Boolean = true,
+    /** When set, [install] fails with it instead of appending the addon. */
+    private val installError: AddonInstallException? = null,
+    /** Manifest answers keyed by addon URL. */
+    private val manifests: Map<String, AddonManifest> = emptyMap(),
 ) : AddonRepository {
-    override suspend fun all(): List<Addon> = addons
+    private val installed = initial.toMutableList()
+
+    override suspend fun all(): List<Addon> = installed.filter { it.enabled }
+
+    override suspend fun installed(): List<Addon> = installed.toList()
+
+    override suspend fun install(url: String): Addon {
+        installError?.let { throw it }
+        val addon =
+            Addon(
+                id = "addon-${installed.size + 1}",
+                url = url,
+                sortOrder = installed.size,
+            )
+        installed += addon
+        return addon
+    }
+
+    override suspend fun setEnabled(
+        id: String,
+        enabled: Boolean,
+    ) {
+        installed.replaceAll { if (it.id == id) it.copy(enabled = enabled) else it }
+    }
+
+    override suspend fun remove(id: String) {
+        installed.removeAll { it.id == id }
+    }
+
+    override suspend fun reorder(ids: List<String>) {
+        val byId = installed.associateBy(Addon::id)
+        val reordered = ids.mapNotNull { byId[it] }.mapIndexed { index, addon -> addon.copy(sortOrder = index) }
+        installed.clear()
+        installed += reordered
+    }
+
+    override suspend fun manifest(url: String): AddonManifest? = manifests[url]
 }
 
 /** In-memory [TmdbRepository] for tests. */

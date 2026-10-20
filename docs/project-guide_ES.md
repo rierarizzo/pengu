@@ -54,6 +54,7 @@ usan ambas plataformas (ver §7).
 | Cambiar el overlay del reproductor (cabecera, barra de progreso, controles) | `app/shared/.../ui/player/` (`PlayerControls.kt`, `PlayerSeekBar.kt`) |
 | Cambiar las opciones del motor de escritorio (mpv) | `app/desktopApp/.../player/` (`MpvPlaybackOptions.kt`), `core/.../repository/SettingsRepository.kt`, la página Playback en `SettingsScreen.kt` |
 | Añadir o cambiar una categoría de ajustes | `app/shared/.../ui/screens/SettingsCategory.kt`, `SettingsScreen.kt` |
+| Administrar los addons instalados | `core/.../repository/AddonRepository.kt`, `data/.../backend/NuvioAddonRepository.kt`, `app/shared/.../ui/screens/AddonsSettings.kt` |
 | Cambiar la lógica/estado de una pantalla | `app/shared/.../ui/<feature>/<Feature>ViewModel.kt` + `<Feature>Screen.kt` |
 | Compartir comportamiento entre secciones | `app/shared/.../ui/common/` (`AccountScopedViewModel`, `WatchedBadgeSync`) |
 | Cambiar colores, espaciado, tipografía, movimiento | `app/shared/.../ui/theme/` (`Tokens.kt`, `AppTheme.kt`, `AppType.kt`, `Motion.kt`, `WindowSize.kt`, `PosterSize.kt`) |
@@ -108,6 +109,10 @@ Existen para no reimplementar la misma preocupación en cada pantalla:
 - **`WatchedBadgeSync`** (`ui/common`) — resuelve los badges de "visto" y
   descarta resultados obsoletos, para que Home y Library no dupliquen la lógica
   de ticket de petición.
+- **`ReorderableCardColumn`** (`ui/components`) — una lista corta de cards que se
+  reordena arrastrando el handle de una de ellas; el llamador posee la lista y
+  persiste el nuevo orden una sola vez, al soltar. La usa Ajustes → Addons;
+  reutilizable para cualquier otra lista de cards que necesite un orden.
 - **`StremioAddonRepositories`** (`data/addons`) — construye los repos de
   catálogos, metadata, streams y subtítulos sobre un único `AddonClientPool`, así
   un `StremioAddonClient` cacheado (y su manifiesto) se comparte en vez de
@@ -116,11 +121,13 @@ Existen para no reimplementar la misma preocupación en cada pantalla:
   `requireActiveProfile()`, usado por cada repositorio Nuvio con scope de perfil.
 - **`AddonSnapshotStore` / `HomeSnapshotStore`** (contratos en `core`,
   implementaciones de fichero en `data/store`) — la última lista de addons
-  conocida y la última pintura de Home, por perfil. Son la capa local-first:
-  `NuvioAddonRepository` responde desde su snapshot y refresca detrás, y
-  `HomeViewModel` publica el suyo antes de la primera petición y lo reescribe tras
-  una carga correcta. Ambos degradan a "nada guardado" si el fichero falta o está
-  corrupto.
+  conocida y la última pintura de Home, por perfil. El snapshot de addons guarda
+  todos los instalados, activos o no, para que `AddonsSettings` pueda
+  administrarlos mientras `all()` filtra los desactivados. Son la capa
+  local-first: `NuvioAddonRepository` responde desde su snapshot y refresca
+  detrás, y `HomeViewModel` publica el suyo antes de la primera petición y lo
+  reescribe tras una carga correcta. Ambos degradan a "nada guardado" si el
+  fichero falta o está corrupto.
 - **`VideoOutput`** (`core/player`) — marcador tipado de la salida de plataforma
   del reproductor; `VideoSurfaceRenderer` (en `app/player`) lo extiende
   y dibuja el vídeo como contenido Compose, sea cual sea el motor cableado.
@@ -175,6 +182,13 @@ mantén esos literales en local (ver `WINDOW_TITLE` en `Main.kt`).
 lo mismo que `background().padding()`. El código sigue "clip → background →
 click → padding" para superficies personalizadas (ver
 `components/Interaction.kt`).
+
+**Reordenar arrastrando** — Foundation no tiene una API de `Column`
+reordenable, así que `ReorderableCardColumn` la construye con `pointerInput` +
+`detectDragGestures` en el handle, `onGloballyPositioned` para medir los centros
+de las cards, `targetIndex()` para elegir el hueco y `animateFloatAsState` para
+abrirlo. Solo el handle inicia el drag; la card queda inerte para que los
+controles internos y el scroll de la página conserven sus gestos.
 
 **Lecturas en fase de dibujo** — `motionLayer`/`motionBorder` leen valores
 animados dentro de lambdas de `graphicsLayer` / `drawWithContent`, así las

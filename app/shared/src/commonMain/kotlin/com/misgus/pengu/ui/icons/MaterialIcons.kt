@@ -53,6 +53,8 @@ object MaterialIcons {
     val Copy: ImageVector by lazy { material("Copy", COPY) }
     val Login: ImageVector by lazy { material("Login", LOGIN, autoMirror = true) }
     val Logout: ImageVector by lazy { material("Logout", LOGOUT, autoMirror = true) }
+    val DragIndicator: ImageVector by lazy { material("DragIndicator", DRAG_INDICATOR) }
+    val Delete: ImageVector by lazy { material("Delete", DELETE) }
 }
 
 /**
@@ -210,3 +212,7 @@ private const val LOGIN =
     "M481-120v-60h299v-600H481v-60h359v720H481Zm-55-185-43-43 102-102H120v-60h363L381-612l43-43 176 176-174 174Z"
 private const val LOGOUT =
     "M120-120v-720h359v60H180v600h299v60H120Zm546-185-43-43 102-102H360v-60h363L621-612l43-43 176 176-174 174Z"
+private const val DRAG_INDICATOR =
+    "M360-160v-120h120v120H360Zm0-240v-120h120v120H360Zm0-240v-120h120v120H360Zm120 480v-120h120v120H480Zm0-240v-120h120v120H480Zm0-240v-120h120v120H480Z"
+private const val DELETE =
+    "M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"

@@ -211,6 +211,15 @@ object AppSizes {
      */
     val controlHeight: Dp = 48.dp
 
+    /** Side of an addon logo in the settings list. */
+    val addonLogoSize: Dp = 48.dp
+
+    /** Compact switch track, smaller than Material's 52x32 so it sits next to a 24dp glyph. */
+    val switchTrackWidth: Dp = 40.dp
+    val switchTrackHeight: Dp = 22.dp
+    val switchThumbSize: Dp = 16.dp
+    val switchThumbPadding: Dp = 3.dp
+
     /** Smallest side of an interactive target, per Material's touch guidance. */
     val minTouchTarget: Dp = 48.dp
 

@@ -53,23 +53,25 @@ fun main(args: Array<String>) {
     val environment = System.getenv()
     val backendKind = BackendKind.fromEnvironment(environment)
     val httpClient = createHttpClient()
+    // One client pool for the four repositories, so an addon's manifest is
+    // fetched once per process instead of once per repository. Addon traffic gets
+    // its own client: it is the only traffic that is cached on disk, so a stale
+    // read can never show the user library or progress data they just changed.
+    // The addon repository also validates new addons with it.
+    val addonHttpClient = createAddonHttpClient()
 
     // The composition root: the only place that picks concrete implementations.
     val backend =
         createBackend(
             kind = backendKind,
             httpClient = httpClient,
+            addonHttpClient = addonHttpClient,
             sessionStore = FileSessionStore(),
             localAddons = localAddonsFromEnvironment(environment),
         )
 
     // One addon list shared by every Stremio repository.
     val addons = backend.addons
-    // One client pool for the four repositories, so an addon's manifest is
-    // fetched once per process instead of once per repository. Addon traffic gets
-    // its own client: it is the only traffic that is cached on disk, so a stale
-    // read can never show the user library or progress data they just changed.
-    val addonHttpClient = createAddonHttpClient()
     val stremio = StremioAddonRepositories(addons, addonHttpClient)
     val settings = JsonSettingsRepository(JsonMapStore(AppPaths.settingsFile, pretty = true))
     val watchedCache = FileWatchedSeriesCache()

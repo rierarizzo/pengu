@@ -204,6 +204,8 @@ class StremioParsersTest {
         assertEquals("https://addon.example", normalizeAddonBaseUrl("https://addon.example/manifest.json?x=1"))
         assertEquals("https://addon.example", normalizeAddonBaseUrl("https://addon.example/"))
         assertEquals("https://addon.example", normalizeAddonBaseUrl("https://addon.example"))
+        assertEquals("https://addon.example", normalizeAddonBaseUrl("stremio://addon.example/manifest.json"))
+        assertEquals("https://v3-cinemeta.strem.io", normalizeAddonBaseUrl("stremio://v3-cinemeta.strem.io/manifest.json"))
     }
 
     @Test

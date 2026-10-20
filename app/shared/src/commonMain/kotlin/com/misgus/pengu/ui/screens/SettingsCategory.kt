@@ -3,6 +3,8 @@ package com.misgus.pengu.ui.screens
 import com.misgus.pengu.app.shared.generated.resources.Res
 import com.misgus.pengu.app.shared.generated.resources.settings_account
 import com.misgus.pengu.app.shared.generated.resources.settings_account_subtitle
+import com.misgus.pengu.app.shared.generated.resources.settings_addons
+import com.misgus.pengu.app.shared.generated.resources.settings_addons_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_advanced
 import com.misgus.pengu.app.shared.generated.resources.settings_advanced_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_group_app
@@ -61,6 +63,11 @@ enum class SettingsCategory(
     HERO(
         label = Res.string.settings_hero,
         subtitle = Res.string.settings_hero_subtitle,
+        group = SettingsGroup.APP,
+    ),
+    ADDONS(
+        label = Res.string.settings_addons,
+        subtitle = Res.string.settings_addons_subtitle,
         group = SettingsGroup.APP,
     ),
     METADATA(
