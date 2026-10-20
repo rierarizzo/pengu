@@ -819,7 +819,8 @@ leer/escribir/borrar vive una sola vez.
   placeholder, y el logo y el backdrop se funden cuando la imagen está lista
   (`RemoteImage(fadeIn)`), así que una carga lenta nunca aparece de golpe. El
   reproductor está deliberadamente fuera de la transición de ruta porque maneja
-  un único motor compartido.
+  un único motor compartido; su entrada es la propia disolución del pre-roll
+  (ver Reproductor).
 - **El billboard del teléfono encaja un póster sin texto en vez de recortarlo.**
   Un backdrop ancho es 16:9 y el billboard compacto es una portada alta, así que
   recortar uno dentro del otro deshace la composición; un póster neutral de
@@ -936,6 +937,53 @@ que un overlay invisible nunca se come un clic. Los glifos del reproductor
 siguen en blanco sobre negro; solo los acentos de progreso y volumen leen
 `colorScheme.primary`.
 
+Elegir un stream abre el reproductor en un **pre-roll** en vez de un fotograma
+negro: `PlayerSplash` (`ui/player`) pinta el backdrop del propio título bajo un
+velo plano (`AppScrim.playerSplash`) con el logo de la obra en el centro. El logo
+no es un spinner y no lleva etiqueta — respira entre el 45 % y la opacidad
+completa, como lee la pantalla de carga de Stremio, así que la espera se ve como
+*ese título* cargando. El artwork sale de `MetadataRepository.detail` con el id
+de contenido del target, en lugar de un campo nuevo en `PlaybackTarget`:
+`PlaybackTarget` sigue siendo un contrato de reproducción, la pantalla de la que
+viene el usuario acaba de pintar las mismas URLs (así que normalmente es un
+acierto de la caché HTTP) y esa consulta también cubre el autoplay del siguiente
+episodio y un target abierto directamente desde un enlace. Es best-effort: una
+fuente cruda del atajo `--play` no tiene metadata, así que el splash cae al
+fondo negro y no pinta título, y sin logo el nombre hace de él.
+
+La espera vive en `rememberPlayerPreRoll` (`ui/player`), que es dueño del artwork,
+la regla de readiness, la disolución y el traspaso a los controles, así que
+`PlayerScreen` se queda solo con el vídeo, el overlay y el ciclo de vida. Mantiene
+el splash un mínimo de 1 s y hasta que el reproductor reporta un fotograma pintado
+sin buffering, y desiste a los 4 s: lo que llegue antes, porque en una fuente que
+no puede llenar el lookahead la espera extra no compra nada y el indicador de
+buffering es mejor respuesta. Un fotograma pintado es `position > 0`: la duración
+parseada llega antes de que el motor tenga imagen, y condicionar a la duración
+destapaba sobre un fotograma negro. Encima de eso espera a que
+`PlayerState.bufferedPosition` esté 2 s por delante del playhead, que es el
+pre-buffer de verdad y no un cronómetro: mediamp expone el buffer en ambos motores
+(el final de la caché del demuxer de mpv, la posición bufferizada de ExoPlayer) y
+el adaptador publica `null` cuando el backend no tiene caché que llenar, así que
+un fichero local solo necesita el fotograma y a un stream en vivo — que por
+definición está en el borde del buffer — nunca se le pide un lookahead que no
+puede tener. Un clip más corto que el lookahead solo espera lo que tiene. Un error
+del motor acorta la espera.
+
+Después se disuelve con `AppMotion.DISSOLVE` (la única duración por encima de
+`SLOW`, porque una capa del tamaño de la pantalla se lee como un corte con el
+tiempo de un componente) mientras retrocede un 5 %, así que el vídeo llega desde
+detrás del artwork en vez de a través de una rampa de alpha plana. El splash está
+en pantalla desde el primer fotograma y solo el backdrop se asienta (fundido más
+un zoom del 3 %): fundir la capa entera desde negro era lo que hacía que la
+entrada se leyera como un corte, porque la pantalla que hay detrás del
+reproductor es la sección, no el título del que viene el usuario. El alpha y la
+escala se leen en la fase de dibujo con `motionLayer`, así que la disolución nunca
+recompone ni rehace el layout del artwork. Al terminar, el splash sale de la
+composición — su pulso se detiene en lugar de animarse detrás de dos horas de
+vídeo — y los controles esperan 250 ms, así que el destape es solo el vídeo. Cada
+duración vive junto a la pantalla y cada animación está condicionada por
+`LocalMotionEnabled`.
+
 El reproductor se adueña de la pantalla en un teléfono: `PlayerScreen` llama al
 `PlayerWindowMode` de plataforma (`ui/platform`), que bloquea la activity
 anfitriona a landscape de sensor y oculta las barras del sistema (inmersivo),
@@ -998,6 +1046,33 @@ cubre los stores de fichero y los repositorios locales. El `commonTest` de
   180 días, se saltan los episodios sin fecha de estreno, y la rejilla llena la
   ventana en vez de desplazarse.
 
+## Bugs conocidos
+
+- **Continue Watching muestra una fila por episodio en vez de una por serie.**
+  `PlaybackProgressReporter` escribe una fila por episodio (progress key
+  `content_s1e7`), y `HomeViewModel` mapea cada entrada de progreso directamente a
+  un `ContinueEntry`: ver S01E07 y luego S01E10 deja las dos filas. El colapso va
+  en el ViewModel — agrupar por `progress.contentId`, quedarse con la entrada de
+  `lastWatched` más reciente y usar la fila de ese episodio — antes de ordenar y
+  de `take(MAX_CONTINUE)`. Las filas por episodio se quedan en el repositorio a
+  propósito: de ahí leen el resume y el badge de visto.
+- **Salir a mitad de reproducción no refresca Continue Watching.** `PlayerScreen`
+  escribe la posición final desde su `onDispose` con
+  `rememberCoroutineScope()`, que se cancela al salir del reproductor, así que la
+  escritura final puede perderse (y `player.stop()` corre justo después). Aunque
+  llegue, Home conserva el `continueWatching` que cargó mientras el reproductor
+  estaba abierto — la sección sigue compuesta — y nada relee el progreso al
+  salir, así que la fila solo aparece en la siguiente carga. Necesita un flush en
+  un scope de servicio más una invalidación (o una actualización de estado) al
+  salir del reproductor.
+- **Dolby Vision se ve con colores morados y verdes en desktop.** Una fuente DV
+  (`Hyper.Knife.S01E01…DV.H.265` de un stream de debrid) muestra el clásico
+  desplazamiento de color de profile 5, lo que significa que el camino de render
+  no interpreta la metadata DV. En el lado de mpv eso es el camino
+  `gpu-next`/libplacebo con un espacio de color destino explícito, y hay que
+  revisar la configuración de mpv de mediamp; una fuente cuyo perfil no se pueda
+  mapear necesita un fallback. El mismo fichero se ve bien en Nuvio.
+
 ## Backlog de mejoras
 
 Elementos que necesitan una decisión de diseño, tocan varios módulos, o ambas
@@ -1053,6 +1128,15 @@ que cambian, no por esfuerzo.
 
 ### Reproducción
 
+- **La entrada al reproductor todavía corta.** La disolución del pre-roll está
+  limpia, pero la entrada a él no: la ruta que abrió el reproductor se descarta
+  (el reproductor se pinta fuera de la transición de ruta) y el backdrop se pide
+  solo después de que el reproductor se compone, así que los primeros fotogramas
+  pueden ser el splash negro esperando el artwork. Dos arreglos candidatos:
+  llevar el backdrop y el logo que el detalle ya tiene por `StreamsRequest` →
+  `PlaybackTarget` (o precargarlos al abrir el selector de streams), y hacer
+  crossfade desde la pantalla saliente manteniéndola compuesta durante la
+  disolución.
 - **El runtime de Linux, cuando se aborde el target de Linux.** La raíz de
   composición de desktop declara solo los runtimes de Windows de libmpv/FFmpeg
   (`mediamp-mpv-runtime-windows-x64`, `mediamp-ffmpeg-runtime-windows-x64`); un

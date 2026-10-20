@@ -761,7 +761,8 @@ so the atomic read/write/delete logic lives once.
   artwork: it reserves the logo's space without drawing a placeholder, and the
   logo and backdrop fade in when the image itself is ready (`RemoteImage(fadeIn)`),
   so a slow load never pops. The player is deliberately outside the route
-  transition because it drives a single shared engine.
+  transition because it drives a single shared engine; its entrance is the
+  pre-roll's own dissolve (see Player).
 - **The phone billboard fits a textless poster instead of cropping one.** A wide
   backdrop is 16:9 and the compact billboard is a tall cover, so cropping one
   into the other cuts the composition apart; a language-neutral poster is
@@ -869,6 +870,48 @@ composed while hidden, so an invisible overlay never catches a click. The
 player glyphs stay white on black; only the seek and volume accents read
 `colorScheme.primary`.
 
+Choosing a stream opens the player onto a **pre-roll** instead of a black frame:
+`PlayerSplash` (`ui/player`) paints the title's own backdrop under a flat wash
+(`AppScrim.playerSplash`) with the title logo in the middle. The logo is not a
+spinner and carries no label — it breathes between 45 % and full opacity, the way
+Stremio's loading screen reads, so the wait looks like *that title* loading. The
+artwork comes from `MetadataRepository.detail` for the target's content id instead
+of a new `PlaybackTarget` field: `PlaybackTarget` stays a playback contract, the
+screen the user came from just painted the same URLs (so it is normally a warm
+HTTP cache hit), and the lookup also covers autoplay-next and a target opened
+straight from a link. It is best-effort — a raw `--play` source has no metadata,
+so the splash falls back to the black frame and draws no title, and without a
+logo the name stands in for it.
+
+The wait itself lives in `rememberPlayerPreRoll` (`ui/player`), which owns the
+artwork, the readiness rule, the dissolve and the hand-off to the controls, so
+`PlayerScreen` keeps only the video, the overlay and the lifecycle. It holds the
+splash for at least 1 s and until the player reports a painted frame with no
+buffering, and gives up at 4 s — whichever comes first, because on a source that
+cannot fill the lookahead the extra wait buys nothing and the buffering indicator
+is the better answer. A painted frame is `position > 0`: a parsed duration arrives
+before the engine has a picture, and gating on the duration revealed onto a black
+frame. On top of that it waits for `PlayerState.bufferedPosition` to sit 2 s ahead
+of the playhead, which is the actual pre-buffer rather than a timer: mediamp
+exposes the buffer on both engines (mpv's demuxer cache end, ExoPlayer's buffered
+position) and the adapter publishes `null` when the backend has no cache to fill,
+so a local file only needs the frame and a live stream — at the buffer edge by
+definition — is never asked for lookahead it cannot have. A clip shorter than the
+lookahead only waits for what it has. An engine error cuts the wait short.
+
+It then dissolves with `AppMotion.DISSOLVE` (the one duration above `SLOW`, since
+a layer the size of the screen reads as a cut at a component's timing) while it
+recedes 5 %, so the video arrives from behind the artwork instead of through a
+plain alpha ramp. The splash is on screen from the first frame and only the
+backdrop settles in (a fade plus a 3 % zoom): fading the whole layer up from black
+was what made the entrance read as a cut, because the screen behind the player is
+the section, not the title the user came from. Alpha and scale are read in the
+draw phase through `motionLayer`, so the dissolve never relayouts or recomposes
+the artwork. Once it ends the splash leaves the composition — its logo pulse stops
+instead of animating behind two hours of video — and the controls wait 250 ms, so
+the reveal itself is only the video. Every duration sits next to the screen and
+every animation is gated by `LocalMotionEnabled`.
+
 The player owns the screen on a phone: `PlayerScreen` calls the platform
 `PlayerWindowMode` (`ui/platform`), which locks the host activity to sensor
 landscape and hides the system bars (immersive), restoring both when the player
@@ -926,6 +969,32 @@ parsing, badge resolver with fakes) and the defensive parsers/mappers.
   window are kept, episodes without a release date are skipped, and the grid
   fills the window instead of scrolling.
 
+## Known bugs
+
+- **Continue Watching shows one row per episode instead of one per series.**
+  `PlaybackProgressReporter` writes one row per episode (progress key
+  `content_s1e7`), and `HomeViewModel` maps every progress entry straight to a
+  `ContinueEntry`: watching S01E07 and then S01E10 leaves both rows. The collapse
+  belongs in the ViewModel — group by `progress.contentId`, keep the entry with
+  the newest `lastWatched` and take that episode's row — before sorting and
+  `take(MAX_CONTINUE)`. The per-episode rows stay in the repository on purpose:
+  resume and the watched badge read them.
+- **Leaving mid-playback does not refresh Continue Watching.** `PlayerScreen`
+  flushes the last position from its `onDispose` through
+  `rememberCoroutineScope()`, which is cancelled as the player leaves, so the
+  final write can be dropped (and `player.stop()` runs right after it). Even when
+  it lands, Home keeps the `continueWatching` it loaded while the player was open
+  — the section stays composed — and nothing re-reads progress on exit, so the
+  row only appears on the next load. Needs a service-scoped flush plus an
+  invalidation (or a state update) when the player leaves.
+- **Dolby Vision plays with purple and green colours on desktop.** A DV source
+  (`Hyper.Knife.S01E01…DV.H.265` from a debrid stream) shows the classic
+  profile-5 colour shift, which means the render path is not mapping the DV
+  metadata. On the mpv side that is the `gpu-next`/libplacebo path with an
+  explicit target colour space, and mediamp's mpv configuration has to be
+  checked for it; a source whose profile cannot be mapped needs a fallback. The
+  same file plays correctly in Nuvio.
+
 ## Improvement backlog
 
 Items that need a design decision, touch several modules, or both, so they are
@@ -976,6 +1045,14 @@ not a one-file change. They are grouped by the axis they change, not by effort.
 
 ### Playback
 
+- **The push into the player still cuts.** The pre-roll's own dissolve is clean,
+  but the entry into it is not: the route that opened the player is dropped (the
+  player renders outside the route transition), and the backdrop is fetched only
+  after the player composes, so the first frames can be the bare black splash
+  waiting for the artwork. Two candidate fixes: carry the backdrop and logo the
+  detail screen already holds through `StreamsRequest` → `PlaybackTarget` (or
+  prefetch them when the stream picker opens), and crossfade from the outgoing
+  screen by keeping it composed for the length of the dissolve.
 - **The Linux runtime, when the Linux target is addressed.** The desktop
   composition root declares only the Windows libmpv/FFmpeg runtimes
   (`mediamp-mpv-runtime-windows-x64`, `mediamp-ffmpeg-runtime-windows-x64`); a

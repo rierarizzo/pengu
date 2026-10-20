@@ -288,6 +288,14 @@ object AppLogoSize {
     /** Optical height of the title logo on the wide detail billboard. */
     val detailHeight: Dp = 96.dp
 
+    /**
+     * Optical height of the title logo on the player's pre-roll.
+     *
+     * The pre-roll has no copy around the logo, so it can be a step larger than
+     * the detail billboard's without competing with anything.
+     */
+    val splashHeight: Dp = 120.dp
+
     /** Widest a logo may grow on a wide window; a wider logo scales down to fit. */
     val maxWidth: Dp = 520.dp
 
@@ -408,6 +416,12 @@ object AppAlpha {
 
     /** Player top and bottom control scrims. */
     const val PLAYER_SCRIM = 0.8f
+
+    /** Flat wash over the player's pre-roll artwork, so a bright backdrop cannot wash out the logo. */
+    const val PLAYER_SPLASH = 0.55f
+
+    /** Deeper bottom edge of that wash, so the splash never meets the video on a hard line. */
+    const val PLAYER_SPLASH_BOTTOM = 0.85f
 
     /** Secondary line of the player header (episode code and title). */
     const val PLAYER_TEXT_SECONDARY = 0.72f
@@ -584,6 +598,19 @@ object AppScrim {
             0f to Color.Black.copy(alpha = AppAlpha.PLAYER_SCRIM * 0.45f),
             0.35f to Color.Black.copy(alpha = AppAlpha.PLAYER_SCRIM * 0.7f),
             1f to Color.Black.copy(alpha = AppAlpha.PLAYER_SCRIM),
+        )
+
+    /**
+     * Wash over the player's pre-roll.
+     *
+     * Flat through the middle, where the logo sits, and deeper at the bottom, so
+     * the artwork stays visible while a bright backdrop cannot swallow the logo.
+     */
+    val playerSplash: Brush =
+        Brush.verticalGradient(
+            0f to Color.Black.copy(alpha = AppAlpha.PLAYER_SPLASH),
+            0.6f to Color.Black.copy(alpha = AppAlpha.PLAYER_SPLASH),
+            1f to Color.Black.copy(alpha = AppAlpha.PLAYER_SPLASH_BOTTOM),
         )
 }
 

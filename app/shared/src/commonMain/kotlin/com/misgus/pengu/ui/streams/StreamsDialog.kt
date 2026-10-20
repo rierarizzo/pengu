@@ -194,8 +194,7 @@ private fun StreamsWindow(
                     .motionLayer(
                         scale = { AppScale.DIALOG_ENTER + (1f - AppScale.DIALOG_ENTER) * progress.value },
                         alpha = { progress.value },
-                    )
-                    .clip(MaterialTheme.shapes.extraLarge)
+                    ).clip(MaterialTheme.shapes.extraLarge)
                     .background(MaterialTheme.colorScheme.background),
         ) {
             StreamsPanel(

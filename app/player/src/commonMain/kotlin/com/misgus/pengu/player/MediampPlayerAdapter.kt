@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 import org.openani.mediamp.MediaStatus
 import org.openani.mediamp.MediampPlayer
 import org.openani.mediamp.errorOrNull
+import org.openani.mediamp.features.Buffering
 import org.openani.mediamp.features.MediaMetadata
 import org.openani.mediamp.metadata.AudioTrack
 import org.openani.mediamp.metadata.SubtitleTrack
@@ -77,6 +78,19 @@ abstract class MediampPlayerAdapter protected constructor(
         scope.launch {
             player.mediaProperties.collect { p ->
                 _state.update { it.copy(duration = (p?.durationMillis ?: 0L).milliseconds) }
+            }
+        }
+        // Lookahead, when the backend reports it: both engines behind this adapter
+        // do (mpv's demuxer cache end, ExoPlayer's buffered position). `UNKNOWN`
+        // is published as `null` so the UI can tell "no cache ahead" from "no
+        // opinion" — a local file has no cache to fill.
+        player.features[Buffering]?.let { buffering ->
+            scope.launch {
+                buffering.bufferedPositionMillis.collect { millis ->
+                    _state.update {
+                        it.copy(bufferedPosition = millis.takeIf { it >= 0 }?.milliseconds)
+                    }
+                }
             }
         }
         player.features[MediaMetadata]?.let { metadata ->

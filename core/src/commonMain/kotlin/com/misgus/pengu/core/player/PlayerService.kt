@@ -17,6 +17,16 @@ data class MediaTrack(
 data class PlayerState(
     val position: Duration = Duration.ZERO,
     val duration: Duration = Duration.ZERO,
+    /**
+     * End of the data buffered ahead of [position], or `null` when the engine does
+     * not report it (a local file, or a backend without a cache).
+     *
+     * `bufferedPosition - position` is the lookahead the player can play without
+     * waiting on the network; the pre-roll uses it to reveal only when there is
+     * some, instead of trusting a timer. A value at or behind [position] means
+     * nothing is cached ahead.
+     */
+    val bufferedPosition: Duration? = null,
     val playing: Boolean = false,
     val buffering: Boolean = false,
     val completed: Boolean = false,

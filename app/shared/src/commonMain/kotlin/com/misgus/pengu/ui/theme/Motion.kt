@@ -41,6 +41,15 @@ object AppMotion {
     /** Screen-level transitions and larger surfaces. */
     const val SLOW = 340
 
+    /**
+     * Hand-off between two full-screen surfaces, such as the player's pre-roll
+     * dissolving into the video.
+     *
+     * A layer the size of the screen reads as a cut, not as a dissolve, in the
+     * time a component takes; this is the one duration above [SLOW].
+     */
+    const val DISSOLVE = 480
+
     /** Utility motion, for feedback and small components. */
     val standard: Easing = FastOutSlowInEasing
 

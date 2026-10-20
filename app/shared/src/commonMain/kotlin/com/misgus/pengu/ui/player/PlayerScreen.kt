@@ -1,6 +1,5 @@
 package com.misgus.pengu.ui.player
 
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
@@ -44,9 +43,6 @@ import com.misgus.pengu.ui.services.AppServices
 import com.misgus.pengu.ui.services.LocalAppServices
 import com.misgus.pengu.ui.shell.LocalSnackbarHost
 import com.misgus.pengu.ui.theme.AppColors
-import com.misgus.pengu.ui.theme.AppMotion
-import com.misgus.pengu.ui.theme.motionLayer
-import com.misgus.pengu.ui.theme.motionTween
 import com.misgus.pengu.ui.video.VideoSurface
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -90,16 +86,13 @@ fun PlayerScreen(
     // Volume to restore when mute is toggled back on.
     var volumeBeforeMute by remember { mutableStateOf(100.0) }
 
-    // The cover hides the first frames while the engine opens, then fades out, so
-    // the video fades in instead of popping onto a black frame.
-    var revealed by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { revealed = true }
-    val cover =
-        animateFloatAsState(
-            targetValue = if (revealed) 0f else 1f,
-            animationSpec = motionTween(durationMillis = AppMotion.SLOW),
-            label = "playerCover",
-        )
+    // The pre-roll owns the wait while the engine opens the stream: it paints the
+    // title's artwork, decides when there is a frame worth revealing and hands the
+    // controls back once it has dissolved. It is opaque from its first frame, so
+    // the push never lands on the bare player background.
+    val preRoll = rememberPlayerPreRoll(target, player, services.metadata)
+    val splashArt = preRoll.art.value
+    val controlsUnlocked = preRoll.controlsReady.value
 
     // A spinner that appears at once flickers on a stream that opens in a moment,
     // so it waits for a buffering spell that lasts.
@@ -160,13 +153,16 @@ fun PlayerScreen(
     }
 
     // Auto-hide the controls after 3 seconds of playback.
-    LaunchedEffect(state.playing, lastInteraction) {
+    LaunchedEffect(state.playing, lastInteraction, controlsUnlocked) {
         if (!state.playing) {
             controlsVisible = true
             return@LaunchedEffect
         }
+        // The clock starts once the pre-roll is over, so the controls are not
+        // already halfway to hiding when the video is revealed.
+        if (!controlsUnlocked) return@LaunchedEffect
         controlsVisible = true
-        delay(3000)
+        delay(CONTROLS_AUTO_HIDE)
         controlsVisible = false
     }
 
@@ -274,7 +270,9 @@ fun PlayerScreen(
                     duration = state.duration,
                     volume = state.volume,
                     subtitlesOn = state.selectedSubtitleId != null,
-                    visible = controlsVisible,
+                    // The pre-roll owns the screen until it dissolves, so the
+                    // controls enter after the reveal instead of with it.
+                    visible = controlsVisible && controlsUnlocked,
                 ),
             onPlayPause = {
                 player.playOrPause()
@@ -311,13 +309,16 @@ fun PlayerScreen(
             }
         }
 
-        // Drawn last, over the video and the controls, and not hit-testable.
-        Box(
-            Modifier
-                .fillMaxSize()
-                .motionLayer(alpha = { cover.value })
-                .background(AppColors.playerBackground),
-        )
+        // Drawn last, over the video and the controls, and not hit-testable: the
+        // pre-roll owns the screen until it has dissolved.
+        if (!preRoll.gone.value) {
+            PlayerSplash(
+                title = heading.title,
+                backdrop = splashArt?.backdrop,
+                logo = splashArt?.logo,
+                alpha = { preRoll.alpha.value },
+            )
+        }
     }
 
     if (showSubtitleMenu) {
@@ -442,6 +443,9 @@ private const val TITLE_SEPARATOR = " · "
 
 /** How long to wait for a parsed duration before resuming anyway. */
 private val RESUME_TIMEOUT = 5.seconds
+
+/** Idle time before the controls auto-hide during playback, in milliseconds. */
+private const val CONTROLS_AUTO_HIDE = 3_000L
 
 /** Buffering shorter than this shows no spinner, so quick starts stay clean. */
 private val BUFFERING_INDICATOR_DELAY = 300.milliseconds
