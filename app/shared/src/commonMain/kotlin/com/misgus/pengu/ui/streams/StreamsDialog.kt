@@ -1,6 +1,6 @@
 package com.misgus.pengu.ui.streams
 
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -161,20 +161,23 @@ private fun StreamsWindow(
     onDismiss: () -> Unit,
     onSelect: (Stream) -> Unit,
 ) {
-    var shown by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { shown = true }
-    val enterAlpha =
-        animateFloatAsState(
-            targetValue = if (shown) 1f else 0f,
-            animationSpec = motionTween(),
-            label = "streamsAlpha",
-        )
-    val enterScale =
-        animateFloatAsState(
-            targetValue = if (shown) 1f else AppScale.DIALOG_ENTER,
-            animationSpec = motionTween(durationMillis = AppMotion.MEDIUM),
-            label = "streamsScale",
-        )
+    // One progress drives both the entrance and the exit, so the picker leaves with
+    // the motion it arrived with and the route opens only once it is gone.
+    val scope = rememberCoroutineScope()
+    val enterSpec = motionTween<Float>(durationMillis = AppMotion.MEDIUM)
+    val exitSpec = motionTween<Float>(durationMillis = AppMotion.FAST)
+    val progress = remember { Animatable(0f) }
+    var leaving by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { progress.animateTo(1f, enterSpec) }
+    val select: (Stream) -> Unit = { stream ->
+        if (!leaving) {
+            leaving = true
+            scope.launch {
+                progress.animateTo(0f, exitSpec)
+                onSelect(stream)
+            }
+        }
+    }
     val dialogWidth =
         minOf(StreamsDialogMaxWidth, LocalWindowWidth.current - AppSpacing.xl * 2)
             .coerceAtLeast(StreamsDialogMinWidth)
@@ -188,7 +191,10 @@ private fun StreamsWindow(
                 Modifier
                     .width(dialogWidth)
                     .fillMaxHeight(0.82f)
-                    .motionLayer(scale = { enterScale.value }, alpha = { enterAlpha.value })
+                    .motionLayer(
+                        scale = { AppScale.DIALOG_ENTER + (1f - AppScale.DIALOG_ENTER) * progress.value },
+                        alpha = { progress.value },
+                    )
                     .clip(MaterialTheme.shapes.extraLarge)
                     .background(MaterialTheme.colorScheme.background),
         ) {
@@ -197,7 +203,7 @@ private fun StreamsWindow(
                 state = state,
                 onRefresh = onRefresh,
                 onDismiss = onDismiss,
-                onSelect = onSelect,
+                onSelect = select,
                 modifier = Modifier.fillMaxSize(),
             )
         }
@@ -222,6 +228,19 @@ private fun StreamsSheet(
             initialValue = SheetValue.Hidden,
             enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
         )
+    val scope = rememberCoroutineScope()
+    var leaving by remember { mutableStateOf(false) }
+    // Hides the sheet before the route opens, so it does not vanish mid-frame. A
+    // programmatic hide does not call onDismissRequest, so the selection survives.
+    val select: (Stream) -> Unit = { stream ->
+        if (!leaving) {
+            leaving = true
+            scope.launch {
+                sheetState.hide()
+                onSelect(stream)
+            }
+        }
+    }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -232,7 +251,7 @@ private fun StreamsSheet(
             state = state,
             onRefresh = onRefresh,
             onDismiss = onDismiss,
-            onSelect = onSelect,
+            onSelect = select,
             modifier = Modifier.fillMaxWidth().fillMaxHeight(0.9f),
         )
     }

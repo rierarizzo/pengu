@@ -104,6 +104,16 @@ object AppType {
     @Composable
     fun itemTitle(): TextStyle = MaterialTheme.typography.titleMedium
 
+    /**
+     * Media title in the player header.
+     *
+     * The player is a full-screen surface with one line of copy at the top, so
+     * it reads one step above [itemTitle] and SemiBold, while the episode line
+     * under it stays at [caption].
+     */
+    @Composable
+    fun playerTitle(): TextStyle = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
+
     /** Default reading copy: a value, a name or a paragraph. */
     @Composable
     fun body(): TextStyle = MaterialTheme.typography.bodyLarge

@@ -1,5 +1,6 @@
 package com.misgus.pengu.ui.player
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
@@ -43,6 +44,9 @@ import com.misgus.pengu.ui.services.AppServices
 import com.misgus.pengu.ui.services.LocalAppServices
 import com.misgus.pengu.ui.shell.LocalSnackbarHost
 import com.misgus.pengu.ui.theme.AppColors
+import com.misgus.pengu.ui.theme.AppMotion
+import com.misgus.pengu.ui.theme.motionLayer
+import com.misgus.pengu.ui.theme.motionTween
 import com.misgus.pengu.ui.video.VideoSurface
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -51,6 +55,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -84,6 +89,28 @@ fun PlayerScreen(
     var showAudioMenu by remember { mutableStateOf(false) }
     // Volume to restore when mute is toggled back on.
     var volumeBeforeMute by remember { mutableStateOf(100.0) }
+
+    // The cover hides the first frames while the engine opens, then fades out, so
+    // the video fades in instead of popping onto a black frame.
+    var revealed by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { revealed = true }
+    val cover =
+        animateFloatAsState(
+            targetValue = if (revealed) 0f else 1f,
+            animationSpec = motionTween(durationMillis = AppMotion.SLOW),
+            label = "playerCover",
+        )
+
+    // A spinner that appears at once flickers on a stream that opens in a moment,
+    // so it waits for a buffering spell that lasts.
+    var showBuffering by remember { mutableStateOf(false) }
+    LaunchedEffect(state.buffering) {
+        showBuffering = false
+        if (state.buffering) {
+            delay(BUFFERING_INDICATOR_DELAY)
+            showBuffering = true
+        }
+    }
 
     DisposableEffect(target) {
         chrome.enterImmersive()
@@ -148,6 +175,20 @@ fun PlayerScreen(
         controlsVisible = true
     }
 
+    // Shared by the volume glyph and the `M` shortcut, so both remember the
+    // level to restore when mute is toggled back on.
+    val toggleMute = {
+        if (state.volume > 0.0) {
+            volumeBeforeMute = state.volume
+            player.setVolume(0.0)
+        } else {
+            player.setVolume(volumeBeforeMute.coerceAtLeast(1.0))
+        }
+        revealControls()
+    }
+
+    val heading = playerHeading(target)
+
     Box(
         modifier =
             Modifier
@@ -198,13 +239,7 @@ fun PlayerScreen(
                             true
                         }
                         Key.M -> {
-                            if (state.volume > 0.0) {
-                                volumeBeforeMute = state.volume
-                                player.setVolume(0.0)
-                            } else {
-                                player.setVolume(volumeBeforeMute.coerceAtLeast(1.0))
-                            }
-                            revealControls()
+                            toggleMute()
                             true
                         }
                         Key.F -> {
@@ -226,17 +261,19 @@ fun PlayerScreen(
         LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
         VideoSurface(player, Modifier.fillMaxSize())
-        if (state.buffering) {
+        if (showBuffering) {
             CircularProgressIndicator(Modifier.align(Alignment.Center))
         }
         PlayerControls(
             state =
                 PlayerControlsState(
-                    title = target.title,
+                    title = heading.title,
+                    subtitle = heading.subtitle,
                     playing = state.playing,
                     position = state.position,
                     duration = state.duration,
                     volume = state.volume,
+                    subtitlesOn = state.selectedSubtitleId != null,
                     visible = controlsVisible,
                 ),
             onPlayPause = {
@@ -255,6 +292,7 @@ fun PlayerScreen(
                 player.setVolume(it)
                 revealControls()
             },
+            onToggleMute = toggleMute,
             onToggleFullscreen =
                 if (window.supportsFullScreen) {
                     { window.setFullScreen(!window.isFullScreen.value) }
@@ -272,6 +310,14 @@ fun PlayerScreen(
                 snackbar?.showSnackbar(message)
             }
         }
+
+        // Drawn last, over the video and the controls, and not hit-testable.
+        Box(
+            Modifier
+                .fillMaxSize()
+                .motionLayer(alpha = { cover.value })
+                .background(AppColors.playerBackground),
+        )
     }
 
     if (showSubtitleMenu) {
@@ -364,8 +410,41 @@ private suspend fun playNextIfPossible(
 
 private fun episodeOrder(video: MetaVideo): Int = (video.season?.number ?: 0) * 1000 + (video.episode?.number ?: 0)
 
+/** The player header: a main title and the optional episode line under it. */
+private data class PlayerHeading(
+    val title: String,
+    val subtitle: String?,
+)
+
+/**
+ * Splits a playback target into the header's two lines.
+ *
+ * An episode target is titled `Show · Episode` by the stream picker, while the
+ * episode code lives on the target; the header shows the show on the first line
+ * and `S01E01 · Episode` on the second, so a long show name never pushes the
+ * episode out of view. A movie or a raw source has no second line.
+ */
+@Composable
+private fun playerHeading(target: PlaybackTarget): PlayerHeading {
+    val season = target.season ?: return PlayerHeading(target.title, null)
+    val episode = target.episode ?: return PlayerHeading(target.title, null)
+    val parts = target.title.split(TITLE_SEPARATOR, limit = 2)
+    val show = parts.first().ifBlank { target.title }
+    val code = stringResource(Res.string.detail_episode_code, season.number, episode.number)
+    // Autoplay-next titles carry the code as their second part, so it is not
+    // repeated in front of the episode name.
+    val name = parts.getOrNull(1)?.takeIf { it.isNotBlank() && it != code }
+    return PlayerHeading(show, if (name == null) code else "$code$TITLE_SEPARATOR$name")
+}
+
+/** Separator the stream picker uses between a show and its episode. */
+private const val TITLE_SEPARATOR = " · "
+
 /** How long to wait for a parsed duration before resuming anyway. */
 private val RESUME_TIMEOUT = 5.seconds
+
+/** Buffering shorter than this shows no spinner, so quick starts stay clean. */
+private val BUFFERING_INDICATOR_DELAY = 300.milliseconds
 
 /** Volume change applied by the up/down arrow shortcuts, in percent. */
 private const val VOLUME_STEP = 5.0

@@ -746,7 +746,9 @@ leer/escribir/borrar vive una sola vez.
   oscura, y no hay esquema claro ni color dinámico — porque la UI está construida
   alrededor de artwork oscuro y scrims;
   el reproductor mantiene una paleta fija de controles blanco-sobre-negro sobre
-  el vídeo. La `visualDensity` de Material3 queda en el default de plataforma.
+  el vídeo, con el progreso de la barra y del volumen como única excepción que
+  lee el acento del tema. La `visualDensity` de Material3 queda en el default de
+  plataforma.
 - **Imágenes con Coil 3**, el cargador de imágenes multiplataforma. El artwork
   remoto pasa por dos composables compartidos en `ui/components`: `PosterImage`
   para pósters y thumbnails, y `RemoteImage` para el resto (backdrops, arte de
@@ -916,6 +918,23 @@ nativo.
 Los comandos, la posición, las pistas y el volumen pasan por la API
 `MediampPlayer` de mediamp en ambos casos. El reporte de progreso, el resume, la
 selección de subtítulos/audio y el autoplay del siguiente episodio no cambian.
+
+El overlay (`ui/player`) sigue la maqueta del reproductor de referencia: una
+cabecera de dos líneas (título y `S01E01 · Episodio` cuando es un episodio), una
+barra de progreso de trazo fino a todo el ancho con la parte reproducida en el
+acento del tema, un pulgar y una burbuja de tiempo que aparecen al pasar el
+puntero o al arrastrar, y una única fila de controles sin cajas debajo. La barra
+engorda al hover, busca desde el primer pulsado y sigue el arrastre sin esperar
+a que se suelte, y su timecode no rellena los minutos con cero
+(`0:03 / 56:01`). El glifo de volumen sigue el nivel y hace de mute, y el control
+deslizante de volumen solo se expande mientras se pasa el puntero por el grupo,
+así que la fila conserva el ritmo de un solo icono de la referencia en desktop;
+el teclado mantiene el volumen en las flechas y el mute en `M`. El icono de
+subtítulos se tiñe de ámbar cuando hay una pista seleccionada. Los controles se
+desvanecen durante la reproducción y no se componen mientras están ocultos, así
+que un overlay invisible nunca se come un clic. Los glifos del reproductor
+siguen en blanco sobre negro; solo los acentos de progreso y volumen leen
+`colorScheme.primary`.
 
 El reproductor se adueña de la pantalla en un teléfono: `PlayerScreen` llama al
 `PlayerWindowMode` de plataforma (`ui/platform`), que bloquea la activity

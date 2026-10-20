@@ -51,6 +51,7 @@ inject in-memory fakes.
 |---|---|
 | Add or change a screen section (Home, Search…) | `app/shared/.../ui/shell/AppSection.kt`, `SectionHost.kt` |
 | Add a pushed screen (detail, player…) | `app/shared/.../ui/shell/ContentNavigator.kt` (`ContentRoute`), `ContentArea.kt` |
+| Change the player overlay (header, seek bar, controls) | `app/shared/.../ui/player/` (`PlayerControls.kt`, `PlayerSeekBar.kt`) |
 | Add or change a settings category | `app/shared/.../ui/screens/SettingsCategory.kt`, `SettingsScreen.kt` |
 | Change a screen's logic/state | `app/shared/.../ui/<feature>/<Feature>ViewModel.kt` + `<Feature>Screen.kt` |
 | Share behavior across data sections | `app/shared/.../ui/common/` (`AccountScopedViewModel`, `WatchedBadgeSync`) |

@@ -51,6 +51,7 @@ usan ambas plataformas (ver §7).
 |---|---|
 | Añadir o cambiar una sección (Home, Search…) | `app/shared/.../ui/shell/AppSection.kt`, `SectionHost.kt` |
 | Añadir una pantalla apilada (detalle, reproductor…) | `app/shared/.../ui/shell/ContentNavigator.kt` (`ContentRoute`), `ContentArea.kt` |
+| Cambiar el overlay del reproductor (cabecera, barra de progreso, controles) | `app/shared/.../ui/player/` (`PlayerControls.kt`, `PlayerSeekBar.kt`) |
 | Añadir o cambiar una categoría de ajustes | `app/shared/.../ui/screens/SettingsCategory.kt`, `SettingsScreen.kt` |
 | Cambiar la lógica/estado de una pantalla | `app/shared/.../ui/<feature>/<Feature>ViewModel.kt` + `<Feature>Screen.kt` |
 | Compartir comportamiento entre secciones | `app/shared/.../ui/common/` (`AccountScopedViewModel`, `WatchedBadgeSync`) |

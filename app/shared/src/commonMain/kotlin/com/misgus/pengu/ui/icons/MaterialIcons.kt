@@ -33,14 +33,16 @@ object MaterialIcons {
     val Close: ImageVector by lazy { material("Close", CLOSE) }
     val Pause: ImageVector by lazy { material("Pause", PAUSE) }
     val Refresh: ImageVector by lazy { material("Refresh", REFRESH) }
-    val Forward: ImageVector by lazy { material("Forward", FORWARD) }
-    val Replay: ImageVector by lazy { material("Replay", REPLAY) }
+    val Replay10: ImageVector by lazy { material("Replay10", REPLAY10) }
+    val Forward10: ImageVector by lazy { material("Forward10", FORWARD10) }
     val Fullscreen: ImageVector by lazy { material("Fullscreen", FULLSCREEN) }
     val Volume: ImageVector by lazy { material("Volume", VOLUME) }
+    val VolumeDown: ImageVector by lazy { material("VolumeDown", VOLUME_DOWN) }
+    val VolumeMute: ImageVector by lazy { material("VolumeMute", VOLUME_MUTE) }
     val Visibility: ImageVector by lazy { material("Visibility", VISIBILITY) }
     val VisibilityOff: ImageVector by lazy { material("VisibilityOff", VISIBILITY_OFF) }
     val Subtitles: ImageVector by lazy { material("Subtitles", SUBTITLES) }
-    val Audiotrack: ImageVector by lazy { material("Audiotrack", AUDIOTRACK) }
+    val GraphicEq: ImageVector by lazy { material("GraphicEq", GRAPHIC_EQ) }
     val Error: ImageVector by lazy { material("Error", ERROR) }
     val Compass: ImageVector by lazy { material("Compass", COMPASS) }
     val FolderOpen: ImageVector by lazy { material("FolderOpen", FOLDER_OPEN) }
@@ -130,13 +132,16 @@ private const val REFRESH =
     "M480-160q-133 0-226.5-93.5T160-480q0-133 93.5-226.5T480-800q85 0 149 34.5T740-671v-129h60v254H546v-60h168q-38-" +
         "60-97-97t-137-37q-109 0-184.5 75.5T220-480q0 109 75.5 184.5T480-220q83 0 152-47.5T728-393h62q-29 105-115 169t-" +
         "195 64Z"
-private const val FORWARD =
-    "M104-240v-480l346 240-346 240Zm407 0v-480l346 240-346 240ZM164-480Zm407 0ZM164-355l181-125-181-125v250Zm407 0 " +
-        "181-125-181-125v250Z"
-private const val REPLAY =
+private const val REPLAY10 =
     "M339.5-108Q274-136 225-185t-77-114.5Q120-365 120-440h60q0 125 87.5 212.5T480-140q125 0 212.5-87.5T780-440q0-12" +
-        "5-85-212.5T485-740h-23l73 73-41 42-147-147 147-147 41 41-78 78h23q75 0 140.5 28T735-695q49 49 77 114.5T840-440" +
-        "q0 75-28 140.5T735-185q-49 49-114.5 77T480-80q-75 0-140.5-28Z"
+        "5-85-212.5T485-740h-22l73 73-42 42-147-147 147-147 41 41-78 78h23q75 0 140.5 28T735-695q49 49 77 114.5T840-440" +
+        "q0 75-28 140.5T735-185q-49 49-114.5 77T480-80q-75 0-140.5-28ZM360-310v-212h-54v-49h104v261h-50Zm103 0v-261h171" +
+        "v261H463Zm50-50h71v-162h-71v162Z"
+private const val FORWARD10 =
+    "M360-310v-212h-54v-49h104v261h-50Zm103 0v-261h171v261H463Zm50-50h71v-162h-71v162ZM339.5-108Q274-136 225-185t-7" +
+        "7-114.5Q120-365 120-440t28-140.5Q176-646 225-695t114.5-77Q405-800 480-800h21l-78-78 41-41 147 147-147 147-41-4" +
+        "1 74-74h-17q-125 0-212.5 87.5T180-440q0 125 87.5 212.5T480-140q125 0 212.5-87.5T780-440h60q0 75-28 140.5T735-1" +
+        "85q-49 49-114.5 77T480-80q-75 0-140.5-28Z"
 private const val FULLSCREEN =
     "M120-120v-193h60v133h133v60H120Zm527 0v-60h133v-133h60v193H647ZM120-647v-193h193v60H180v133h-60Zm660 0v-133H64" +
         "7v-60h193v193h-60Z"
@@ -144,6 +149,11 @@ private const val VOLUME =
     "M560-131v-62q97-28 158.5-107.5T780-481q0-101-61-181T560-769v-62q124 28 202 125.5T840-481q0 127-78 224.5T560-13" +
         "1ZM120-360v-240h160l200-200v640L280-360H120Zm420 48v-337q55 17 87.5 64T660-480q0 57-33 104t-87 64ZM420-648 307" +
         "-540H180v120h127l113 109v-337Zm-94 168Z"
+private const val VOLUME_DOWN =
+    "M200-360v-240h160l200-200v640L360-360H200Zm420 48v-337q54 17 87 64t33 105q0 59-33 105t-87 63ZM500-648 387-540H" +
+        "260v120h127l113 109v-337ZM378-480Z"
+private const val VOLUME_MUTE =
+    "M280-360v-240h160l200-200v640L440-360H280Zm60-60h127l113 109v-337L467-540H340v120Zm119-60Z"
 private const val VISIBILITY =
     "M600.5-379.5Q650-429 650-500t-49.5-120.5Q551-670 480-670t-120.5 49.5Q310-571 310-500t49.5 120.5Q409-330 480-33" +
         "0t120.5-49.5Zm-200-41Q368-453 368-500t32.5-79.5Q433-612 480-612t79.5 32.5Q592-547 592-500t-32.5 79.5Q527-388 4" +
@@ -159,9 +169,9 @@ private const val VISIBILITY_OFF =
 private const val SUBTITLES =
     "M80-160v-640h800v640H80Zm60-60h680v-520H140v520Zm0 0v-520 520Zm100-130h360v-60H240v60Zm420 0h60v-60h-60v60ZM24" +
         "0-470h60v-60h-60v60Zm120 0h360v-60H360v60Z"
-private const val AUDIOTRACK =
-    "M286.5-163.5Q243-207 243-270t43.5-106.5Q330-420 393-420q28 0 50.5 8t39.5 22v-450h234v135H543v435q0 63-43.5 106" +
-        ".5T393-120q-63 0-106.5-43.5Z"
+private const val GRAPHIC_EQ =
+    "M285-240v-480h60v480h-60ZM450-80v-800h60v800h-60ZM120-400v-160h60v160h-60Zm495 160v-480h60v480h-60Zm165-160v-1" +
+        "60h60v160h-60Z"
 private const val ERROR =
     "M503.5-289.48q9.5-9.48 9.5-23.5t-9.48-23.52q-9.48-9.5-23.5-9.5t-23.52 9.48q-9.5 9.48-9.5 23.5t9.48 23.52q9.48 " +
         "9.5 23.5 9.5t23.52-9.48ZM453-433h60v-253h-60v253Zm27.27 353q-82.74 0-155.5-31.5Q252-143 197.5-197.5t-86-127.34" +

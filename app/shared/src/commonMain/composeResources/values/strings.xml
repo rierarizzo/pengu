@@ -109,6 +109,9 @@
     <string name="player_back_10">Back 10 seconds</string>
     <string name="player_forward_10">Forward 10 seconds</string>
     <string name="player_volume">Volume</string>
+    <string name="player_mute">Mute</string>
+    <string name="player_unmute">Unmute</string>
+    <string name="player_seek">Seek</string>
     <string name="player_subtitles">Subtitles</string>
     <string name="player_audio">Audio</string>
     <string name="player_fullscreen">Fullscreen</string>

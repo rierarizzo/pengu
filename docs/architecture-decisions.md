@@ -695,7 +695,8 @@ so the atomic read/write/delete logic lives once.
   app is deliberately **dark-only** — every `AppTheme` is a dark palette, and
   there is no light scheme and no dynamic colour — because the UI is built
   around dark artwork and scrims; the player keeps a fixed white-on-black control
-  palette over video. Material3 `visualDensity` stays at the platform default.
+  palette over video, with the seek and volume progress as the only theme-accent
+  exception. Material3 `visualDensity` stays at the platform default.
 - **Images with Coil 3**, the multiplatform image loader. Remote artwork goes
   through two shared composables in `ui/components`: `PosterImage` for posters
   and thumbnails, and `RemoteImage` for the rest (backdrops, hero art, cast
@@ -852,6 +853,21 @@ through the same mediamp API. ExoPlayer exposes no mediamp
 Commands, position, tracks and volume go through mediamp's `MediampPlayer` API in
 both cases. Watch progress reporting, resume, subtitles/audio selection and
 next-episode autoplay are unchanged.
+
+The overlay (`ui/player`) follows the reference player layout: a two-line header
+(title plus `S01E01 · Episode` for an episode), a full-bleed hairline seek bar
+with the played part in the theme accent, a thumb and a time bubble shown while
+the pointer is over it or while scrubbing, and a single borderless control row
+underneath. The seek bar thickens on hover, seeks on the first press and follows
+the drag without waiting for the release, and its timecode leaves the minutes
+unpadded (`0:03 / 56:01`). The volume glyph follows the level and doubles as the
+mute toggle, and the inline volume slider only expands while the group is
+hovered, so the row keeps the reference's one-icon rhythm on desktop; the
+keyboard keeps volume on the arrow keys and mute on `M`. Subtitles turn amber
+while a track is selected. The controls fade out during playback and are not
+composed while hidden, so an invisible overlay never catches a click. The
+player glyphs stay white on black; only the seek and volume accents read
+`colorScheme.primary`.
 
 The player owns the screen on a phone: `PlayerScreen` calls the platform
 `PlayerWindowMode` (`ui/platform`), which locks the host activity to sensor

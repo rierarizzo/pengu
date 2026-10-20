@@ -409,6 +409,12 @@ object AppAlpha {
     /** Player top and bottom control scrims. */
     const val PLAYER_SCRIM = 0.8f
 
+    /** Secondary line of the player header (episode code and title). */
+    const val PLAYER_TEXT_SECONDARY = 0.72f
+
+    /** Unplayed part of the player's seek and volume tracks. */
+    const val PLAYER_TRACK = 0.28f
+
     /** Interaction feedback for custom surfaces. */
     const val INTERACT_HOVER = 0.08f
     const val INTERACT_FOCUS = 0.18f
@@ -568,13 +574,15 @@ object AppScrim {
     val playerTop: Brush =
         Brush.verticalGradient(
             0f to Color.Black.copy(alpha = AppAlpha.PLAYER_SCRIM),
+            0.5f to Color.Black.copy(alpha = AppAlpha.PLAYER_SCRIM * 0.5f),
             1f to Color.Transparent,
         )
 
-    /** Bottom control scrim over the player. */
+    /** Bottom control scrim over the player: dark under the seek bar, deeper under the row. */
     val playerBottom: Brush =
         Brush.verticalGradient(
-            0f to Color.Transparent,
+            0f to Color.Black.copy(alpha = AppAlpha.PLAYER_SCRIM * 0.45f),
+            0.35f to Color.Black.copy(alpha = AppAlpha.PLAYER_SCRIM * 0.7f),
             1f to Color.Black.copy(alpha = AppAlpha.PLAYER_SCRIM),
         )
 }
