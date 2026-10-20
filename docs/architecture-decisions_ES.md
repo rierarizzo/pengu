@@ -1085,13 +1085,23 @@ cubre los stores de fichero y los repositorios locales. El `commonTest` de
   `lastWatched` más reciente y usar la fila de ese episodio — antes de ordenar y
   de `take(MAX_CONTINUE)`. Las filas por episodio se quedan en el repositorio a
   propósito: de ahí leen el resume y el badge de visto.
-- **Dolby Vision se ve con colores morados y verdes en desktop.** Una fuente DV
-  (`Hyper.Knife.S01E01…DV.H.265` de un stream de debrid) muestra el clásico
-  desplazamiento de color de profile 5, lo que significa que el camino de render
-  no interpreta la metadata DV. En el lado de mpv eso es el camino
-  `gpu-next`/libplacebo con un espacio de color destino explícito, y hay que
-  revisar la configuración de mpv de mediamp; una fuente cuyo perfil no se pueda
-  mapear necesita un fallback. El mismo fichero se ve bien en Nuvio.
+- **Dolby Vision profile 5 se ve con colores morados y verdes en desktop.**
+  Solo el profile 5: es una capa única en ICtCp sin id de compatibilidad
+  (`dv_bl_signal_compatibility_id: 0`) y no declara señalización de color
+  utilizable, así que un renderer sin el reshaping de Dolby Vision no tiene a qué
+  caer. Los profiles 7 y 8 van bien — llevan capa base HDR10
+  (`compatibility_id: 1`) que el camino legacy tone-mapea —, y por eso "pone DV" y
+  "es un Web-DL" son los dos criterios equivocados: el criterio es el perfil.
+  Verificado con `ffprobe` en las muestras que fallan
+  (`Hyper.Knife.S01E01…DV.H.265-ASiANLAD`,
+  `Animals.2026.2160p.NF.WEB-DL…DV.H.265-FLUX`: `dv_profile: 5`) y en una que se ve
+  bien (`dv_profile: 8`). El arreglo es el renderer, no el decodificador: mpv con
+  `--vo=gpu-next` reproduce bien las dos y `--vo=gpu` rompe la de profile 5, y la
+  render API de libmpv (la superficie de escritorio de aquí) solo implementa el
+  backend GPU legacy. Nuvio lo esquiva dándole a mpv una ventana hija nativa
+  (`vo=gpu-next` + `wid`) en lugar de una superficie de la render API. Como el
+  perfil solo se puede leer del contenedor, la app no puede detectarlo desde el
+  nombre del release, así que no hay mitigación barata.
 
 ## Backlog de mejoras
 

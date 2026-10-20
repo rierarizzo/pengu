@@ -1007,13 +1007,22 @@ parsing, badge resolver with fakes) and the defensive parsers/mappers.
   the newest `lastWatched` and take that episode's row — before sorting and
   `take(MAX_CONTINUE)`. The per-episode rows stay in the repository on purpose:
   resume and the watched badge read them.
-- **Dolby Vision plays with purple and green colours on desktop.** A DV source
-  (`Hyper.Knife.S01E01…DV.H.265` from a debrid stream) shows the classic
-  profile-5 colour shift, which means the render path is not mapping the DV
-  metadata. On the mpv side that is the `gpu-next`/libplacebo path with an
-  explicit target colour space, and mediamp's mpv configuration has to be
-  checked for it; a source whose profile cannot be mapped needs a fallback. The
-  same file plays correctly in Nuvio.
+- **Dolby Vision profile 5 plays with purple and green colours on desktop.**
+  Only profile 5: it is single-layer ICtCp with no compatibility id
+  (`dv_bl_signal_compatibility_id: 0`) and declares no usable colour signalling,
+  so a renderer without Dolby Vision reshaping has nothing to fall back on.
+  Profiles 7 and 8 are fine — they carry an HDR10 base layer
+  (`compatibility_id: 1`) that the legacy path tone-maps — which is why "it says
+  DV" and "it is a Web-DL" are both the wrong criterion: the profile is. Verified
+  with `ffprobe` on the samples that fail
+  (`Hyper.Knife.S01E01…DV.H.265-ASiANLAD`, `Animals.2026.2160p.NF.WEB-DL…DV.H.265-FLUX`:
+  `dv_profile: 5`) and on one that looks right (`dv_profile: 8`). The fix is the
+  renderer, not the decoder: mpv with `--vo=gpu-next` renders both correctly and
+  `--vo=gpu` breaks the profile-5 one, and the libmpv render API (the desktop
+  surface here) only implements the legacy GPU backend. Nuvio sidesteps it by
+  handing mpv a native child window (`vo=gpu-next` + `wid`) instead of a render
+  API surface. Because the profile is only readable from the container, the app
+  cannot detect it from a release name, so there is no cheap mitigation.
 
 ## Improvement backlog
 
