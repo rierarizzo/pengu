@@ -462,6 +462,7 @@ fun AddonsSection() {
                 ?: addon.url
         AlertDialog(
             onDismissRequest = { pendingRemoval = null },
+            shape = MaterialTheme.shapes.extraLarge,
             title = { Text(stringResource(Res.string.settings_addons_remove_title)) },
             text = { Text(stringResource(Res.string.settings_addons_remove_message, name)) },
             confirmButton = {
@@ -641,6 +642,7 @@ private fun AddonInstallDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = MaterialTheme.shapes.extraLarge,
         title = { Text(stringResource(Res.string.settings_addons_install)) },
         text = {
             Column(Modifier.fillMaxWidth()) {

@@ -43,6 +43,7 @@ internal fun TrackMenu(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = MaterialTheme.shapes.extraLarge,
         confirmButton = {
             ActionButton(
                 text = stringResource(Res.string.action_close),

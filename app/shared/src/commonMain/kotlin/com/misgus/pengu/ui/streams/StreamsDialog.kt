@@ -75,6 +75,7 @@ import com.misgus.pengu.ui.platform.clipEntryOfText
 import com.misgus.pengu.ui.platform.isDesktop
 import com.misgus.pengu.ui.services.LocalAppServices
 import com.misgus.pengu.ui.shell.RouteViewModelStoreOwner
+import com.misgus.pengu.ui.theme.AppBottomSheetShape
 import com.misgus.pengu.ui.theme.AppIconSize
 import com.misgus.pengu.ui.theme.AppMotion
 import com.misgus.pengu.ui.theme.AppScale
@@ -243,6 +244,7 @@ private fun StreamsSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
+        shape = AppBottomSheetShape,
         containerColor = MaterialTheme.colorScheme.background,
     ) {
         StreamsPanel(

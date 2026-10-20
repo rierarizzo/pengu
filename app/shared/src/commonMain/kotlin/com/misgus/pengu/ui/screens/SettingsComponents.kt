@@ -55,6 +55,7 @@ import com.misgus.pengu.ui.components.sectionHeading
 import com.misgus.pengu.ui.icons.MaterialIcons
 import com.misgus.pengu.ui.platform.isDesktop
 import com.misgus.pengu.ui.theme.AppAlpha
+import com.misgus.pengu.ui.theme.AppBottomSheetShape
 import com.misgus.pengu.ui.theme.AppColors
 import com.misgus.pengu.ui.theme.AppIconSize
 import com.misgus.pengu.ui.theme.AppSizes
@@ -557,6 +558,7 @@ private fun <T> SettingsSelectSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
+        shape = AppBottomSheetShape,
         containerColor = AppColors.surfaceSelected,
     ) {
         Column(Modifier.fillMaxWidth().padding(bottom = AppSpacing.md)) {

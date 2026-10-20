@@ -168,11 +168,11 @@ object AppSpacing {
  * while anything that takes a `Shape` uses `MaterialTheme.shapes`.
  */
 object AppCorner {
-    val extraSmall: Dp = 2.dp
-    val small: Dp = 4.dp
-    val medium: Dp = 6.dp
-    val large: Dp = 8.dp
-    val extraLarge: Dp = 12.dp
+    val extraSmall: Dp = 1.dp
+    val small: Dp = 2.dp
+    val medium: Dp = 3.dp
+    val large: Dp = 4.dp
+    val extraLarge: Dp = 6.dp
 }
 
 /** Sizes shared by the shell. */

@@ -2,6 +2,7 @@ package com.misgus.pengu.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,8 +17,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -224,9 +223,13 @@ private fun <T> ReorderableCard(
             modifier =
                 Modifier
                     .offset { IntOffset(0, (shift + offsetY).roundToInt()) }
-                    .then(if (dragging) Modifier.shadow(12.dp, cardShape) else Modifier)
-                    .clip(cardShape)
-                    .background(AppColors.surfaceCard),
+                    .then(
+                        if (dragging) {
+                            Modifier.border(1.dp, MaterialTheme.colorScheme.primary, cardShape)
+                        } else {
+                            Modifier
+                        },
+                    ).background(AppColors.surfaceCard, cardShape),
         ) {
             content(
                 item,

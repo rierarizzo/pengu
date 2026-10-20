@@ -123,7 +123,9 @@ so the atomic read/write/delete logic lives once.
   once.
 - **Settings controls are app components, not stock Material.** A toggle row is
   itself the target and its switch is the shared compact `AppSwitch` (40x22,
-  accent track), not Material's 52x32 control; a short option set is
+  accent track), not Material's 52x32 control; it paints its track and thumb in
+  one `Canvas`, so moving an addon card cannot leave a stale switch layer; a
+  short option set is
   a chip row, a longer one opens a popover on desktop and a bottom sheet on
   touch (`isDesktop`, in `ui/platform`); the dividers are inset to the row copy;
   and a group is a borderless card on the page background, filled with the
@@ -669,8 +671,10 @@ so the atomic read/write/delete logic lives once.
   cream/amber/burnt-orange palette, selected in Settings → Appearance → Theme and
   persisted as `appearance.theme` in `settings.json`. The Inter typeface loaded
   from Compose Resources and the small, square-ish shape scale (`AppCorner` feeds
-  `MaterialTheme.shapes`: 2/4/6/8/12dp; the app reads square, not rounded) stay
-  theme-independent. The UI reads semantic colours from
+  `MaterialTheme.shapes`: 1/2/3/4/6dp; the app reads square, not rounded) stay
+  theme-independent. Dialogs and bottom sheets take the same scale
+  (`shapes.extraLarge` and `AppBottomSheetShape`) instead of Material's 28dp
+  default. The UI reads semantic colours from
   `MaterialTheme.colorScheme`; `AppColors` keeps the media overlays the scheme
   has no role for: `mediaScrim` and the hero carousel indicator (muted when idle,
   cream when active). `AppSizes.controlHeight` /

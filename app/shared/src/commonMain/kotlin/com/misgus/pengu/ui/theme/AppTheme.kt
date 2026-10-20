@@ -9,6 +9,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
@@ -38,6 +39,10 @@ private val AppShapes =
         large = RoundedCornerShape(AppCorner.large),
         extraLarge = RoundedCornerShape(AppCorner.extraLarge),
     )
+
+/** Bottom-sheet shape: only the top corners carry the radius, and only AppCorner. */
+val AppBottomSheetShape: Shape =
+    RoundedCornerShape(topStart = AppCorner.extraLarge, topEnd = AppCorner.extraLarge)
 
 /**
  * Builds the app's Material 3 colour scheme from the [BrandPalette].

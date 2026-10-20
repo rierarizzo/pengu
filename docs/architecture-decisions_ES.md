@@ -133,7 +133,8 @@ leer/escribir/borrar vive una sola vez.
 - **Los controles de ajustes son componentes de la app, no Material de serie.**
   Una fila de toggle es ella misma el target y su switch es el `AppSwitch`
   compacto compartido (40x22, track de acento), no el control de 52x32 de
-  Material; un conjunto corto de opciones son chips, uno largo abre un popover en desktop y
+  Material; dibuja track y thumb en un único `Canvas`, así mover una card de
+  addon no puede dejar una capa obsoleta del switch; un conjunto corto de opciones son chips, uno largo abre un popover en desktop y
   una bottom sheet en táctil (`isDesktop`, en `ui/platform`); los divisores se
   insetan al texto de la fila; y un grupo es una tarjeta sin borde sobre el
   fondo de página, rellena con el rol `surfaceCard` para que el índice y las
@@ -716,8 +717,10 @@ leer/escribir/borrar vive una sola vez.
   paleta cálida crema/ámbar/naranja quemado, elegida en Ajustes → Apariencia →
   Tema y persistida como `appearance.theme` en `settings.json`. La tipografía
   Inter cargada desde Compose Resources y la escala de formas pequeña y tirando a
-  cuadrada (`AppCorner` alimenta `MaterialTheme.shapes`: 2/4/6/8/12dp; la app se
-  lee cuadrada, no redondeada) no dependen del tema. La UI lee colores semánticos
+  cuadrada (`AppCorner` alimenta `MaterialTheme.shapes`: 1/2/3/4/6dp; la app se
+  lee cuadrada, no redondeada) no dependen del tema. Los diálogos y las bottom
+  sheets usan la misma escala (`shapes.extraLarge` y `AppBottomSheetShape`) en
+  vez del default de 28dp de Material. La UI lee colores semánticos
   de `MaterialTheme.colorScheme`; `AppColors` guarda los overlays de media para
   los que el esquema no tiene rol: `mediaScrim` y el indicador del carrusel del
   hero (apagado cuando está inactivo, crema cuando está activo).
