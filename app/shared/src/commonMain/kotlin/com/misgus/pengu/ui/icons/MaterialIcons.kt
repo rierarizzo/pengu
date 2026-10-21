@@ -19,7 +19,6 @@ object MaterialIcons {
     val Home: ImageVector by lazy { material("Home", HOME) }
     val Search: ImageVector by lazy { material("Search", SEARCH) }
     val Bookmark: ImageVector by lazy { material("Bookmark", BOOKMARK) }
-    val Calendar: ImageVector by lazy { material("Calendar", CALENDAR) }
     val Settings: ImageVector by lazy { material("Settings", SETTINGS) }
     val Play: ImageVector by lazy { material("Play", PLAY) }
     val Plus: ImageVector by lazy { material("Plus", PLUS) }
@@ -27,7 +26,6 @@ object MaterialIcons {
     val CheckCircle: ImageVector by lazy { material("CheckCircle", CHECK_CIRCLE) }
     val CheckCircleOutline: ImageVector by lazy { material("CheckCircleOutline", CHECK_CIRCLE_OUTLINE) }
     val ArrowBack: ImageVector by lazy { material("ArrowBack", ARROW_BACK, autoMirror = true) }
-    val ChevronLeft: ImageVector by lazy { material("ChevronLeft", CHEVRON_LEFT) }
     val ChevronRight: ImageVector by lazy { material("ChevronRight", CHEVRON_RIGHT) }
     val ChevronDown: ImageVector by lazy { material("ChevronDown", CHEVRON_DOWN) }
     val Close: ImageVector by lazy { material("Close", CLOSE) }
@@ -49,7 +47,6 @@ object MaterialIcons {
     val Inbox: ImageVector by lazy { material("Inbox", INBOX) }
     val Movie: ImageVector by lazy { material("Movie", MOVIE) }
     val User: ImageVector by lazy { material("User", USER) }
-    val CalendarMonth: ImageVector by lazy { material("CalendarMonth", CALENDAR_MONTH) }
     val Copy: ImageVector by lazy { material("Copy", COPY) }
     val Login: ImageVector by lazy { material("Login", LOGIN, autoMirror = true) }
     val Logout: ImageVector by lazy { material("Logout", LOGOUT, autoMirror = true) }
@@ -94,9 +91,6 @@ private const val SEARCH =
         "57.5 138.5T377-389Z"
 private const val BOOKMARK =
     "M200-120v-725h560v725L480-240 200-120Z"
-private const val CALENDAR =
-    "M440-400v-80h80v80h-80Zm-160 0v-80h80v80h-80Zm320 0v-80h80v80h-80ZM440-240v-80h80v80h-80Zm-160 0v-80h80v80h-80" +
-        "Zm320 0v-80h80v80h-80ZM120-80v-740h125v-60h65v60h340v-60h65v60h125v740H120Zm60-60h600v-430H180v430Z"
 private const val SETTINGS =
     "m388-80-20-126q-19-7-40-19t-37-25l-118 54-93-164 108-79q-2-9-2.5-20.5T185-480q0-9 .5-20.5T188-521L80-600l93-16" +
         "4 118 54q16-13 37-25t40-18l20-127h184l20 126q19 7 40.5 18.5T669-710l118-54 93 164-108 77q2 10 2.5 21.5t.5 21.5" +
@@ -119,8 +113,6 @@ private const val CHECK_CIRCLE_OUTLINE =
         "99.5 240.5T480-140Zm0-340Z"
 private const val ARROW_BACK =
     "m274-450 248 248-42 42-320-320 320-320 42 42-248 248h526v60H274Z"
-private const val CHEVRON_LEFT =
-    "M561-240 320-481l241-241 43 43-198 198 198 198-43 43Z"
 private const val CHEVRON_RIGHT =
     "M530-481 332-679l43-43 241 241-241 241-43-43 198-198Z"
 private const val CHEVRON_DOWN =
@@ -202,10 +194,6 @@ private const val USER =
         " 19-65t49-41q67-30 128.5-45T480-420q62 0 123 15.5T731-360q31 14 50 41t19 65v94H160Zm60-60h520v-34q0-16-9.5-30." +
         "5T707-306q-64-31-117-42.5T480-360q-57 0-111 11.5T252-306q-14 7-23 21.5t-9 30.5v34Zm324.5-346.5Q570-592 570-631" +
         "t-25.5-64.5Q519-721 480-721t-64.5 25.5Q390-670 390-631t25.5 64.5Q441-541 480-541t64.5-25.5ZM480-631Zm0 411Z"
-private const val CALENDAR_MONTH =
-    "M440-400v-80h80v80h-80Zm-160 0v-80h80v80h-80Zm320 0v-80h80v80h-80ZM440-240v-80h80v80h-80Zm-160 0v-80h80v80h-80" +
-        "Zm320 0v-80h80v80h-80ZM120-80v-740h125v-60h65v60h340v-60h65v60h125v740H120Zm60-60h600v-430H180v430Zm0-490h600v" +
-        "-130H180v130Zm0 0v-130 130Z"
 private const val COPY =
     "M240-200v-680h560v680H240Zm60-60h440v-560H300v560ZM120-80v-680h60v620h500v60H120Zm180-180v-560 560Z"
 private const val LOGIN =

@@ -149,7 +149,6 @@ class FakeMetadataRepository(
 class FakeCatalogRepository(
     private val refs: List<CatalogRef> = emptyList(),
     private val items: Map<String, List<MetaPreview>> = emptyMap(),
-    private val detailed: Map<String, List<MetaDetail>> = emptyMap(),
     /** Optional per-catalog gate a test completes to control when a row resolves. */
     private val gates: Map<String, CompletableDeferred<Unit>> = emptyMap(),
 ) : CatalogRepository {
@@ -162,11 +161,6 @@ class FakeCatalogRepository(
         gates[ref.key]?.await()
         return items[ref.key].orEmpty()
     }
-
-    override suspend fun detailedItems(
-        ref: CatalogRef,
-        extra: Map<String, String>?,
-    ): List<MetaDetail> = detailed[ref.key].orEmpty()
 }
 
 /** In-memory [StreamRepository] for tests. */

@@ -3,8 +3,6 @@ package com.misgus.pengu.ui.shell
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.misgus.pengu.core.player.PlaybackTarget
-import com.misgus.pengu.ui.calendar.CalendarScreen
-import com.misgus.pengu.ui.calendar.CalendarViewModel
 import com.misgus.pengu.ui.discover.DiscoverViewModel
 import com.misgus.pengu.ui.home.HomeScreen
 import com.misgus.pengu.ui.home.HomeViewModel
@@ -81,21 +79,6 @@ fun SectionHost(
             SearchScreen(
                 viewModel = viewModel,
                 discoverViewModel = discoverViewModel,
-                navigator = navigator,
-            )
-        }
-        AppSection.CALENDAR -> {
-            val viewModel: CalendarViewModel =
-                viewModel {
-                    CalendarViewModel(
-                        account = services.account,
-                        library = services.library,
-                        metadata = services.metadata,
-                        catalogs = services.catalogs,
-                    )
-                }
-            CalendarScreen(
-                viewModel = viewModel,
                 navigator = navigator,
             )
         }

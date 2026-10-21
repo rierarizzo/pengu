@@ -86,25 +86,6 @@ class StremioAddonClient(
         }
     }
 
-    /**
-     * Fetches a catalog that answers with `metasDetailed` instead of `metas` —
-     * Cinemeta's `calendar-videos` and `last-videos`, which return the full meta
-     * (with `videos`) for the ids passed in `extra`.
-     */
-    suspend fun fetchCatalogDetailed(
-        type: String,
-        id: String,
-        extra: Map<String, String>? = null,
-    ): List<MetaDetail> {
-        val json = getJson(catalogUrl(type, id, extra))
-        return offMain {
-            json["metasDetailed"]
-                .arrOrNull()
-                ?.mapNotNull { it.objOrNull()?.let(::metaDetailFromJson) }
-                ?: emptyList()
-        }
-    }
-
     /** Fetches the full metadata for [id], or `null` if the addon has none. */
     suspend fun fetchMeta(
         type: String,

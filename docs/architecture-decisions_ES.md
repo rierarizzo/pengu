@@ -228,8 +228,8 @@ leer/escribir/borrar vive una sola vez.
   por addon (un manifiesto es inmutable, y la caché en disco de abajo lo conserva
   entre arranques cuando el addon declara frescura). La lista de addons se cachea por uuid de perfil, así que la
   sincronización de badges no la reconsulta para cada
-  serie. Los ViewModels con scope de cuenta (Home, Library, Search (y su feed de
-  discover), Calendar) esperan a un perfil antes de cargar en vez de cargar sin
+  serie. Los ViewModels con scope de cuenta (Home, Library, Search y su feed de
+  discover) esperan a un perfil antes de cargar en vez de cargar sin
   él y fallar.
 - **Las respuestas de los addons se cachean en disco.** `createAddonHttpClient()`
   (`data/platform`) instala el `HttpCache` de Ktor sobre un `FileStorage` en el
@@ -537,9 +537,8 @@ leer/escribir/borrar vive una sola vez.
   `safeDrawingPadding`. El shell flota la barra inferior compacta sobre el
   contenido, que corre a sangre por detrás y solo reserva el espacio de las
   barras del sistema, así que la barra puede plegarse al hacer scroll sin dejar
-  hueco; una sección que no scrollea (Calendar) mantiene la altura de la barra, y
-  una ventana ancha reserva el ancho del rail. Las barras de navegación llevan su
-  propio inset; el fondo del detalle, el reproductor y las puertas de
+  hueco, y una ventana ancha reserva el ancho del rail. Las barras de navegación
+  llevan su propio inset; el fondo del detalle, el reproductor y las puertas de
   onboarding/perfil pintan tras las barras mientras sus controles se sientan
   debajo; y el billboard de
   Home se desplaza con el contenido (nunca se fija) en un `Column` +
@@ -686,8 +685,6 @@ leer/escribir/borrar vive una sola vez.
   contenido recorre `AppSizes.scrollCollapseThreshold`. Cambiar de sección o
   abrir/cerrar una ruta la expande de nuevo. El rail ancho nunca se oculta,
   porque es el chrome de la ventana y no una franja flotando sobre el contenido.
-  `AppSection.navigation` es lo que lista el chrome; Calendar conserva su ruta y
-  su pantalla pero queda fuera mientras su reescritura como agenda está pendiente.
 - **El selector de streams lista fuentes, no artwork.** `StreamsDialog` abre como
   bottom sheet en un teléfono y como diálogo en una ventana ancha (desktop nunca
   usa sheet, igual que los selects de ajustes), y ambos alojan el mismo
@@ -733,9 +730,7 @@ leer/escribir/borrar vive una sola vez.
   y se deduplican, así que la rejilla alterna fuentes en vez de mostrar un
   catálogo como un bloque. Pagina con `skip` según se desplaza la rejilla, así
   que sigue creciendo en vez de parar en la primera página. Discover ya no es una
-  sección. **Calendar** pinta una rejilla mensual con los próximos episodios de
-  las series de la Library, y queda fuera de la navegación hasta que llegue su
-  reescritura como agenda; ver la limitación más abajo.
+  sección.
 - **El tema** sigue Material 3 y es dato, no código. `BrandPalette`
   (`theme/Tokens.kt`) es una data class con los colores crudos de la app,
   publicada como la única `CoffeePalette`; `PenguTheme` la proporciona por
@@ -748,8 +743,8 @@ leer/escribir/borrar vive una sola vez.
   `LocalBrandPalette`. No hay ajuste de tema: la paleta es fija hasta que
   merezca la pena añadir una segunda. La tipografía
   cargada desde Compose Resources (IBM Plex Sans por defecto, Inter como
-  alternativa, elegida en Ajustes → Apariencia) y la escala de formas pequeña y tirando a
-  cuadrada (`AppCorner` alimenta `MaterialTheme.shapes`: 1/2/3/4/6dp; la app se
+  alternativa, elegida en Ajustes → Apariencia) y la escala de formas pequeña y
+  tirando a cuadrada (`AppCorner` alimenta `MaterialTheme.shapes`: 1/2/3/4/6dp; la app se
   lee cuadrada, no redondeada) no dependen de la paleta. Los diálogos y las bottom
   sheets usan la misma escala (`shapes.extraLarge` y `AppBottomSheetShape`) en
   vez del default de 28dp de Material. La UI lee colores semánticos
@@ -1133,16 +1128,6 @@ cubre los stores de fichero y los repositorios locales. El `commonTest` de
   Ajustes → Addons (instalar, activar, reordenar y eliminar). El modo local
   mantiene su lista fija de `PENGU_LOCAL_ADDONS` en solo lectura, porque no hay
   backend donde escribir.
-- **Calendar** usa una convención de Cinemeta cuando un addon la expone: un
-  catálogo `calendar-videos` (Cinemeta y AIOMetadata lo declaran) devuelve
-  `metasDetailed` — la meta completa por serie — para las series de la biblioteca
-  en una sola petición, que es por lo que existe
-  `CatalogRepository.detailedItems`. Cuando ningún addon la expone, la sección
-  cae a resolver cada serie a través de los addons de metadata tras un semáforo,
-  para que los primeros episodios aparezcan sin esperar al más lento. En
-  cualquier caso solo se conservan los episodios dentro de una ventana móvil de
-  180 días, se saltan los episodios sin fecha de estreno, y la rejilla llena la
-  ventana en vez de desplazarse.
 
 ## Bugs conocidos
 

@@ -55,9 +55,8 @@ import org.jetbrains.compose.resources.stringResource
  *
  * The compact bottom bar floats over the content, which runs edge-to-edge behind
  * it, so the bar can fold away on scroll without leaving a gap and without the
- * content viewport ever changing (resizing it would clamp a section's scroll). A
- * section that does not scroll, such as Calendar, keeps the bar's height and stays
- * clear of it instead. Pushed routes use the full window and let the navigation
+ * content viewport ever changing (resizing it would clamp a section's scroll).
+ * Pushed routes use the full window and let the navigation
  * fade away.
  */
 @Composable

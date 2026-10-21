@@ -15,10 +15,4 @@ object CatalogExtras {
 
     /** Genre filter. */
     const val GENRE = "genre"
-
-    /**
-     * Cinemeta's parameter carrying the ids a `calendar-videos` catalog should
-     * answer for.
-     */
-    const val CALENDAR_VIDEO_IDS = "calendarVideosIds"
 }

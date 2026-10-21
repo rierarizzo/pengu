@@ -26,7 +26,7 @@ import com.misgus.pengu.ui.theme.motionLayer
 import com.misgus.pengu.ui.theme.motionTween
 
 /**
- * Icon-only action: a header control (back, refresh, close, calendar paging), a
+ * Icon-only action: a header control (back, refresh, close, see all), a
  * player control, or a toggle such as the detail screen's save/rate/watched.
  *
  * Material's `IconButton` paints a state-layer box around the glyph, which reads

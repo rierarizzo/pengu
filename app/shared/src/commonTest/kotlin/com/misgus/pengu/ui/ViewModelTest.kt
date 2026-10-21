@@ -4,7 +4,6 @@ import com.misgus.pengu.core.model.BackendProfile
 import com.misgus.pengu.core.model.ContentType
 import com.misgus.pengu.core.model.Episode
 import com.misgus.pengu.core.model.LibraryItem
-import com.misgus.pengu.core.model.MetaDetail
 import com.misgus.pengu.core.model.MetaPreview
 import com.misgus.pengu.core.model.Season
 import com.misgus.pengu.core.model.TmdbMediaType
@@ -642,11 +641,6 @@ class HomeViewModelTest {
             if (call > 0) releaseSecondCall.await()
             return if (call == 0) first else second
         }
-
-        override suspend fun detailedItems(
-            ref: CatalogRef,
-            extra: Map<String, String>?,
-        ): List<MetaDetail> = emptyList()
     }
 
     private fun watchProgress(

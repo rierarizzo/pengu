@@ -218,7 +218,7 @@ so the atomic read/write/delete logic lives once.
   declares freshness). The addon list
   is cached per profile uuid, so the watched-badge sync does not re-query it for
   every series. Account-scoped ViewModels (Home,
-  Library, Search (and its discover feed), Calendar) wait for a profile before
+  Library, Search and its discover feed) wait for a profile before
   loading rather than loading without one and failing.
 - **Addon responses are cached on disk.** `createAddonHttpClient()`
   (`data/platform`) installs Ktor's `HttpCache` over a `FileStorage` in the
@@ -504,10 +504,9 @@ so the atomic read/write/delete logic lives once.
   `statusBarsPadding` / `navigationBarsPadding` / `safeDrawingPadding`
   modifiers. The shell floats the compact bottom bar over the content, which runs
   edge-to-edge behind it and keeps only the system bars' space, so the bar can
-  fold away on scroll without leaving a gap; a non-scrolling section (Calendar)
-  keeps the bar's height, and a wide window reserves the rail's width. The
-  navigation bars carry their own inset; the detail backdrop, the
-  player and the onboarding/profile gates paint behind the bars while their
+  fold away on scroll without leaving a gap, and a wide window reserves the
+  rail's width. The navigation bars carry their own inset; the detail backdrop,
+  the player and the onboarding/profile gates paint behind the bars while their
   controls sit below them; and the Home billboard scrolls with the content (it
   is never pinned) in a plain `Column` + `verticalScroll`, not a `LazyColumn`:
   lazy recycling re-composes each row (and disposes the hero) as it crosses the
@@ -644,9 +643,7 @@ so the atomic read/write/delete logic lives once.
   flips it once the content has travelled `AppSizes.scrollCollapseThreshold`.
   Switching a section or opening/leaving a route expands it again. The wide rail
   never scrolls away, since it is the window's chrome rather than a strip
-  floating over the content. `AppSection.navigation` is what the chrome lists;
-  Calendar keeps its route and screen but stays out of it while its agenda
-  rewrite is pending.
+  floating over the content.
 - **The stream picker lists sources, not artwork.** `StreamsDialog` opens as a
   bottom sheet on a phone and as a dialog on a wider window (desktop never gets a
   sheet, matching the settings selects), and both host the same `StreamsPanel`, so
@@ -689,9 +686,7 @@ so the atomic read/write/delete logic lives once.
   interleaved round-robin and deduped, so the grid alternates sources instead of
   showing one catalog as a block. It pages with `skip` as the grid is scrolled,
   so it keeps growing instead of stopping at the first page. Discover is no
-  longer a section. **Calendar** paints a month grid with the upcoming
-  episodes of the Library's series, and is kept out of the navigation until its
-  agenda rewrite lands; see the limitation below.
+  longer a section.
 - **Theme** follows Material 3 and is data, not code. `BrandPalette`
   (`theme/Tokens.kt`) is a data class holding the app's raw colours, shipped as
   the single `CoffeePalette`; `PenguTheme` provides it through
@@ -702,9 +697,9 @@ so the atomic read/write/delete logic lives once.
   mirrors the accent, so no cold hue sneaks into the warm palette. The scrims
   and the native window chrome read `LocalBrandPalette` too. There is no theme
   setting: the palette is fixed until a second one is worth adding. The typeface
-  loaded from
-  Compose Resources (IBM Plex Sans by default, Inter as the alternative, picked in
-  Settings → Appearance) and the small, square-ish shape scale (`AppCorner` feeds
+  loaded from Compose Resources (IBM Plex Sans by default, Inter as the
+  alternative, picked in Settings → Appearance) and the small, square-ish shape
+  scale (`AppCorner` feeds
   `MaterialTheme.shapes`: 1/2/3/4/6dp; the app reads square, not rounded) stay
   palette-independent. Dialogs and bottom sheets take the same scale
   (`shapes.extraLarge` and `AppBottomSheetShape`) instead of Material's 28dp
@@ -1053,15 +1048,6 @@ parsing, badge resolver with fakes) and the defensive parsers/mappers.
 - The Nuvio addon metadata/edit screens are available from Settings → Addons
   (install, enable, reorder and remove). Local mode keeps its fixed
   `PENGU_LOCAL_ADDONS` list read-only, because there is no backend to write to.
-- **Calendar** uses a Cinemeta convention when an addon exposes it: a
-  `calendar-videos` catalog (Cinemeta and AIOMetadata declare it) returns
-  `metasDetailed` — the full meta per series — for the library's series in one
-  request, which is why `CatalogRepository.detailedItems` exists. When no addon
-  exposes it, the section falls back to resolving each series through the
-  metadata addons behind a semaphore, so the first episodes appear without
-  waiting for the slowest one. Either way only episodes inside a rolling 180-day
-  window are kept, episodes without a release date are skipped, and the grid
-  fills the window instead of scrolling.
 
 ## Known bugs
 

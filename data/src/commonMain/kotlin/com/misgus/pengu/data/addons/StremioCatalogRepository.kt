@@ -3,7 +3,6 @@ package com.misgus.pengu.data.addons
 import com.misgus.pengu.core.model.Addon
 import com.misgus.pengu.core.model.ContentType
 import com.misgus.pengu.core.model.ContentTypes
-import com.misgus.pengu.core.model.MetaDetail
 import com.misgus.pengu.core.model.MetaPreview
 import com.misgus.pengu.core.repository.AddonRepository
 import com.misgus.pengu.core.repository.CatalogRef
@@ -62,9 +61,4 @@ class StremioCatalogRepository internal constructor(
         ref: CatalogRef,
         extra: Map<String, String>?,
     ): List<MetaPreview> = clients.clientFor(ref.addonBaseUrl).fetchCatalog(ref.type.value, ref.id, extra)
-
-    override suspend fun detailedItems(
-        ref: CatalogRef,
-        extra: Map<String, String>?,
-    ): List<MetaDetail> = clients.clientFor(ref.addonBaseUrl).fetchCatalogDetailed(ref.type.value, ref.id, extra)
 }

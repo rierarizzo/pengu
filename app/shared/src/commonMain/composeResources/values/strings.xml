@@ -80,33 +80,6 @@
     <string name="content_type_movie">Movie</string>
     <string name="content_type_series">Series</string>
 
-    <!-- Calendar -->
-    <string name="calendar_error_title">Could not load the calendar</string>
-    <string name="calendar_no_upcoming">No upcoming episodes</string>
-    <string name="calendar_no_upcoming_message">The series in your library have no announced episodes in the coming months.</string>
-    <string name="calendar_prev_month">Previous month</string>
-    <string name="calendar_next_month">Next month</string>
-    <string name="calendar_more">+%1$d more</string>
-    <string name="weekday_mon">Mon</string>
-    <string name="weekday_tue">Tue</string>
-    <string name="weekday_wed">Wed</string>
-    <string name="weekday_thu">Thu</string>
-    <string name="weekday_fri">Fri</string>
-    <string name="weekday_sat">Sat</string>
-    <string name="weekday_sun">Sun</string>
-    <string name="month_january">January</string>
-    <string name="month_february">February</string>
-    <string name="month_march">March</string>
-    <string name="month_april">April</string>
-    <string name="month_may">May</string>
-    <string name="month_june">June</string>
-    <string name="month_july">July</string>
-    <string name="month_august">August</string>
-    <string name="month_september">September</string>
-    <string name="month_october">October</string>
-    <string name="month_november">November</string>
-    <string name="month_december">December</string>
-
     <!-- Player -->
     <string name="player_pause">Pause</string>
     <string name="player_back_10">Back 10 seconds</string>
