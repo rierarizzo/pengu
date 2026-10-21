@@ -183,13 +183,22 @@ leer/escribir/borrar vive una sola vez.
   (`MetadataEnrichment.kt`): el billboard de Home *rellena huecos*, así que TMDB
   solo añade lo que el preview del catálogo dejó vacío y el billboard pinta de
   inmediato; la **pantalla de detalle da prioridad a TMDB**, porque ahí una sola
-  fuente consistente vale más que el primer pintado más rápido. Allí,
-  `DetailUiState.isResolvingArtwork` impide que el hero pinte nada — artwork,
-  logo, línea de metadata, sinopsis — hasta que ha llegado el merge con todas las
-  fuentes, así que un teléfono pasa directo de nada al póster sin texto y nunca
-  muestra antes el backdrop del addon (la misma razón por la que la sinopsis ya
-  reservaba su espacio en vez de enseñar el copy del preview). El addon conserva
-  la nota IMDb, que este payload de TMDB no trae.
+  fuente consistente vale más que el primer pintado más rápido. Allí la página
+  se publica **una sola vez**, cuando ya respondieron el addon y TMDB
+  (`DetailUiState.hasLoaded`), así que nada se pinta desde una fuente y se
+  repinta desde otra: el hero (artwork, logo, línea de metadata, sinopsis), las
+  filas de cast y crew, la tabla de detalles y las tarjetas de episodio son
+  finales la primera vez que aparecen, y un teléfono pasa directo de nada al
+  póster sin texto (la misma razón por la que la sinopsis ya reservaba su espacio
+  en vez de enseñar el copy del preview). TMDB también
+  aporta el crew — dirección y guion, leído de `credits` en una película y de
+  `aggregate_credits` en una serie, que es la única forma que conserva los roles
+  cuando se juntan los directores de todos los episodios —, y el addon conserva
+  solo lo que direcciona el playback. El nombre localizado de TMDB también gana
+  al del addon, así la página nombra el título igual que su arte y su texto. La
+  nota es el único campo que hace de fallback en la otra dirección: TMDB trae la
+  nota de su público, no la de IMDb, así que solo rellena cuando ningún addon
+  reportó una, la misma regla que usa el cliente de Nuvio.
   `TmdbMetadataRepository`
   resuelve cualquier content id a uno de TMDB — un id `tmdb:` explícito,
   IMDb/TVDB vía `/find`, y si no una búsqueda por título y año que rechaza un
@@ -198,9 +207,9 @@ leer/escribir/borrar vive una sola vez.
   los addons con el id de IMDb que TMDB reporta, y ese id pasa a manejar sus
   streams, así que un preview `tmdb:` igual reproduce. Tanto el id resuelto como
   el payload se cachean durante el proceso.
-  La respuesta del addon se publica primero y el enriquecimiento llega justo
-  después, así que una búsqueda lenta nunca retrasa los datos de la página (solo
-  su pintado). La fila "More like
+  La respuesta del addon y el enriquecimiento se esperan juntos, así que una
+  búsqueda lenta retrasa la página en vez de ser pintada por encima. La fila
+  "More like
   this" se construye con las recomendaciones de TMDB (su lista similar como
   respaldo) y cae al catálogo similar del addon cuando no hay clave o no hay
   match. Sin clave el repositorio corta y ninguna petición sale de la app. La
@@ -519,6 +528,42 @@ leer/escribir/borrar vive una sola vez.
   siendo alcanzable en vez de amontonar la cabecera. El rail de episodios vuelve
   a su primera tarjeta al cambiar de temporada, así pasar de S1 a mitad de lista
   no abre S2 en el mismo offset.
+- **La tarjeta de un episodio es un still 16:9 más el texto que los addons no
+  traen.** La tarjeta mide 320dp y lleva el still, el título, una línea separada
+  por puntos (nota, duración, fecha de emisión) y hasta tres líneas de sinopsis
+  con dos siempre reservadas, así el rail solo crece hasta la tarjeta más alta de
+  la temporada y una sinopsis corta no encoge su tarjeta. Un móvil baja el ancho
+  con el `COMPACT_SCALE` de los rails de pósters, así una tarjeta de episodio
+  queda en proporción con los pósters de arriba y de abajo en vez de llenar la
+  pantalla. Un video de Stremio no
+  tiene sinopsis, nota ni duración, así que eso viene de TMDB:
+  `TmdbRepository.season` pide `/tv/{id}/season/{n}`, y el selector de episodios
+  solo carga la temporada abierta, cacheada por temporada en el ViewModel
+  (`DetailUiState.episodeDetails`, con la temporada como clave) y por payload en
+  `TmdbMetadataRepository`, así moverse entre temporadas cuesta una petición por
+  cada una y los ids de episodio que abren los streams siguen siendo los del
+  addon. El parser sigue leyendo `overview`/`description`, `runtime` y `rating`
+  de un video cuando un addon los manda fuera de esquema; ese texto se usa
+  primero porque ya está y es final, y TMDB rellena solo lo que falta. La nota es
+  la del público de TMDB, no la de IMDb: los addons no publican nota por
+  episodio, y a diferencia de la del hero aquí no hay a qué recurrir. Mientras la
+  temporada abierta está en vuelo, el rail pinta
+  tarjetas del tamaño de una real y vacías (`EpisodeCardSkeleton`, guiado por
+  `DetailUiState.seasonsLoading`) en vez del still y el título del addon, que
+  TMDB reemplazaría un momento después — la misma regla de un solo autor que el
+  resto de la página sigue con `hasLoaded`. Las tarjetas siguen siendo pulsables:
+  abrir los streams no depende de ese texto. Sin clave nadie espera, porque la
+  respuesta del addon ya es la final. La tarjeta también marca el estado de
+  visionado: el `WatchedBadge` compartido cuando la cuenta marcó el episodio (o
+  el título entero), y la barra de `LinearProgressIndicator` de la app en el
+  borde inferior del still cuando la reproducción quedó a medias.
+  `episodeWatchState` (`DetailSections.kt`) construye ambas cosas desde
+  `ProgressRepository`: un episodio reproducido más allá de
+  `ProgressThresholds.COMPLETION` cuenta como visto, el mismo umbral que usan los
+  badges de los pósters, y un episodio visto pierde su barra — una barra y un
+  check dicen lo mismo dos veces. El rail lo lee por su cuenta, siguiendo el
+  flujo `changes` del repositorio, porque solo este rail lo muestra y el toggle de
+  visto del hero es optimista y vive en `DetailScreen`.
 - **La página de detalle lista la metadata como una tabla.** La sección
   "Details" renderiza filas de etiqueta/valor — Released, Country, Status,
   Original language, Seasons, Episodes, Budget y Revenue — separadas por un

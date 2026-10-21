@@ -2,6 +2,7 @@ package com.misgus.pengu.core.repository
 
 import com.misgus.pengu.core.model.ContentType
 import com.misgus.pengu.core.model.MetaPreview
+import com.misgus.pengu.core.model.TmdbEpisode
 import com.misgus.pengu.core.model.TmdbTitle
 
 /**
@@ -49,6 +50,18 @@ interface TmdbRepository {
      */
     suspend fun recommendations(request: TmdbLookup): List<MetaPreview>
 
+    /**
+     * The copy TMDB has for season [seasonNumber] of [request]: synopsis, score,
+     * runtime and still for each episode, which the addon's videos do not carry.
+     *
+     * Empty when unconfigured, unmatched, unreachable, or when the title is not
+     * a series.
+     */
+    suspend fun season(
+        request: TmdbLookup,
+        seasonNumber: Int,
+    ): List<TmdbEpisode>
+
     /** Checks [apiKey] against TMDB, for the settings screen's "Test" action. */
     suspend fun verify(apiKey: String): TmdbVerifyResult
 }
@@ -60,6 +73,11 @@ class NoTmdbRepository : TmdbRepository {
     override suspend fun lookup(request: TmdbLookup): TmdbTitle? = null
 
     override suspend fun recommendations(request: TmdbLookup): List<MetaPreview> = emptyList()
+
+    override suspend fun season(
+        request: TmdbLookup,
+        seasonNumber: Int,
+    ): List<TmdbEpisode> = emptyList()
 
     override suspend fun verify(apiKey: String): TmdbVerifyResult = TmdbVerifyResult.UNREACHABLE
 }

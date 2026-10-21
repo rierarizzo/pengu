@@ -41,6 +41,10 @@ data class MetaDetail(
     val textlessPoster: String? = null,
     val description: String? = null,
     val releaseInfo: String? = null,
+    /**
+     * IMDb score from the addons, or TMDB's audience score when no addon had one
+     * (see [withTmdbPriority]).
+     */
     val imdbRating: Double? = null,
     /** Runtime as the metadata source spells it (Stremio's `1 h 37 min`). */
     val runtime: String? = null,
@@ -83,6 +87,16 @@ data class MetaVideo(
     val number: Int? = null,
     val released: String? = null,
     val thumbnail: String? = null,
+    /**
+     * Synopsis, on the rare addon that sends one.
+     *
+     * The Stremio video object does not define it, so it is off-schema; the
+     * detail page falls back to TMDB when it is missing.
+     */
+    val description: String? = null,
+    val runtimeMinutes: Int? = null,
+    /** Audience score out of 10, when the addon sends one. */
+    val rating: Double? = null,
 )
 
 /** One person of a [MetaDetail]'s cast or crew. */

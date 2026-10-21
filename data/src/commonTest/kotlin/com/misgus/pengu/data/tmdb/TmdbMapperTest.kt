@@ -6,6 +6,7 @@ import com.misgus.pengu.data.appJson
 import kotlinx.serialization.json.jsonObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 class TmdbMapperTest {
     @Test
@@ -29,6 +30,31 @@ class TmdbMapperTest {
         assertEquals(63_000_000L, title.budget)
         assertEquals(467_678_144L, title.revenue)
         assertEquals("Keanu Reeves", title.cast.single().name)
+        assertEquals(listOf("Lana Wachowski"), title.director)
+        assertEquals(listOf("Lilly Wachowski"), title.writer)
+        assertEquals(8.2, title.voteAverage)
+    }
+
+    @Test
+    fun readsTheAggregatedCrewOfASeries() {
+        val title =
+            tmdbTitleFromJson(
+                appJson
+                    .parseToJsonElement(
+                        """
+                        {"id":1399,"name":"Show","aggregate_credits":{"crew":[
+                          {"name":"Director A","jobs":[{"job":"Director","episode_count":5}]},
+                          {"name":"Writer A","jobs":[{"job":"Writer"},{"job":"Creator"}]},
+                          {"name":"Producer B","jobs":[{"job":"Producer"}]}
+                        ]}}
+                        """.trimIndent(),
+                    ).jsonObject,
+                TmdbMediaType.SERIES,
+                "en-US",
+            )
+
+        assertEquals(listOf("Director A"), title.director)
+        assertEquals(listOf("Writer A"), title.writer)
     }
 
     @Test
@@ -56,6 +82,38 @@ class TmdbMapperTest {
         assertEquals("2003", preview?.releaseInfo)
     }
 
+    @Test
+    fun mapsSeasonEpisodesAndDropsTheUnnumberedOnes() {
+        val episodes =
+            tmdbEpisodesFromJson(
+                appJson
+                    .parseToJsonElement(
+                        """
+                        {"episodes":[
+                          {"episode_number":1,"season_number":2,"name":"Pilot","overview":"Where it starts",
+                           "runtime":52,"vote_average":8.4,"still_path":"/still.jpg","air_date":"2024-03-01"},
+                          {"episode_number":2,"season_number":2,"overview":"","runtime":0,"vote_average":0.0},
+                          {"season_number":2,"name":"Cannot be matched"}
+                        ]}
+                        """.trimIndent(),
+                    ).jsonObject,
+            )
+
+        assertEquals(listOf(1, 2), episodes.map { it.episodeNumber })
+        val first = episodes.first()
+        assertEquals(2, first.seasonNumber)
+        assertEquals("Pilot", first.name)
+        assertEquals("Where it starts", first.overview)
+        assertEquals(52, first.runtimeMinutes)
+        assertEquals(8.4, first.rating)
+        assertEquals("https://image.tmdb.org/t/p/w780/still.jpg", first.still)
+        assertEquals("2024-03-01", first.airDate)
+        // An empty overview, a zero runtime and a zeroed score are "no value".
+        assertNull(episodes[1].overview)
+        assertNull(episodes[1].runtimeMinutes)
+        assertNull(episodes[1].rating)
+    }
+
     private fun detailJson() =
         appJson.parseToJsonElement(
             """
@@ -74,7 +132,15 @@ class TmdbMapperTest {
               "genres": [{"id": 28, "name": "Action"}],
               "production_countries": [{"iso_3166_1": "US", "name": "United States of America"}],
               "external_ids": {"imdb_id": "tt0133093"},
-              "credits": {"cast": [{"name": "Keanu Reeves", "character": "Neo", "profile_path": "/neo.jpg"}]},
+              "vote_average": 8.2,
+              "credits": {
+                "cast": [{"name": "Keanu Reeves", "character": "Neo", "profile_path": "/neo.jpg"}],
+                "crew": [
+                  {"name": "Lana Wachowski", "job": "Director"},
+                  {"name": "Lilly Wachowski", "job": "Screenplay"},
+                  {"name": "Joel Silver", "job": "Producer"}
+                ]
+              },
               "images": {
                 "posters": [
                   {"file_path": "/poster_es.jpg", "iso_639_1": "es", "vote_average": 3.0, "vote_count": 4, "width": 1000},

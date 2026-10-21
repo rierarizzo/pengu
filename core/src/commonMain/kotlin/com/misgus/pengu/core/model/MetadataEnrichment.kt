@@ -34,11 +34,12 @@ fun MetaPreview.enrichedWith(tmdb: TmdbTitle?): MetaPreview {
  * Merges [tmdb] over a detail record, TMDB first.
  *
  * The detail page uses this rule, not [enrichedWith]'s: when TMDB knows the
- * title, its artwork and copy are what the page shows, so no image is painted
- * from the addon and swapped a moment later. The addon keeps what is not
- * presentation — [MetaDetail.id] and [MetaDetail.videos], which is what the
- * stream and subtitle addons are queried with — and the IMDb score, which this
- * TMDB payload does not carry.
+ * title, its artwork, name and copy are what the page shows, so no image or
+ * string is painted from the addon and swapped a moment later. The addon keeps
+ * what is not presentation — [MetaDetail.id] and [MetaDetail.videos], which is
+ * what the stream and subtitle addons are queried with. The IMDb score is the
+ * addon's when it has one, because TMDB carries an audience score instead; that
+ * score is only the fallback.
  *
  * A `null` receiver with a TMDB hit yields the TMDB record alone, so a title no
  * addon knows still renders a full page. When both are `null` the result is
@@ -48,15 +49,22 @@ fun MetaDetail?.withTmdbPriority(tmdb: TmdbTitle?): MetaDetail? {
     if (tmdb == null) return this
     val base = this ?: tmdb.toMetaDetail()
     return base.copy(
+        // The localized title TMDB answers with, so the page names the title the
+        // way its artwork and copy do.
+        name = tmdb.title.ifEmpty { base.name },
         poster = tmdb.poster.nonEmpty() ?: base.poster,
         background = tmdb.backdrop.nonEmpty() ?: base.background,
         logo = tmdb.logo.nonEmpty() ?: base.logo,
         textlessPoster = tmdb.textlessPoster.nonEmpty() ?: base.textlessPoster,
         description = tmdb.overview.nonEmpty() ?: base.description,
         releaseInfo = tmdb.releaseInfo() ?: base.releaseInfo,
+        // IMDb when an addon reported it; TMDB's audience score otherwise.
+        imdbRating = base.imdbRating ?: tmdb.voteAverage,
         runtimeMinutes = tmdb.runtimeMinutes ?: base.runtimeMinutes,
         genres = tmdb.genres.ifEmpty { base.genres },
         cast = tmdb.cast.ifEmpty { base.cast },
+        director = tmdb.director.ifEmpty { base.director },
+        writer = tmdb.writer.ifEmpty { base.writer },
         released = tmdb.releaseDate.nonEmpty() ?: base.released,
         country = tmdb.country() ?: base.country,
         status = tmdb.status.nonEmpty() ?: base.status,
@@ -80,9 +88,12 @@ fun TmdbTitle.toMetaDetail(): MetaDetail =
         textlessPoster = textlessPoster,
         description = overview,
         releaseInfo = releaseInfo(),
+        imdbRating = voteAverage,
         runtimeMinutes = runtimeMinutes,
         genres = genres,
         cast = cast,
+        director = director,
+        writer = writer,
         released = releaseDate,
         country = country(),
         status = status,

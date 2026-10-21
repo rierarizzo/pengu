@@ -22,6 +22,9 @@ class MetadataEnrichmentTest {
             genres = listOf("Action"),
             countries = listOf("United States of America"),
             cast = listOf(MetaPerson("Keanu Reeves", "Neo", "https://img/neo.jpg")),
+            director = listOf("Lana Wachowski"),
+            writer = listOf("Lilly Wachowski"),
+            voteAverage = 8.2,
             imdbId = "tt0133093",
         )
 
@@ -120,6 +123,29 @@ class MetadataEnrichmentTest {
         assertEquals("1999", merged.releaseInfo)
         assertEquals("1999-03-31", merged.released)
         assertEquals("United States of America", merged.country)
+    }
+
+    @Test
+    fun aDetailTakesTmdbCrewAndTheAudienceScoreOnlyAsAFallback() {
+        val detail =
+            MetaDetail(
+                id = "tt0133093",
+                type = ContentTypes.MOVIE,
+                name = "The Matrix from the addon",
+                director = listOf("Addon Director"),
+                writer = listOf("Addon Writer"),
+            )
+
+        val merged = detail.withTmdbPriority(tmdb)
+
+        assertNotNull(merged)
+        // TMDB's localized name wins, like its artwork and copy.
+        assertEquals("The Matrix", merged.name)
+        // TMDB's crew wins over the addon's, the same as its artwork does.
+        assertEquals(listOf("Lana Wachowski"), merged.director)
+        assertEquals(listOf("Lilly Wachowski"), merged.writer)
+        // The addon reported no IMDb score, so TMDB's audience score fills the gap.
+        assertEquals(8.2, merged.imdbRating)
     }
 
     @Test

@@ -16,7 +16,7 @@ import com.misgus.pengu.core.repository.PosterSize
 const val POSTER_ART_ASPECT = 2f / 3f
 
 /** How much a poster shrinks on a compact window (phone). */
-private const val COMPACT_SCALE = 0.65f
+internal const val COMPACT_SCALE = 0.65f
 
 /** The width the user chose, before the window is taken into account. */
 private val PosterSize.nominalCellWidth: Dp

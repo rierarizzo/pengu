@@ -145,6 +145,37 @@ class StremioParsersTest {
     }
 
     @Test
+    fun readsTheOffSchemaEpisodeCopySomeAddonsSend() {
+        val json =
+            buildJsonObject {
+                put("id", "tt1")
+                put("type", "series")
+                put("name", "Show")
+                put(
+                    "videos",
+                    buildJsonArray {
+                        add(
+                            buildJsonObject {
+                                put("id", "tt1:1:1")
+                                put("title", "Pilot")
+                                put("season", 1)
+                                put("episode", 1)
+                                put("overview", "Where it starts")
+                                put("runtime", 52)
+                                put("rating", 8.1)
+                            },
+                        )
+                    },
+                )
+            }
+        val episode = metaDetailFromJson(json).videos.single()
+
+        assertEquals("Where it starts", episode.description)
+        assertEquals(52, episode.runtimeMinutes)
+        assertEquals(8.1, episode.rating)
+    }
+
+    @Test
     fun parsesStreamDescriptionAndProxyHeaders() {
         val json =
             buildJsonObject {

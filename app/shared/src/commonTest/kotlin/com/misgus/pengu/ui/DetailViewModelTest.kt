@@ -4,6 +4,7 @@ import com.misgus.pengu.core.model.ContentTypes
 import com.misgus.pengu.core.model.LibraryItem
 import com.misgus.pengu.core.model.MetaDetail
 import com.misgus.pengu.core.model.MetaPreview
+import com.misgus.pengu.core.model.TmdbEpisode
 import com.misgus.pengu.core.model.TmdbMediaType
 import com.misgus.pengu.core.model.TmdbTitle
 import com.misgus.pengu.ui.detail.DetailViewModel
@@ -112,17 +113,16 @@ class DetailViewModelTest {
             viewModel.load()
             advanceUntilIdle()
 
-            // The addon answered, and the page still refuses to paint: a TMDB
-            // answer with priority is on its way.
+            // A TMDB answer with priority is still on its way, so the page holds
+            // the whole state back instead of painting the addon's.
             val waiting = viewModel.state.value
-            assertEquals("Movie", waiting.name)
-            assertTrue(waiting.isResolvingArtwork)
+            assertFalse(waiting.hasLoaded)
 
             gate.complete(Unit)
             advanceUntilIdle()
 
             val settled = viewModel.state.value
-            assertFalse(settled.isResolvingArtwork)
+            assertTrue(settled.hasLoaded)
             assertEquals("https://img/textless.jpg", settled.textlessPoster)
         }
 
@@ -140,7 +140,7 @@ class DetailViewModelTest {
             advanceUntilIdle()
 
             val state = viewModel.state.value
-            assertFalse(state.isResolvingArtwork)
+            assertTrue(state.hasLoaded)
             assertEquals("From the addon", state.description)
         }
 
@@ -165,6 +165,40 @@ class DetailViewModelTest {
 
             assertEquals("The Matrix", viewModel.state.value.name)
             assertEquals("https://img/backdrop.jpg", viewModel.state.value.background)
+        }
+
+    @Test
+    fun loadsTheEpisodeCopyOfTheSeasonAsked() =
+        runTest(dispatcher) {
+            val episodes = listOf(TmdbEpisode(seasonNumber = 1, episodeNumber = 1, overview = "From TMDB"))
+            val tmdb = FakeTmdbRepository(seasons = mapOf(1 to episodes))
+            val viewModel = DetailViewModel(FakeMetadataRepository(), tmdb, item())
+
+            viewModel.loadSeason(1)
+            // The picker is told the season is in flight before the answer lands,
+            // so it reserves the cards instead of painting them twice.
+            assertTrue(1 in viewModel.state.value.seasonsLoading)
+            // A second visit to the same season is not another request.
+            viewModel.loadSeason(1)
+            advanceUntilIdle()
+
+            val settled = viewModel.state.value
+            assertEquals(mapOf(1 to episodes), settled.episodeDetails)
+            assertTrue(settled.seasonsLoading.isEmpty())
+            assertEquals(listOf(1), tmdb.seasonsLoaded)
+        }
+
+    @Test
+    fun asksForNoEpisodeCopyWithoutAKey() =
+        runTest(dispatcher) {
+            val tmdb = FakeTmdbRepository(isConfigured = false)
+            val viewModel = DetailViewModel(FakeMetadataRepository(), tmdb, item())
+
+            viewModel.loadSeason(1)
+            advanceUntilIdle()
+
+            assertEquals(emptyMap(), viewModel.state.value.episodeDetails)
+            assertEquals(emptyList(), tmdb.seasonsLoaded)
         }
 
     @Test
@@ -231,6 +265,7 @@ class DetailViewModelTest {
 
             // Streams use the id every addon understands, not the tmdb: one.
             assertEquals("tt0133093", viewModel.state.value.contentId)
-            assertEquals("From the addon", viewModel.state.value.name)
+            // The page names the title the way TMDB does, like its artwork.
+            assertEquals("The Matrix", viewModel.state.value.name)
         }
 }

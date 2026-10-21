@@ -222,6 +222,7 @@ fun DetailScreen(
                     state = state,
                     item = item,
                     openStreams = openStreams,
+                    onLoadSeason = viewModel::loadSeason,
                     onOpenDetail = onOpenDetail,
                 )
             }
@@ -257,11 +258,11 @@ private fun DetailBackdrop(
     val compact = LocalWindowSize.current == WindowSize.COMPACT
     // A phone crops a wide backdrop too aggressively, so it prefers the
     // language-neutral poster; the wide billboard keeps the backdrop. Nothing is
-    // painted while the enrichment is in flight, so the page never shows the
-    // addon's image and then swaps it for TMDB's.
+    // painted before the load lands, so the page never shows the addon's image
+    // and then swaps it for TMDB's.
     val artwork =
         when {
-            state.isResolvingArtwork -> null
+            !state.hasLoaded -> null
             compact -> state.textlessPoster ?: state.background ?: state.poster
             else -> state.background ?: state.poster
         }
@@ -312,7 +313,7 @@ private fun HeroContent(
         // logo, line or synopsis is swapped a moment after it appears. The action
         // buttons stay live the whole time: library and watched are unrelated to
         // which metadata answered.
-        val settled = state.hasLoaded && !state.isResolvingArtwork
+        val settled = state.hasLoaded
         Column(
             modifier =
                 Modifier

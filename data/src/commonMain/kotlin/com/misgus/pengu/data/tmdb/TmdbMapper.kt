@@ -3,6 +3,7 @@ package com.misgus.pengu.data.tmdb
 import com.misgus.pengu.core.model.ContentType
 import com.misgus.pengu.core.model.MetaPerson
 import com.misgus.pengu.core.model.MetaPreview
+import com.misgus.pengu.core.model.TmdbEpisode
 import com.misgus.pengu.core.model.TmdbMediaType
 import com.misgus.pengu.core.model.TmdbTitle
 import com.misgus.pengu.core.model.releaseYear
@@ -39,6 +40,10 @@ internal fun tmdbTitleFromJson(
     language: String,
 ): TmdbTitle {
     val images = json["images"].objOrNull()
+    // A series answers the aggregate form of the crew (one entry per person, with
+    // every job they held); a movie answers the plain one. Both shapes are read
+    // by [crewNames], so whichever arrives is enough.
+    val crew = json["aggregate_credits"].objOrNull()?.takeIf { it["crew"].arrOrNull()?.isNotEmpty() == true } ?: json["credits"].objOrNull()
     return TmdbTitle(
         tmdbId = json["id"].intOrNull() ?: 0,
         mediaType = mediaType,
@@ -59,6 +64,9 @@ internal fun tmdbTitleFromJson(
         budget = json["budget"].longOrNull()?.takeIf { it > 0 },
         revenue = json["revenue"].longOrNull()?.takeIf { it > 0 },
         cast = cast(json["credits"].objOrNull()?.get("cast")),
+        director = crewNames(crew, DIRECTOR_JOBS),
+        writer = crewNames(crew, WRITER_JOBS),
+        voteAverage = json["vote_average"].doubleOrNull()?.takeIf { it > 0 },
         imdbId =
             json["external_ids"]
                 .objOrNull()
@@ -67,6 +75,32 @@ internal fun tmdbTitleFromJson(
                 ?.takeIf { it.isNotBlank() },
     )
 }
+
+/**
+ * Maps a `/tv/{id}/season/{n}` payload's `episodes` array.
+ *
+ * An episode without a number cannot be matched to an addon video, so it is
+ * dropped; every other field is optional and simply stays `null` when TMDB has
+ * no value for it.
+ */
+internal fun tmdbEpisodesFromJson(json: JsonObject): List<TmdbEpisode> =
+    json["episodes"]
+        .arrOrNull()
+        ?.mapNotNull { it.objOrNull() }
+        ?.mapNotNull { episode ->
+            val number = episode["episode_number"].intOrNull() ?: return@mapNotNull null
+            TmdbEpisode(
+                seasonNumber = episode["season_number"].intOrNull() ?: 0,
+                episodeNumber = number,
+                name = episode["name"].stringOrNull()?.takeIf { it.isNotBlank() },
+                overview = episode["overview"].stringOrNull()?.takeIf { it.isNotBlank() },
+                runtimeMinutes = episode["runtime"].intOrNull()?.takeIf { it > 0 },
+                // TMDB scores an unrated episode `0.0`, which is not a score.
+                rating = episode["vote_average"].doubleOrNull()?.takeIf { it > 0 },
+                still = tmdbImage(episode["still_path"].stringOrNull(), "w780"),
+                airDate = episode["air_date"].stringOrNull()?.takeIf { it.isNotBlank() },
+            )
+        } ?: emptyList()
 
 /**
  * Maps one item of a recommendations / similar list.
@@ -189,3 +223,34 @@ private fun cast(element: JsonElement?): List<MetaPerson> =
 
 private const val IMAGE_BASE = "https://image.tmdb.org/t/p"
 private const val MAX_CAST = 20
+
+/** Crew roles TMDB spells as `job` (movie) or `jobs[].job` (series), lowercased. */
+private val DIRECTOR_JOBS = setOf("director")
+private val WRITER_JOBS = setOf("writer", "screenplay", "story", "teleplay")
+
+/**
+ * Names credited with any of [jobs] in a `credits` or `aggregate_credits` crew list.
+ *
+ * Capped: a series credits every episode director, and the row is a glance at the
+ * main names, not a full crew list.
+ */
+private fun crewNames(
+    credits: JsonObject?,
+    jobs: Set<String>,
+): List<String> =
+    credits
+        ?.get("crew")
+        .arrOrNull()
+        ?.mapNotNull { it.objOrNull() }
+        ?.mapNotNull { member ->
+            val held =
+                member["jobs"]
+                    .arrOrNull()
+                    ?.mapNotNull { it.objOrNull()?.get("job").stringOrNull() }
+                    ?: listOfNotNull(member["job"].stringOrNull())
+            member["name"].stringOrNull()?.takeIf { name -> name.isNotEmpty() && held.any { it.lowercase() in jobs } }
+        }?.distinct()
+        ?.take(MAX_CREW)
+        ?: emptyList()
+
+private const val MAX_CREW = 6

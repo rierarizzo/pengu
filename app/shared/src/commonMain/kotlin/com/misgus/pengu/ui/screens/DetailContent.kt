@@ -51,12 +51,19 @@ internal fun DetailScrollContent(
     state: DetailUiState,
     item: LibraryItem,
     openStreams: (ContentType, String, String) -> Unit,
+    onLoadSeason: (Int) -> Unit,
     onOpenDetail: (LibraryItem) -> Unit,
 ) {
     if (state.isSeries && state.episodes.isNotEmpty()) {
         Spacer(Modifier.height(SectionSpacing))
         val episodeFallback = stringResource(Res.string.detail_episode_generic)
-        EpisodesSection(state.episodes) { video ->
+        EpisodesSection(
+            contentId = state.contentId,
+            videos = state.episodes,
+            episodeDetails = state.episodeDetails,
+            seasonsLoading = state.seasonsLoading,
+            onLoadSeason = onLoadSeason,
+        ) { video ->
             openStreams(ContentTypes.SERIES, video.id, "${state.name} · ${video.title ?: episodeFallback}")
         }
     }

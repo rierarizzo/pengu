@@ -174,13 +174,22 @@ so the atomic read/write/delete logic lives once.
   one per screen (`MetadataEnrichment.kt`): the home billboard *fills gaps*, so
   TMDB only adds what the catalog preview left empty and the billboard paints
   immediately; the **detail page gives TMDB priority**, because there one
-  consistent source is worth more than the fastest first paint. There,
-  `DetailUiState.isResolvingArtwork` keeps the hero from painting anything —
-  artwork, logo, metadata line, synopsis — until the merge that has every source
-  has landed, so a phone goes straight from nothing to the textless poster and
-  never shows the addon's backdrop first (the same reason the synopsis already
-  reserved its space instead of showing the preview copy). The addon keeps the
-  IMDb score, which this TMDB payload does not carry.
+  consistent source is worth more than the fastest first paint. There the page
+  is published **once**, after the addon and TMDB have both answered
+  (`DetailUiState.hasLoaded`), so nothing is drawn from one source and redrawn
+  from another: the hero (artwork, logo, metadata line, synopsis), the cast and
+  crew rows, the details table and the episode cards are final the first time
+  they appear, and a phone goes straight from nothing to the textless poster
+  (the same reason the synopsis already reserved its space instead of showing
+  the preview copy). TMDB also supplies
+  the crew — director and writers, read from `credits` for a movie and from
+  `aggregate_credits` for a series, which is the only form that keeps the roles
+  once every episode director is folded in — and the addon keeps only what
+  addresses playback. TMDB's localized name also wins over the addon's, so the
+  page names the title the way its artwork and copy do. The IMDb score is the one
+  field that is a fallback in the other direction: TMDB carries an audience
+  score, not IMDb's, so it only fills in when no addon reported one, the same
+  rule Nuvio's client uses.
   `TmdbMetadataRepository` resolves any content id to a TMDB one — an explicit
   `tmdb:` id, IMDb/TVDB
   through `/find`, otherwise a title-and-year search that rejects an ambiguous
@@ -188,9 +197,9 @@ so the atomic read/write/delete logic lives once.
   title only TMDB knows (a recommendation) is retried on the addons through the
   IMDb id TMDB reports, and that id then drives its streams, so a `tmdb:`
   preview still plays. Both
-  the resolved id and the payload are cached for the process. The addon answer is
-  published first and the enrichment lands right after, so a slow lookup never
-  delays the page's data (only its paint). The "You may also like" row is built from TMDB's
+  the resolved id and the payload are cached for the process. The addon answer
+  and the enrichment are awaited together, so a slow lookup delays the page
+  rather than being painted over. The "You may also like" row is built from TMDB's
   recommendations (its similar list as a fallback), and falls back to the addon's
   own similar catalog when there is no key or no match. Without a key the
   repository short-circuits and no request leaves the app. The key lives in
@@ -487,6 +496,39 @@ so the atomic read/write/delete logic lives once.
   rail, so a series with many seasons stays reachable instead of crowding the
   header. The episode rail resets to its first card on a season change, so
   switching from S1 mid-list does not open S2 at the same offset.
+- **An episode card is a 16:9 still plus the copy the addons do not carry.** A
+  card is 320dp wide with the still, the title, a dot-separated line (score,
+  runtime, air date) and up to three lines of synopsis with two always reserved,
+  so the rail only wraps to the tallest card in the season and a short synopsis
+  never shrinks its card. A phone steps the width down by the poster rails'
+  `COMPACT_SCALE`, so an episode card stays in proportion with the posters above
+  and below it instead of filling the screen. A Stremio video has no synopsis, score or runtime, so
+  those come from TMDB: `TmdbRepository.season` fetches `/tv/{id}/season/{n}`,
+  and the episode picker asks for the open season only, caching it per season in
+  the ViewModel (`DetailUiState.episodeDetails`, keyed by season number) and per
+  payload in `TmdbMetadataRepository`, so moving between seasons costs one
+  request each and the episode ids that address streams stay the addon's. The
+  parser still reads `overview`/`description`, `runtime` and `rating` off a
+  video when an addon sends them off-schema; that copy is used first because it
+  is already there and final, and TMDB fills only what is missing. The score is
+  TMDB's audience score, not IMDb's: the addons publish no per-episode rating,
+  and unlike the hero's there is nothing to fall back to per episode. While the
+  open season is in flight the rail paints cards the size of a
+  real one with nothing in them (`EpisodeCardSkeleton`, driven by
+  `DetailUiState.seasonsLoading`) instead of the addon's still and title, which
+  TMDB would replace a moment later — the same single-author rule the rest of the
+  page follows through `hasLoaded`. The cards stay clickable: opening the
+  streams does not depend on that copy. Without a key nothing waits, because the
+  addon answer is already final. A card also badges watch state: the shared
+  `WatchedBadge` when the account marked the episode (or the whole title), and
+  the app's `LinearProgressIndicator` bar along the bottom of the still when
+  playback was left part-way. `episodeWatchState` (`DetailSections.kt`) builds
+  both from `ProgressRepository`: an episode played past
+  `ProgressThresholds.COMPLETION` counts as watched, the same threshold the
+  poster badges use, and a watched episode drops its bar — a bar and a check say
+  the same thing twice. The rail reads it itself, following the repository's
+  `changes` flow, because only this rail shows it and the hero's watched toggle
+  is optimistic and lives in `DetailScreen`.
 - **The detail page lists a title's metadata as a table.** The "Details" section
   renders label/value rows — Released, Country, Status, Original language,
   Seasons, Episodes, Budget and Revenue — each split by a hairline and only for

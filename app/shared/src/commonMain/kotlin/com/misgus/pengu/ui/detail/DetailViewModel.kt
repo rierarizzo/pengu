@@ -8,6 +8,7 @@ import com.misgus.pengu.core.model.MetaDetail
 import com.misgus.pengu.core.model.MetaPerson
 import com.misgus.pengu.core.model.MetaPreview
 import com.misgus.pengu.core.model.MetaVideo
+import com.misgus.pengu.core.model.TmdbEpisode
 import com.misgus.pengu.core.model.TmdbTitle
 import com.misgus.pengu.core.model.releaseYear
 import com.misgus.pengu.core.model.withTmdbPriority
@@ -38,18 +39,16 @@ data class CrewMember(
 /** Merged, render-ready state of the detail screen. */
 data class DetailUiState(
     val isLoading: Boolean = false,
-    val hasLoaded: Boolean = false,
     /**
-     * Whether the artwork and copy on screen are not final yet.
+     * Whether the merge with every source has landed.
      *
-     * The page waits for them instead of painting the addon's and replacing them
-     * with TMDB's: `true` from the first state until the merge that has every
-     * source, so a phone shows the backdrop and then the textless poster only in
-     * one direction — from nothing to the final image. It is `false` for the
-     * whole load when there is no TMDB key, because then the addon answer is
-     * already final.
+     * Nothing on the page paints before it: the state is published once, after
+     * the addon and TMDB both answered, so no section shows a value that the
+     * enrichment replaces a moment later — the phone goes straight from nothing
+     * to the textless poster, and the cast row, the crew, the details table and
+     * the episode cards are final the first time they are drawn.
      */
-    val isResolvingArtwork: Boolean = false,
+    val hasLoaded: Boolean = false,
     val error: Throwable? = null,
     val isSeries: Boolean = false,
     val name: String = "",
@@ -85,6 +84,22 @@ data class DetailUiState(
     val cast: List<MetaPerson> = emptyList(),
     val crew: List<CrewMember> = emptyList(),
     val episodes: List<MetaVideo> = emptyList(),
+    /**
+     * TMDB's copy for a season's episodes, keyed by season number.
+     *
+     * Only the season the picker has open is fetched (see
+     * [DetailViewModel.loadSeason]), so the page pays one extra request per
+     * season the user actually looks at, never for the whole series.
+     */
+    val episodeDetails: Map<Int, List<TmdbEpisode>> = emptyMap(),
+    /**
+     * Seasons whose episode copy is in flight.
+     *
+     * The picker paints their cards only once they hold the copy that will not
+     * change afterwards, so a card never shows the addon's still and title and
+     * then swaps them — the same rule the page follows through [hasLoaded].
+     */
+    val seasonsLoading: Set<Int> = emptySet(),
     val similar: List<MetaPreview> = emptyList(),
     val year: Int? = null,
 )
@@ -93,10 +108,10 @@ data class DetailUiState(
  * Loads the metadata for one [LibraryItem] and merges it with what the library
  * already knows.
  *
- * The library item is the immediate fallback, so the hero renders while the
- * addon response is in flight. The addon answer is published as soon as it
- * lands, and TMDB fills its gaps right after, so a slow enrichment never delays
- * the page.
+ * The library item is the immediate fallback for the fields a source may not
+ * fill, while [load] waits for the addon and TMDB together and publishes the
+ * page once: a section is never drawn from one source and then redrawn from
+ * another.
  */
 class DetailViewModel(
     private val metadata: MetadataRepository,
@@ -106,15 +121,16 @@ class DetailViewModel(
     private val _state = MutableStateFlow(initialState())
     val state: StateFlow<DetailUiState> = _state.asStateFlow()
 
+    /** Seasons whose episode copy was asked for, so a picker is not refetched. */
+    private val requestedSeasons = mutableSetOf<Int>()
+
     fun load(force: Boolean = false) {
         if (_state.value.isLoading || (_state.value.hasLoaded && !force)) return
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             val request = tmdbRequest()
-            // The addon and TMDB are independent, so they run together. The
-            // addon answer is published on its own first, so the page has its
-            // data (episodes, the stream id) the moment it lands, even though
-            // the hero waits for the enrichment before painting.
+            // The addon and TMDB are independent, so they run together, and the
+            // page is published once, after both.
             val (addonMeta, tmdbTitle, error) =
                 coroutineScope {
                     val metaDeferred = async { runCatchingCancellable { metadata.detail(item.contentType, item.contentId) } }
@@ -125,18 +141,7 @@ class DetailViewModel(
                             null
                         }
                     val metaResult = metaDeferred.await()
-                    val addonMeta = metaResult.getOrNull()
-                    _state.value =
-                        merge(
-                            addonMeta,
-                            tmdb = null,
-                            contentId = item.contentId,
-                            error = metaResult.exceptionOrNull(),
-                            // A TMDB answer is still coming, and it has priority,
-                            // so this state is not the one to paint from.
-                            isResolvingArtwork = tmdbDeferred != null,
-                        )
-                    Triple(addonMeta, tmdbDeferred?.await()?.getOrNull(), metaResult.exceptionOrNull())
+                    Triple(metaResult.getOrNull(), tmdbDeferred?.await()?.getOrNull(), metaResult.exceptionOrNull())
                 }
             // A TMDB-only hit (a recommendation) carries an id the addons may
             // not resolve, so the metadata is retried through the IMDb id TMDB
@@ -149,9 +154,32 @@ class DetailViewModel(
                     tmdb = tmdbTitle,
                     contentId = contentId,
                     error = error,
-                    isResolvingArtwork = false,
                 )
             loadSimilar(resolved, tmdbTitle, request, contentId)
+        }
+    }
+
+    /**
+     * Loads TMDB's copy for [seasonNumber]'s episodes: the addon's videos carry
+     * no synopsis, score or runtime. Called for the season the picker opens and
+     * on every change, so a series with many seasons never fetches them all.
+     */
+    fun loadSeason(seasonNumber: Int) {
+        if (!tmdb.isConfigured || seasonNumber in requestedSeasons) return
+        requestedSeasons += seasonNumber
+        _state.update { it.copy(seasonsLoading = it.seasonsLoading + seasonNumber) }
+        viewModelScope.launch {
+            val episodes = runCatchingCancellable { tmdb.season(tmdbRequest(), seasonNumber) }.getOrNull()
+            if (episodes == null) {
+                // A failed lookup stays retryable: the next visit asks again.
+                requestedSeasons -= seasonNumber
+            }
+            _state.update {
+                it.copy(
+                    seasonsLoading = it.seasonsLoading - seasonNumber,
+                    episodeDetails = if (episodes == null) it.episodeDetails else it.episodeDetails + (seasonNumber to episodes),
+                )
+            }
         }
     }
 
@@ -224,7 +252,6 @@ class DetailViewModel(
         tmdb: TmdbTitle?,
         contentId: String,
         error: Throwable?,
-        isResolvingArtwork: Boolean,
     ): DetailUiState {
         // TMDB first: the page shows one author for its artwork and copy, never
         // the addon's image replaced by TMDB's a moment later.
@@ -235,7 +262,6 @@ class DetailViewModel(
         return DetailUiState(
             isLoading = false,
             hasLoaded = true,
-            isResolvingArtwork = isResolvingArtwork,
             error = error,
             isSeries = item.contentType == ContentTypes.SERIES,
             contentId = contentId,
@@ -261,6 +287,8 @@ class DetailViewModel(
             cast = cast,
             crew = crew,
             episodes = meta?.videos?.filter { it.season != null } ?: emptyList(),
+            episodeDetails = _state.value.episodeDetails,
+            seasonsLoading = _state.value.seasonsLoading,
             similar = _state.value.similar,
             year = year,
         )
@@ -269,8 +297,6 @@ class DetailViewModel(
     private fun initialState(): DetailUiState {
         val year = releaseYear(item.releaseInfo)
         return DetailUiState(
-            // The load has not answered yet, so nothing painted now is final.
-            isResolvingArtwork = true,
             isSeries = item.contentType == ContentTypes.SERIES,
             contentId = item.contentId,
             name = item.name,

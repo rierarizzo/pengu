@@ -86,6 +86,58 @@ class TmdbMetadataRepositoryTest {
         }
 
     @Test
+    fun fetchesASeasonOfASeriesOncePerLanguage() =
+        runTest {
+            val paths = mutableListOf<String>()
+            val engine =
+                MockEngine { request ->
+                    paths += request.url.encodedPath
+                    when {
+                        request.url.encodedPath.endsWith("/find/tt0944947") ->
+                            respond("""{"movie_results":[],"tv_results":[{"id":1399}]}""", HttpStatusCode.OK, headers)
+                        request.url.encodedPath.endsWith("/tv/1399/season/1") ->
+                            respond(
+                                """{"episodes":[{"episode_number":1,"season_number":1,"name":"Winter Is Coming","overview":"North","runtime":62,"vote_average":8.0}]}""",
+                                HttpStatusCode.OK,
+                                headers,
+                            )
+                        else -> respond("{}", HttpStatusCode.OK, headers)
+                    }
+                }
+            val repository = repository(engine, apiKey = "key")
+            val request = TmdbLookup(ContentTypes.SERIES, "tt0944947", "Game of Thrones", 2011)
+
+            val episodes = repository.season(request, 1)
+            repository.season(request, 1)
+
+            assertEquals("Winter Is Coming", episodes.single().name)
+            assertEquals(62, episodes.single().runtimeMinutes)
+            assertEquals(1, paths.count { it.endsWith("/tv/1399/season/1") })
+        }
+
+    @Test
+    fun asksForNoSeasonOfAMovie() =
+        runTest {
+            var seasonCalls = 0
+            val engine =
+                MockEngine { request ->
+                    when {
+                        request.url.encodedPath.endsWith("/find/tt0133093") ->
+                            respond("""{"movie_results":[{"id":603}],"tv_results":[]}""", HttpStatusCode.OK, headers)
+                        request.url.encodedPath.contains("/season/") -> {
+                            seasonCalls += 1
+                            respond("{}", HttpStatusCode.OK, headers)
+                        }
+                        else -> respond("{}", HttpStatusCode.OK, headers)
+                    }
+                }
+            val repository = repository(engine, apiKey = "key")
+
+            assertEquals(emptyList(), repository.season(TmdbLookup(ContentTypes.MOVIE, "tt0133093", "The Matrix", 1999), 1))
+            assertEquals(0, seasonCalls)
+        }
+
+    @Test
     fun reportsAnInvalidKey() =
         runTest {
             val engine =

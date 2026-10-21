@@ -179,7 +179,7 @@ fun metadataParts(
 
 /** A runtime in minutes as `1 h 37 min`, `2 h` or `45 min`. */
 @Composable
-private fun runtimeLabel(minutes: Int): String {
+internal fun runtimeLabel(minutes: Int): String {
     val hours = minutes / 60
     val rest = minutes % 60
     return when {

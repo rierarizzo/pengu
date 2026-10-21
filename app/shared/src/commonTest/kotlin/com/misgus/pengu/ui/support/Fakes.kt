@@ -9,6 +9,7 @@ import com.misgus.pengu.core.model.LibraryItem
 import com.misgus.pengu.core.model.MetaDetail
 import com.misgus.pengu.core.model.MetaPreview
 import com.misgus.pengu.core.model.Season
+import com.misgus.pengu.core.model.TmdbEpisode
 import com.misgus.pengu.core.model.TmdbTitle
 import com.misgus.pengu.core.model.WatchProgress
 import com.misgus.pengu.core.model.WatchedEntry
@@ -225,6 +226,7 @@ class FakeAddonRepository(
 class FakeTmdbRepository(
     private val titles: Map<String, TmdbTitle> = emptyMap(),
     private val recommended: List<MetaPreview> = emptyList(),
+    private val seasons: Map<Int, List<TmdbEpisode>> = emptyMap(),
     private val verified: TmdbVerifyResult = TmdbVerifyResult.VALID,
     override val isConfigured: Boolean = true,
     /** Optional gate a test completes to hold a lookup in flight. */
@@ -234,6 +236,9 @@ class FakeTmdbRepository(
     var lookups: Int = 0
         private set
 
+    /** Season numbers asked for, so a test can assert they are fetched once. */
+    val seasonsLoaded = mutableListOf<Int>()
+
     override suspend fun lookup(request: TmdbLookup): TmdbTitle? {
         lookups += 1
         gate?.await()
@@ -241,6 +246,14 @@ class FakeTmdbRepository(
     }
 
     override suspend fun recommendations(request: TmdbLookup): List<MetaPreview> = recommended
+
+    override suspend fun season(
+        request: TmdbLookup,
+        seasonNumber: Int,
+    ): List<TmdbEpisode> {
+        seasonsLoaded += seasonNumber
+        return seasons[seasonNumber].orEmpty()
+    }
 
     override suspend fun verify(apiKey: String): TmdbVerifyResult = verified
 }

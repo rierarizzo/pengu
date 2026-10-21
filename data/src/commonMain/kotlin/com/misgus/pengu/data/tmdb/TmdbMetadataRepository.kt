@@ -3,6 +3,7 @@ package com.misgus.pengu.data.tmdb
 import com.misgus.pengu.core.model.ContentType
 import com.misgus.pengu.core.model.ContentTypes
 import com.misgus.pengu.core.model.MetaPreview
+import com.misgus.pengu.core.model.TmdbEpisode
 import com.misgus.pengu.core.model.TmdbMediaType
 import com.misgus.pengu.core.model.TmdbTitle
 import com.misgus.pengu.core.repository.SettingsRepository
@@ -33,6 +34,7 @@ class TmdbMetadataRepository(
     private val resolver = TmdbIdResolver(client)
     private val details = TmdbCache<TmdbTitle>(DETAIL_TTL)
     private val related = TmdbCache<List<MetaPreview>>(RECOMMENDATIONS_TTL)
+    private val seasons = TmdbCache<List<TmdbEpisode>>(DETAIL_TTL)
 
     override val isConfigured: Boolean
         get() =
@@ -59,6 +61,30 @@ class TmdbMetadataRepository(
                 .ifEmpty { fetchRelated("/${ref.pathSegment}/${ref.id}/similar", ref, key, language) }
         related.put(cacheKey, items)
         return items
+    }
+
+    override suspend fun season(
+        request: TmdbLookup,
+        seasonNumber: Int,
+    ): List<TmdbEpisode> {
+        val key = settings.state.value.tmdbApiKey
+        if (key.isBlank()) return emptyList()
+        val language = language()
+        val ref = resolve(request, key, language) ?: return emptyList()
+        // Only a series has seasons: a movie's single "episode" is the movie
+        // itself, which the detail page already describes.
+        if (ref.mediaType != TmdbMediaType.SERIES) return emptyList()
+        val cacheKey = "${ref.id}:$seasonNumber:$language"
+        seasons.get(cacheKey)?.let { return it }
+        val json =
+            client.getJson(
+                path = "/${ref.pathSegment}/${ref.id}/season/$seasonNumber",
+                key = key,
+                language = language,
+            )
+        val episodes = tmdbEpisodesFromJson(json)
+        seasons.put(cacheKey, episodes)
+        return episodes
     }
 
     override suspend fun verify(apiKey: String): TmdbVerifyResult {
@@ -96,6 +122,12 @@ class TmdbMetadataRepository(
     ): TmdbTitle? {
         val cacheKey = "${ref.mediaType}:${ref.id}:$language"
         details.get(cacheKey)?.let { return it }
+        val append =
+            if (ref.mediaType == TmdbMediaType.SERIES) {
+                "images,external_ids,credits,aggregate_credits"
+            } else {
+                "images,external_ids,credits"
+            }
         val json =
             client.getJson(
                 path = "/${ref.pathSegment}/${ref.id}",
@@ -103,7 +135,10 @@ class TmdbMetadataRepository(
                 language = language,
                 params =
                     mapOf(
-                        "append_to_response" to "images,external_ids,credits",
+                        // A series' crew roles only survive aggregation (every
+                        // episode director, every writer), so it is asked for on
+                        // top of the plain credits.
+                        "append_to_response" to append,
                         "include_image_language" to imageLanguages(language),
                     ),
             )

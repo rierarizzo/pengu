@@ -44,6 +44,39 @@ data class TmdbTitle(
     /** Worldwide revenue in USD, when TMDB reports one above zero. */
     val revenue: Long? = null,
     val cast: List<MetaPerson> = emptyList(),
+    /** Directors, from `credits` or (for a series) `aggregate_credits`. */
+    val director: List<String> = emptyList(),
+    /** Writers, from `credits` or (for a series) `aggregate_credits`. */
+    val writer: List<String> = emptyList(),
+    /**
+     * TMDB's audience score (0–10).
+     *
+     * Not the IMDb score: it is the fallback the detail page uses when no addon
+     * reported an IMDb one, never a replacement for it.
+     */
+    val voteAverage: Double? = null,
     /** IMDb id, when TMDB knows one. Used to enrich, never to replace the addon id. */
     val imdbId: String? = null,
+)
+
+/**
+ * One episode as TMDB describes it, matched to a [MetaVideo] by its season and
+ * episode numbers.
+ *
+ * A Stremio video carries an id, a title, an air date and a thumbnail; the
+ * synopsis, the score and the runtime come from here, and only on the detail
+ * page, which is the one place that shows them.
+ */
+data class TmdbEpisode(
+    val seasonNumber: Int,
+    val episodeNumber: Int,
+    val name: String? = null,
+    val overview: String? = null,
+    val runtimeMinutes: Int? = null,
+    /** TMDB's audience score, 0–10. */
+    val rating: Double? = null,
+    /** 16:9 still, already an absolute URL. */
+    val still: String? = null,
+    /** ISO air date (`2024-03-01`). */
+    val airDate: String? = null,
 )
