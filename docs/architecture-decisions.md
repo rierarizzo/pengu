@@ -1040,7 +1040,13 @@ progress all through the film. The row itself holds one card per title: progress
 is stored per episode, so the ViewModel keeps only the newest `lastWatched` of
 each `contentId` — and filters mid-way after that, so a finished last episode
 hides the series — while the per-episode rows stay in the repository for resume
-and the watched badge.
+and the watched badge. A card is the wide artwork with the copy inside it
+(`ContinueCard`): the title, `S1E3 · 12:34 / 45:00` and the progress bar over a
+soft bottom scrim, so the artwork gets the whole card instead of sharing it with a
+caption block. A library item stored without a backdrop would be drawn as a
+cropped portrait poster, so `enrichContinue` looks its wide art up in TMDB — only
+for those entries, behind the billboard's semaphore and this screen's
+enrich-before-paint rule.
 
 The player owns the screen on a phone: `PlayerScreen` calls the platform
 `PlayerWindowMode` (`ui/platform`), which locks the host activity to sensor

@@ -273,13 +273,14 @@ class HomeViewModel(
         // Enriched before the paint on purpose: a second artwork URL arriving after
         // the hero is on screen is exactly the swap this screen must not show.
         val featured = if (rows.isEmpty()) emptyList() else pickBillboard(rows)
+        val continueWatching = enrichContinue(continueEntries(progress))
         _state.update {
             it.copy(
                 isLoading = false,
                 hasLoaded = true,
                 rows = rows,
                 featured = featured,
-                continueWatching = continueEntries(progress),
+                continueWatching = continueWatching,
                 savedIds = watching?.library?.mapTo(mutableSetOf()) { item -> item.contentId }.orEmpty(),
             )
         }
@@ -484,6 +485,38 @@ class HomeViewModel(
                                 )
                             val title = runCatchingCancellable { tmdb.lookup(lookup) }.getOrNull()
                             item.enrichedWith(title)
+                        }
+                    }
+                }.awaitAll()
+        }
+    }
+
+    /**
+     * Gives a "Continue watching" card the wide artwork it draws.
+     *
+     * A title added from a catalog that had no backdrop falls back to its portrait
+     * poster, which a 16:9 card would crop; only those are looked up, in parallel
+     * behind the billboard's semaphore, and the resolved payload is cached for the
+     * process like every other TMDB read.
+     */
+    private suspend fun enrichContinue(entries: List<ContinueEntry>): List<ContinueEntry> {
+        if (!tmdb.isConfigured || entries.isEmpty()) return entries
+        return coroutineScope {
+            val permits = Semaphore(MAX_ENRICH_CONCURRENCY)
+            entries
+                .map { entry ->
+                    async {
+                        if (!entry.item.background.isNullOrEmpty()) return@async entry
+                        permits.withPermit {
+                            val lookup =
+                                TmdbLookup(
+                                    type = entry.item.contentType,
+                                    contentId = entry.item.contentId,
+                                    name = entry.item.name,
+                                    year = entry.item.year,
+                                )
+                            val backdrop = runCatchingCancellable { tmdb.lookup(lookup) }.getOrNull()?.backdrop
+                            if (backdrop.isNullOrEmpty()) entry else entry.copy(item = entry.item.copy(background = backdrop))
                         }
                     }
                 }.awaitAll()

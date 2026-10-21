@@ -1118,7 +1118,13 @@ en sí tiene una tarjeta por título: el progreso se guarda por episodio, así q
 el ViewModel se queda solo con el `lastWatched` más reciente de cada `contentId`
 — y filtra los que están a medias después, así que un último episodio terminado
 esconde la serie — mientras las filas por episodio se quedan en el repositorio
-para el resume y el badge de visto.
+para el resume y el badge de visto. Una tarjeta es el arte ancho con el texto
+dentro (`ContinueCard`): el título, `S1E3 · 12:34 / 45:00` y la barra de progreso
+sobre un scrim inferior suave, así el arte ocupa toda la tarjeta en vez de compartirla
+con un bloque de caption. Un item de biblioteca guardado sin backdrop se dibujaría
+como un póster vertical recortado, así que `enrichContinue` busca su arte ancho en
+TMDB — solo para esos items, detrás del semáforo del billboard y de la regla de
+enriquecer-antes-de-pintar de esta pantalla.
 
 El reproductor se adueña de la pantalla en un teléfono: `PlayerScreen` llama al
 `PlayerWindowMode` de plataforma (`ui/platform`), que bloquea la activity

@@ -399,6 +399,44 @@ class HomeViewModelTest {
         }
 
     @Test
+    fun givesContinueWatchingTheWideArtworkItDraws() =
+        runTest(dispatcher) {
+            val progress = FakeProgressRepository(progress = listOf(watchProgress("m1", lastWatched = 1)))
+            val tmdb =
+                FakeTmdbRepository(
+                    titles =
+                        mapOf(
+                            "m1" to
+                                TmdbTitle(
+                                    tmdbId = 603,
+                                    mediaType = TmdbMediaType.MOVIE,
+                                    title = "Movie",
+                                    backdrop = "https://img/backdrop.jpg",
+                                ),
+                        ),
+                )
+            val viewModel =
+                HomeViewModel(
+                    account = FakeAccountRepository(),
+                    catalogs = FakeCatalogRepository(),
+                    // No backdrop stored with the library item: a 16:9 card would
+                    // crop its portrait poster.
+                    library = FakeLibraryRepository(listOf(item("m1", "movie"))),
+                    progress = progress,
+                    badges = WatchedBadgeResolver(progress, FakeMetadataRepository()),
+                    tmdb = tmdb,
+                )
+            viewModel.load()
+            advanceUntilIdle()
+
+            val row = viewModel.state.value.continueWatching
+            assertEquals(1, row.size)
+            val entry = row.first()
+            assertEquals("https://img/backdrop.jpg", entry.item.background)
+            assertEquals(1, tmdb.lookups)
+        }
+
+    @Test
     fun paintsTheFeedAndTheWatchHistoryTogether() =
         runTest(dispatcher) {
             val top = ref("top")

@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,7 +22,6 @@ import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import com.misgus.pengu.core.model.ProgressThresholds
-import com.misgus.pengu.ui.theme.AppColors
 import com.misgus.pengu.ui.theme.AppCorner
 import com.misgus.pengu.ui.theme.AppMotion
 import com.misgus.pengu.ui.theme.AppScale
@@ -94,16 +92,7 @@ fun PosterCard(
                 Box(Modifier.align(Alignment.TopEnd).padding(AppSpacing.xs)) { WatchedBadge() }
             }
             if (barFraction != null) {
-                LinearProgressIndicator(
-                    progress = { barFraction.toFloat() },
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = AppColors.mediaScrim,
-                    modifier =
-                        Modifier
-                            .align(Alignment.BottomCenter)
-                            .fillMaxWidth()
-                            .height(AppSizes.progressBarHeight),
-                )
+                CardProgressBar(barFraction.toFloat(), Modifier.align(Alignment.BottomCenter))
             }
         }
         if (!hideLabels) {

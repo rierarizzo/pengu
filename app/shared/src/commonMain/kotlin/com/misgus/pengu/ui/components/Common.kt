@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -101,6 +103,28 @@ fun WatchedBadge(iconSize: Int = 14) {
             modifier = Modifier.size(iconSize.dp),
         )
     }
+}
+
+/**
+ * Playback progress drawn along an edge of a card's artwork.
+ *
+ * Material 3's indicator ends the track with a stop indicator and leaves a gap
+ * before it; over artwork both read as a stray dot and a notch instead of a
+ * continuous bar, so they are switched off.
+ */
+@Composable
+fun CardProgressBar(
+    fraction: Float,
+    modifier: Modifier = Modifier,
+) {
+    LinearProgressIndicator(
+        progress = { fraction },
+        color = MaterialTheme.colorScheme.primary,
+        trackColor = AppColors.mediaScrim,
+        gapSize = 0.dp,
+        drawStopIndicator = {},
+        modifier = modifier.fillMaxWidth().height(AppSizes.progressBarHeight),
+    )
 }
 
 /**

@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -55,6 +54,7 @@ import com.misgus.pengu.core.model.WatchedEntry
 import com.misgus.pengu.core.util.runCatchingCancellable
 import com.misgus.pengu.ui.components.ActionButton
 import com.misgus.pengu.ui.components.ActionButtonStyle
+import com.misgus.pengu.ui.components.CardProgressBar
 import com.misgus.pengu.ui.components.MarqueeText
 import com.misgus.pengu.ui.components.PosterImage
 import com.misgus.pengu.ui.components.RemoteImage
@@ -68,7 +68,6 @@ import com.misgus.pengu.ui.components.rememberShimmerProgress
 import com.misgus.pengu.ui.components.runtimeLabel
 import com.misgus.pengu.ui.components.sectionHeading
 import com.misgus.pengu.ui.services.LocalAppServices
-import com.misgus.pengu.ui.theme.AppColors
 import com.misgus.pengu.ui.theme.AppCorner
 import com.misgus.pengu.ui.theme.AppSizes
 import com.misgus.pengu.ui.theme.AppSpacing
@@ -452,12 +451,7 @@ private fun EpisodeCard(
         ) {
             PosterImage(detail?.still ?: video.thumbnail, Modifier.fillMaxSize())
             progress?.let { fraction ->
-                LinearProgressIndicator(
-                    progress = { fraction },
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = AppColors.mediaScrim,
-                    modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(AppSizes.progressBarHeight),
-                )
+                CardProgressBar(fraction, Modifier.align(Alignment.BottomCenter))
             }
             if (watched) {
                 Box(Modifier.align(Alignment.TopEnd).padding(AppSpacing.xs)) { WatchedBadge() }

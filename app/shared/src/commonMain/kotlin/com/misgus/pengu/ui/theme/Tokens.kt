@@ -469,6 +469,17 @@ object AppScrim {
             )
 
     /**
+     * Bottom fade inside a media card: the card keeps its own edge, unlike
+     * [mediaBottom], which dissolves into the page background.
+     */
+    val cardBottom: Brush =
+        Brush.verticalGradient(
+            0f to Color.Transparent,
+            0.5f to Color.Black.copy(alpha = AppAlpha.MEDIA_SCRIM_MEDIUM),
+            1f to Color.Black.copy(alpha = AppAlpha.MEDIA_SCRIM_STRONG),
+        )
+
+    /**
      * Wide desktop billboard, left-to-right: opaque over the left column and
      * the copy, then a short fade that dissolves the artwork's left edge into
      * the page background. The fade ends on a flat [AppAlpha.HERO_IMAGE_DIM]
