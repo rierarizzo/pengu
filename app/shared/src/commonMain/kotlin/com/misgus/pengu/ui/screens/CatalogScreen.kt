@@ -42,7 +42,7 @@ import com.misgus.pengu.ui.catalog.CatalogUiState
 import com.misgus.pengu.ui.catalog.CatalogViewModel
 import com.misgus.pengu.ui.components.AppIconButton
 import com.misgus.pengu.ui.components.Message
-import com.misgus.pengu.ui.components.MetaPosterCard
+import com.misgus.pengu.ui.components.PosterCard
 import com.misgus.pengu.ui.components.SkeletonPosterGrid
 import com.misgus.pengu.ui.components.sectionHeading
 import com.misgus.pengu.ui.icons.MaterialIcons
@@ -161,8 +161,10 @@ private fun CatalogContent(
                 horizontalArrangement = Arrangement.spacedBy(windowSize.gridSpacing),
             ) {
                 items(state.items, key = { it.id }) { item ->
-                    MetaPosterCard(
-                        preview = item,
+                    PosterCard(
+                        name = item.name,
+                        poster = item.poster,
+                        caption = item.releaseInfo,
                         hideLabels = hideLabels,
                         onTap = { onOpenDetail(LibraryItem.fromPreview(item)) },
                     )

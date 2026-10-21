@@ -19,7 +19,7 @@ import com.misgus.pengu.app.shared.generated.resources.library_empty_message
 import com.misgus.pengu.app.shared.generated.resources.library_error_title
 import com.misgus.pengu.core.model.LibraryItem
 import com.misgus.pengu.ui.components.Message
-import com.misgus.pengu.ui.components.PosterTile
+import com.misgus.pengu.ui.components.PosterCard
 import com.misgus.pengu.ui.components.SkeletonPosterGrid
 import com.misgus.pengu.ui.components.SyncingIndicator
 import com.misgus.pengu.ui.components.toUserMessage
@@ -91,9 +91,11 @@ private fun LibraryContent(
                 horizontalArrangement = Arrangement.spacedBy(windowSize.gridSpacing),
             ) {
                 items(state.items, key = { it.contentId }) { item ->
-                    PosterTile(
-                        item = item,
-                        progress = state.progressByContentId[item.contentId],
+                    PosterCard(
+                        name = item.name,
+                        poster = item.poster,
+                        caption = item.year?.toString(),
+                        progress = state.progressByContentId[item.contentId]?.fraction,
                         watched = item.contentId in state.watchedIds,
                         hideLabels = hideLabels,
                         onTap = { onOpen(item) },

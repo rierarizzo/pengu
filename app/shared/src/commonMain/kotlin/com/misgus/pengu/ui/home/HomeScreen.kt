@@ -42,7 +42,7 @@ import com.misgus.pengu.core.model.releaseYear
 import com.misgus.pengu.core.repository.CatalogRef
 import com.misgus.pengu.core.repository.PosterSize
 import com.misgus.pengu.ui.components.Message
-import com.misgus.pengu.ui.components.MetaPosterCard
+import com.misgus.pengu.ui.components.PosterCard
 import com.misgus.pengu.ui.components.SectionHeader
 import com.misgus.pengu.ui.components.SyncingIndicator
 import com.misgus.pengu.ui.components.contentTypeLabel
@@ -257,8 +257,10 @@ private fun HomeContent(
                             horizontalArrangement = Arrangement.spacedBy(windowSize.gridSpacing),
                         ) {
                             items(row.items) { item ->
-                                MetaPosterCard(
-                                    preview = item,
+                                PosterCard(
+                                    name = item.name,
+                                    poster = item.poster,
+                                    caption = item.releaseInfo,
                                     width = cardWidth,
                                     watched = item.id in state.watchedIds,
                                     hideLabels = hideLabels,

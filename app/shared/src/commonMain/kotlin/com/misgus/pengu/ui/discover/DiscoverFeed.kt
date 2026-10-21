@@ -26,7 +26,7 @@ import com.misgus.pengu.app.shared.generated.resources.discover_error_title
 import com.misgus.pengu.core.model.LibraryItem
 import com.misgus.pengu.core.model.MetaPreview
 import com.misgus.pengu.ui.components.Message
-import com.misgus.pengu.ui.components.MetaPosterCard
+import com.misgus.pengu.ui.components.PosterCard
 import com.misgus.pengu.ui.components.SkeletonPosterGrid
 import com.misgus.pengu.ui.components.toUserMessage
 import com.misgus.pengu.ui.icons.MaterialIcons
@@ -122,8 +122,10 @@ private fun DiscoverGrid(
         horizontalArrangement = Arrangement.spacedBy(windowSize.gridSpacing),
     ) {
         items(items, key = { "${it.type}:${it.id}" }) { item ->
-            MetaPosterCard(
-                preview = item,
+            PosterCard(
+                name = item.name,
+                poster = item.poster,
+                caption = item.releaseInfo,
                 hideLabels = hideLabels,
                 onTap = { onOpenDetail(LibraryItem.fromPreview(item)) },
             )

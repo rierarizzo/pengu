@@ -11,15 +11,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import com.misgus.pengu.core.model.MetaPreview
+import com.misgus.pengu.core.model.ProgressThresholds
+import com.misgus.pengu.ui.theme.AppColors
 import com.misgus.pengu.ui.theme.AppCorner
 import com.misgus.pengu.ui.theme.AppMotion
 import com.misgus.pengu.ui.theme.AppScale
@@ -31,21 +35,25 @@ import com.misgus.pengu.ui.theme.motionLayer
 import com.misgus.pengu.ui.theme.motionTween
 
 /**
- * Poster card for a catalog item ([MetaPreview]), used by Home rows.
+ * One poster card, shared by the Home and detail rows and the poster grids.
  *
  * [width] is the fixed width for horizontal rows; when null the card fills its
- * parent (used inside a grid). [hideLabels] drops the title and release-info
- * captions, leaving the artwork alone.
+ * parent (used inside a grid). [hideLabels] drops the title and [caption],
+ * leaving the artwork alone. [caption] is the card's second line (a release
+ * info or a year), and [progress] is a watch fraction that draws the progress
+ * bar for a started title.
  */
 @Composable
-fun MetaPosterCard(
-    preview: MetaPreview,
+fun PosterCard(
+    name: String,
+    poster: String?,
+    caption: String? = null,
+    progress: Double? = null,
     watched: Boolean = false,
     hideLabels: Boolean = false,
     width: Dp? = null,
     onTap: () -> Unit,
 ) {
-    val shape = MaterialTheme.shapes.small
     val interaction = rememberInteraction()
     val borderColor =
         animateColorAsState(
@@ -53,17 +61,24 @@ fun MetaPosterCard(
             animationSpec = motionTween(),
             label = "borderColor",
         )
+    val shape = MaterialTheme.shapes.small
+    val barFraction =
+        progress?.takeIf {
+            !watched && it > ProgressThresholds.IN_PROGRESS_MIN && it < ProgressThresholds.IN_PROGRESS_MAX
+        }
     val scale =
         animateFloatAsState(
             targetValue = if (interaction.active) AppScale.HOVER else 1f,
             animationSpec = motionTween(durationMillis = AppMotion.FAST),
             label = "posterScale",
         )
+
     Column(
         modifier =
             Modifier
                 .then(if (width != null) Modifier.width(width) else Modifier)
-                .clickableSurface(interaction, onTap, indication = null),
+                .clickableSurface(interaction, onTap, indication = null)
+                .pointerHoverIcon(PointerIcon.Hand),
     ) {
         Box(
             modifier =
@@ -74,22 +89,33 @@ fun MetaPosterCard(
                     .motionBorder(color = { borderColor.value }, width = AppSizes.borderWidth, cornerRadius = AppCorner.small)
                     .clip(shape),
         ) {
-            PosterImage(preview.poster, Modifier.fillMaxSize())
+            PosterImage(poster, Modifier.fillMaxSize())
             if (watched) {
                 Box(Modifier.align(Alignment.TopEnd).padding(AppSpacing.xs)) { WatchedBadge() }
+            }
+            if (barFraction != null) {
+                LinearProgressIndicator(
+                    progress = { barFraction.toFloat() },
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = AppColors.mediaScrim,
+                    modifier =
+                        Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .height(AppSizes.progressBarHeight),
+                )
             }
         }
         if (!hideLabels) {
             Spacer(Modifier.height(AppSpacing.sm))
             MarqueeText(
-                text = preview.name,
+                text = name,
                 style = PosterCaption.title(),
                 active = interaction.active,
             )
-            val releaseInfo = preview.releaseInfo
-            if (!releaseInfo.isNullOrEmpty()) {
+            if (!caption.isNullOrEmpty()) {
                 Text(
-                    text = releaseInfo,
+                    text = caption,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     style = PosterCaption.meta(),

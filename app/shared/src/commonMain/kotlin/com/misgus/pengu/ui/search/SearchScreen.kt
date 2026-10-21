@@ -35,7 +35,7 @@ import com.misgus.pengu.core.model.MetaPreview
 import com.misgus.pengu.core.repository.PosterSize
 import com.misgus.pengu.ui.components.AppSearchField
 import com.misgus.pengu.ui.components.Message
-import com.misgus.pengu.ui.components.MetaPosterCard
+import com.misgus.pengu.ui.components.PosterCard
 import com.misgus.pengu.ui.components.SectionHeader
 import com.misgus.pengu.ui.components.toUserMessage
 import com.misgus.pengu.ui.discover.DiscoverFeed
@@ -180,8 +180,10 @@ private fun ResultsRail(
         horizontalArrangement = Arrangement.spacedBy(windowSize.gridSpacing),
     ) {
         items(previews, key = { "${it.type}:${it.id}" }) { item ->
-            MetaPosterCard(
-                preview = item,
+            PosterCard(
+                name = item.name,
+                poster = item.poster,
+                caption = item.releaseInfo,
                 width = cardWidth,
                 hideLabels = hideLabels,
                 onTap = { onOpenDetail(LibraryItem.fromPreview(item)) },
