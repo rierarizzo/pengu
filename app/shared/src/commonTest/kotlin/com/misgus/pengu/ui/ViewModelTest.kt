@@ -4,6 +4,7 @@ import com.misgus.pengu.core.model.BackendProfile
 import com.misgus.pengu.core.model.ContentType
 import com.misgus.pengu.core.model.Episode
 import com.misgus.pengu.core.model.LibraryItem
+import com.misgus.pengu.core.model.MetaDetail
 import com.misgus.pengu.core.model.MetaPreview
 import com.misgus.pengu.core.model.Season
 import com.misgus.pengu.core.model.TmdbMediaType
@@ -130,6 +131,7 @@ class HomeViewModelTest {
                     catalogs = FakeCatalogRepository(listOf(ref), mapOf(ref.key to listOf(preview))),
                     library = FakeLibraryRepository(),
                     progress = FakeProgressRepository(),
+                    metadata = FakeMetadataRepository(),
                     badges = WatchedBadgeResolver(FakeProgressRepository(), FakeMetadataRepository()),
                 )
             viewModel.load()
@@ -168,6 +170,7 @@ class HomeViewModelTest {
                     catalogs = FakeCatalogRepository(refs, items),
                     library = FakeLibraryRepository(),
                     progress = FakeProgressRepository(),
+                    metadata = FakeMetadataRepository(),
                     badges = WatchedBadgeResolver(FakeProgressRepository(), FakeMetadataRepository()),
                 )
             viewModel.load()
@@ -206,6 +209,7 @@ class HomeViewModelTest {
                         ),
                     library = FakeLibraryRepository(),
                     progress = FakeProgressRepository(),
+                    metadata = FakeMetadataRepository(),
                     badges = WatchedBadgeResolver(FakeProgressRepository(), FakeMetadataRepository()),
                 )
             viewModel.load()
@@ -263,6 +267,7 @@ class HomeViewModelTest {
                     catalogs = FakeCatalogRepository(listOf(ref), mapOf(ref.key to listOf(preview))),
                     library = FakeLibraryRepository(),
                     progress = FakeProgressRepository(),
+                    metadata = FakeMetadataRepository(),
                     badges = WatchedBadgeResolver(FakeProgressRepository(), FakeMetadataRepository()),
                     tmdb = repository,
                 )
@@ -295,6 +300,7 @@ class HomeViewModelTest {
                     catalogs = FakeCatalogRepository(listOf(ref), mapOf(ref.key to listOf(preview))),
                     library = FakeLibraryRepository(),
                     progress = FakeProgressRepository(),
+                    metadata = FakeMetadataRepository(),
                     badges = WatchedBadgeResolver(FakeProgressRepository(), FakeMetadataRepository()),
                     tmdb = repository,
                 )
@@ -309,13 +315,28 @@ class HomeViewModelTest {
         runTest(dispatcher) {
             val progress = FakeProgressRepository()
             val updates = PlaybackUpdates()
+            val tmdb =
+                FakeTmdbRepository(
+                    titles =
+                        mapOf(
+                            "m1" to
+                                TmdbTitle(
+                                    tmdbId = 1,
+                                    mediaType = TmdbMediaType.MOVIE,
+                                    title = "Movie",
+                                    backdrop = "https://img/backdrop.jpg",
+                                ),
+                        ),
+                )
             val viewModel =
                 HomeViewModel(
                     account = FakeAccountRepository(),
                     catalogs = FakeCatalogRepository(),
                     library = FakeLibraryRepository(listOf(item("m1", "movie"))),
                     progress = progress,
+                    metadata = FakeMetadataRepository(),
                     badges = WatchedBadgeResolver(progress, FakeMetadataRepository()),
+                    tmdb = tmdb,
                     playbackUpdates = updates,
                 )
             viewModel.load()
@@ -339,6 +360,43 @@ class HomeViewModelTest {
 
             val row = viewModel.state.value.continueWatching
             assertEquals(listOf("m1"), row.map { it.item.contentId })
+            // The repaint runs the same builder as the load, so the card keeps
+            // its wide artwork instead of falling back to the stored poster.
+            assertEquals("https://img/backdrop.jpg", row.first().item.background)
+        }
+
+    @Test
+    fun showsATitleThatWasNeverSaved() =
+        runTest(dispatcher) {
+            val progress = FakeProgressRepository(progress = listOf(watchProgress("tt9", lastWatched = 1)))
+            val metadata =
+                FakeMetadataRepository(
+                    detail =
+                        MetaDetail(
+                            id = "tt9",
+                            type = ContentType("movie"),
+                            name = "Unsaved movie",
+                            background = "https://img/backdrop.jpg",
+                        ),
+                )
+            val viewModel =
+                HomeViewModel(
+                    account = FakeAccountRepository(),
+                    catalogs = FakeCatalogRepository(),
+                    library = FakeLibraryRepository(),
+                    progress = progress,
+                    metadata = metadata,
+                    badges = WatchedBadgeResolver(progress, FakeMetadataRepository()),
+                )
+            viewModel.load()
+            advanceUntilIdle()
+
+            // Watching something is enough to show it: the row is about what is in
+            // progress, not about what the library saved.
+            val row = viewModel.state.value.continueWatching
+            val entry = row.first()
+            assertEquals("tt9", entry.item.contentId)
+            assertEquals("Unsaved movie", entry.item.name)
         }
 
     @Test
@@ -359,6 +417,7 @@ class HomeViewModelTest {
                     catalogs = FakeCatalogRepository(),
                     library = FakeLibraryRepository(listOf(item("s1", "series"), item("m1", "movie"))),
                     progress = progress,
+                    metadata = FakeMetadataRepository(),
                     badges = WatchedBadgeResolver(progress, FakeMetadataRepository()),
                 )
             viewModel.load()
@@ -389,6 +448,7 @@ class HomeViewModelTest {
                     catalogs = FakeCatalogRepository(),
                     library = FakeLibraryRepository(listOf(item("s1", "series"))),
                     progress = progress,
+                    metadata = FakeMetadataRepository(),
                     badges = WatchedBadgeResolver(progress, FakeMetadataRepository()),
                 )
             viewModel.load()
@@ -423,6 +483,7 @@ class HomeViewModelTest {
                     // crop its portrait poster.
                     library = FakeLibraryRepository(listOf(item("m1", "movie"))),
                     progress = progress,
+                    metadata = FakeMetadataRepository(),
                     badges = WatchedBadgeResolver(progress, FakeMetadataRepository()),
                     tmdb = tmdb,
                 )
@@ -447,6 +508,7 @@ class HomeViewModelTest {
                     catalogs = FakeCatalogRepository(listOf(top), mapOf(top.key to listOf(preview("tt1")))),
                     library = FakeLibraryRepository(listOf(item("tt1", "movie")), gate = libraryGate),
                     progress = FakeProgressRepository(progress = listOf(watchProgress("tt1", lastWatched = 1_000))),
+                    metadata = FakeMetadataRepository(),
                     badges = WatchedBadgeResolver(FakeProgressRepository(), FakeMetadataRepository()),
                 )
             viewModel.load()
@@ -601,6 +663,7 @@ class HomeViewModelTest {
                     catalogs = catalogs,
                     library = FakeLibraryRepository(),
                     progress = FakeProgressRepository(),
+                    metadata = FakeMetadataRepository(),
                     badges = WatchedBadgeResolver(FakeProgressRepository(), FakeMetadataRepository()),
                 )
             account.selectProfile(BackendProfile(id = "p1", name = "One"))
@@ -656,6 +719,7 @@ class HomeViewModelTest {
             catalogs = catalogs,
             library = FakeLibraryRepository(),
             progress = FakeProgressRepository(),
+            metadata = FakeMetadataRepository(),
             badges = WatchedBadgeResolver(FakeProgressRepository(), FakeMetadataRepository()),
             settings = settings,
         )

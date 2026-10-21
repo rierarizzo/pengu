@@ -16,6 +16,7 @@ import com.misgus.pengu.core.repository.CatalogRepository
 import com.misgus.pengu.core.repository.HeroSource
 import com.misgus.pengu.core.repository.InMemorySettingsRepository
 import com.misgus.pengu.core.repository.LibraryRepository
+import com.misgus.pengu.core.repository.MetadataRepository
 import com.misgus.pengu.core.repository.NoTmdbRepository
 import com.misgus.pengu.core.repository.NoopAddonRepository
 import com.misgus.pengu.core.repository.ProgressRepository
@@ -43,9 +44,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.random.Random
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
 /** A library title with progress, shown in "Continue watching". */
@@ -97,6 +100,7 @@ class HomeViewModel(
     private val catalogs: CatalogRepository,
     private val library: LibraryRepository,
     private val progress: ProgressRepository,
+    private val metadata: MetadataRepository,
     badges: WatchedBadgeResolver,
     private val tmdb: TmdbRepository = NoTmdbRepository(),
     addons: AddonRepository = NoopAddonRepository(),
@@ -210,7 +214,9 @@ class HomeViewModel(
         if (loadJob?.isActive == true) return
         viewModelScope.launch {
             val entries = runCatchingCancellable { progress.all() }.getOrNull() ?: return@launch
-            val row = continueEntries(entries)
+            // The same builder the load uses, enrichment included: repainting the
+            // row without it dropped the wide artwork back to a cropped poster.
+            val row = buildContinueRow(entries)
             _state.update { it.copy(continueWatching = row) }
         }
     }
@@ -227,23 +233,61 @@ class HomeViewModel(
      * user is. The per-episode rows stay in the repository: resume and the
      * watched badge read them.
      *
-     * The join runs against [libraryByContent] instead of a fresh library read, so
-     * a refresh after a playback costs one request.
+     * The item is looked up in [libraryByContent] and, for a title the user never
+     * saved, resolved from its metadata: the row is about what is being watched,
+     * not about what is in the library, and a progress row carries only ids.
      */
-    private fun continueEntries(progressEntries: List<WatchProgress>): List<ContinueEntry> =
-        progressEntries
-            .sortedByDescending { it.lastWatched ?: Instant.fromEpochMilliseconds(0) }
-            .distinctBy { it.contentId }
-            .mapNotNull { entry ->
-                val fraction = entry.fraction ?: 0.0
-                if (fraction <= ProgressThresholds.IN_PROGRESS_MIN ||
-                    fraction >= ProgressThresholds.IN_PROGRESS_MAX
-                ) {
-                    return@mapNotNull null
-                }
-                val item = libraryByContent[entry.contentId] ?: return@mapNotNull null
-                ContinueEntry(item, entry)
-            }.take(MAX_CONTINUE)
+    private suspend fun continueEntries(progressEntries: List<WatchProgress>): List<ContinueEntry> {
+        val candidates =
+            progressEntries
+                .sortedByDescending { it.lastWatched ?: Instant.fromEpochMilliseconds(0) }
+                .distinctBy { it.contentId }
+                .filter { entry ->
+                    val fraction = entry.fraction ?: 0.0
+                    fraction > ProgressThresholds.IN_PROGRESS_MIN && fraction < ProgressThresholds.IN_PROGRESS_MAX
+                }.take(MAX_CONTINUE)
+        val items =
+            coroutineScope {
+                val permits = Semaphore(MAX_ENRICH_CONCURRENCY)
+                candidates
+                    .map { entry ->
+                        async { libraryByContent[entry.contentId] ?: permits.withPermit { unsavedItem(entry) } }
+                    }.awaitAll()
+            }
+        return candidates
+            .zip(items)
+            .mapNotNull { (entry, item) -> item?.let { ContinueEntry(it, entry) } }
+    }
+
+    /**
+     * A [LibraryItem] for a title that was never saved.
+     *
+     * Best effort: an addon that does not answer it leaves the title out of the
+     * row instead of showing a card with no name.
+     */
+    private suspend fun unsavedItem(entry: WatchProgress): LibraryItem? =
+        runCatchingCancellable { metadata.detail(entry.contentType, entry.contentId) }
+            .getOrNull()
+            ?.let { meta ->
+                LibraryItem(
+                    id = meta.id,
+                    contentId = entry.contentId,
+                    contentType = meta.type,
+                    name = meta.name,
+                    poster = meta.poster,
+                    background = meta.background,
+                    logo = meta.logo,
+                    textlessPoster = meta.textlessPoster,
+                    description = meta.description,
+                    releaseInfo = meta.releaseInfo,
+                    imdbRating = meta.imdbRating,
+                    genres = meta.genres,
+                )
+            }
+
+    /** The row as the screen shows it: the entries, with their wide artwork. */
+    private suspend fun buildContinueRow(progressEntries: List<WatchProgress>): List<ContinueEntry> =
+        enrichContinue(continueEntries(progressEntries))
 
     private suspend fun doLoad() {
         _state.update { it.copy(isLoading = true, error = null) }
@@ -273,7 +317,7 @@ class HomeViewModel(
         // Enriched before the paint on purpose: a second artwork URL arriving after
         // the hero is on screen is exactly the swap this screen must not show.
         val featured = if (rows.isEmpty()) emptyList() else pickBillboard(rows)
-        val continueWatching = enrichContinue(continueEntries(progress))
+        val continueWatching = buildContinueRow(progress)
         _state.update {
             it.copy(
                 isLoading = false,
@@ -515,7 +559,10 @@ class HomeViewModel(
                                     name = entry.item.name,
                                     year = entry.item.year,
                                 )
-                            val backdrop = runCatchingCancellable { tmdb.lookup(lookup) }.getOrNull()?.backdrop
+                            val backdrop =
+                                withTimeoutOrNull(ENRICH_TIMEOUT) {
+                                    runCatchingCancellable { tmdb.lookup(lookup) }.getOrNull()
+                                }?.backdrop
                             if (backdrop.isNullOrEmpty()) entry else entry.copy(item = entry.item.copy(background = backdrop))
                         }
                     }
@@ -536,6 +583,13 @@ class HomeViewModel(
         const val MAX_CONTINUE = 12
         const val MAX_FEATURED = 6
         const val MAX_ENRICH_CONCURRENCY = 4
+
+        /**
+         * How long a per-card enrichment may take before the card is drawn without
+         * it: the rows are published together with the rest of Home, so an outside
+         * source that stalls must not hold the screen.
+         */
+        val ENRICH_TIMEOUT = 4.seconds
 
         /**
          * Catalogs fetched at once. A sliding window, not a batch: a row that answers

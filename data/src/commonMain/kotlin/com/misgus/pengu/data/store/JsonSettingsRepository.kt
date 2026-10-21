@@ -6,6 +6,7 @@ import com.misgus.pengu.core.repository.HeroSource
 import com.misgus.pengu.core.repository.MAX_HERO_CATALOGS
 import com.misgus.pengu.core.repository.PosterSize
 import com.misgus.pengu.core.repository.SettingsRepository
+import com.misgus.pengu.core.repository.StreamUrlCache
 import com.misgus.pengu.core.repository.TmdbLanguage
 import com.misgus.pengu.core.repository.ToneMapping
 import com.misgus.pengu.data.boolOrNull
@@ -68,6 +69,8 @@ class JsonSettingsRepository(
 
     override suspend fun setAutoPlayNext(enabled: Boolean) = update { it.copy(autoPlayNext = enabled) }
 
+    override suspend fun setStreamUrlCache(cache: StreamUrlCache) = update { it.copy(streamUrlCache = cache) }
+
     override suspend fun setPosterSize(size: PosterSize) = update { it.copy(posterSize = size) }
 
     override suspend fun setHideLabels(enabled: Boolean) = update { it.copy(hideLabels = enabled) }
@@ -103,6 +106,7 @@ class JsonSettingsRepository(
         data[KEY_ANIMATIONS] = JsonPrimitive(settings.animationsEnabled)
         data[KEY_RESUME] = JsonPrimitive(settings.resumePlayback)
         data[KEY_AUTOPLAY] = JsonPrimitive(settings.autoPlayNext)
+        data[KEY_STREAM_CACHE] = JsonPrimitive(settings.streamUrlCache.name.lowercase())
         data[KEY_POSTER_SIZE] = JsonPrimitive(settings.posterSize.name.lowercase())
         data[KEY_HIDE_LABELS] = JsonPrimitive(settings.hideLabels)
         data[KEY_SHOW_CATALOG_TYPE] = JsonPrimitive(settings.showCatalogType)
@@ -122,6 +126,7 @@ class JsonSettingsRepository(
             animationsEnabled = this[KEY_ANIMATIONS].boolOrNull() ?: true,
             resumePlayback = this[KEY_RESUME].boolOrNull() ?: true,
             autoPlayNext = this[KEY_AUTOPLAY].boolOrNull() ?: true,
+            streamUrlCache = this[KEY_STREAM_CACHE].stringOrNull().toStreamUrlCache() ?: StreamUrlCache.SIX_HOURS,
             posterSize = this[KEY_POSTER_SIZE].stringOrNull().toPosterSize() ?: PosterSize.DEFAULT,
             hideLabels = this[KEY_HIDE_LABELS].boolOrNull() ?: false,
             showCatalogType = this[KEY_SHOW_CATALOG_TYPE].boolOrNull() ?: true,
@@ -156,6 +161,8 @@ class JsonSettingsRepository(
 
     private fun String?.toHeroSource(): HeroSource? = HeroSource.entries.firstOrNull { it.name.equals(this, ignoreCase = true) }
 
+    private fun String?.toStreamUrlCache(): StreamUrlCache? = StreamUrlCache.entries.firstOrNull { it.name.equals(this, ignoreCase = true) }
+
     private fun String?.toToneMapping(): ToneMapping? =
         when (this?.lowercase()) {
             // The file is hand-editable, so accept the spelling mpv uses too.
@@ -168,6 +175,7 @@ class JsonSettingsRepository(
         const val KEY_ANIMATIONS = "animations.enabled"
         const val KEY_RESUME = "player.resumePlayback"
         const val KEY_AUTOPLAY = "player.autoPlayNext"
+        const val KEY_STREAM_CACHE = "player.streamUrlCache"
         const val KEY_POSTER_SIZE = "poster.size"
         const val KEY_HIDE_LABELS = "labels.hidden"
         const val KEY_SHOW_CATALOG_TYPE = "catalog.showType"

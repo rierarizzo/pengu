@@ -29,6 +29,7 @@ import com.misgus.pengu.app.shared.generated.resources.Res
 import com.misgus.pengu.app.shared.generated.resources.detail_episode_code
 import com.misgus.pengu.app.shared.generated.resources.player_audio
 import com.misgus.pengu.app.shared.generated.resources.player_error
+import com.misgus.pengu.app.shared.generated.resources.player_progress_error
 import com.misgus.pengu.app.shared.generated.resources.player_subtitles
 import com.misgus.pengu.app.shared.generated.resources.player_track_off
 import com.misgus.pengu.core.model.ContentTypes
@@ -36,6 +37,7 @@ import com.misgus.pengu.core.model.MetaVideo
 import com.misgus.pengu.core.model.Subtitle
 import com.misgus.pengu.core.player.MediaTrack
 import com.misgus.pengu.core.player.PlaybackTarget
+import com.misgus.pengu.core.repository.LastStream
 import com.misgus.pengu.core.util.runCatchingCancellable
 import com.misgus.pengu.ui.platform.PlayerWindowMode
 import com.misgus.pengu.ui.services.AppServices
@@ -49,6 +51,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
+import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -115,6 +118,12 @@ fun PlayerScreen(
             // show progress repaint from the data that was actually stored.
             services.appScope.launch {
                 reporter.flush(force = true)
+                // A position that could not be stored is worth saying out loud:
+                // the row simply not updating is indistinguishable from not having
+                // watched anything.
+                reporter.lastFailure?.let { failure ->
+                    snackbar?.showSnackbar(getString(Res.string.player_progress_error, failure.message ?: ""))
+                }
                 services.playbackUpdates.notifyClosed()
             }
             player.stop()
@@ -312,6 +321,12 @@ fun PlayerScreen(
             val message = stringResource(Res.string.player_error, error)
             LaunchedEffect(error) {
                 snackbar?.showSnackbar(message)
+                // A remembered URL that will not play is dropped, so the next
+                // attempt goes through the picker instead of failing the same way
+                // (debrid links expire and rotate).
+                target.contentId?.let { contentId ->
+                    runCatchingCancellable { services.streamCache.remove(contentId, target.videoId) }
+                }
             }
         }
 
@@ -397,20 +412,40 @@ private suspend fun playNextIfPossible(
         val index = episodes.indexOfFirst { it.season == target.season && it.episode == target.episode }
         if (index < 0 || index + 1 >= episodes.size) return@runCatchingCancellable null
         val next = episodes[index + 1]
-        val nextId = "$seriesId:${next.season}:${next.episode}"
-        val groups = services.streams.all(ContentTypes.SERIES, nextId)
+        // The addon's own episode id: an anime addon names it `kitsu:43248:2`, so
+        // rebuilding it from the title id would ask for the wrong thing.
+        val groups = services.streams.all(ContentTypes.SERIES, next.id)
         val stream =
             groups.firstNotNullOfOrNull { group ->
                 group.streams.firstOrNull { it.isDirectPlayable }
             } ?: return@runCatchingCancellable null
         val url = stream.url ?: return@runCatchingCancellable null
         val episodeCode = getString(Res.string.detail_episode_code, next.season?.number ?: 0, next.episode?.number ?: 0)
+        // Autoplay resolves a stream of its own, so it writes the same record the
+        // picker does; otherwise the next resume would always need the picker.
+        val resolvedAt = Clock.System.now()
+        runCatchingCancellable {
+            services.streamCache.save(
+                LastStream(
+                    contentId = seriesId,
+                    videoId = next.id,
+                    url = url,
+                    httpHeaders = stream.httpHeaders.orEmpty(),
+                    resolvedAt = resolvedAt,
+                    episodeTitle = next.title,
+                ),
+            )
+        }
         PlaybackTarget.fromContent(
             type = ContentTypes.SERIES,
-            id = nextId,
+            id = next.id,
             title = "${meta.name} · $episodeCode",
             source = url,
             httpHeaders = stream.httpHeaders,
+            season = next.season,
+            episode = next.episode,
+            contentId = seriesId,
+            episodeTitle = next.title,
         )
     }.getOrNull()
 }

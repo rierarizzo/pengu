@@ -21,6 +21,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,6 +31,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.misgus.pengu.app.shared.generated.resources.Res
+import com.misgus.pengu.app.shared.generated.resources.detail_episode_code
 import com.misgus.pengu.app.shared.generated.resources.detail_error_library
 import com.misgus.pengu.app.shared.generated.resources.empty_nothing_to_show
 import com.misgus.pengu.app.shared.generated.resources.home_continue_watching
@@ -38,8 +40,10 @@ import com.misgus.pengu.app.shared.generated.resources.home_error_title
 import com.misgus.pengu.core.model.LibraryItem
 import com.misgus.pengu.core.model.MetaPreview
 import com.misgus.pengu.core.model.releaseYear
+import com.misgus.pengu.core.player.PlaybackTarget
 import com.misgus.pengu.core.repository.CatalogRef
 import com.misgus.pengu.core.repository.PosterSize
+import com.misgus.pengu.core.util.runCatchingCancellable
 import com.misgus.pengu.ui.components.Message
 import com.misgus.pengu.ui.components.PosterCard
 import com.misgus.pengu.ui.components.SectionHeader
@@ -62,7 +66,10 @@ import com.misgus.pengu.ui.theme.posterCardHeight
 import com.misgus.pengu.ui.theme.safeTopInset
 import com.misgus.pengu.ui.theme.screenPadding
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 
 /** Home section: a featured carousel, "Continue watching" and catalog rows. */
@@ -71,10 +78,12 @@ fun HomeScreen(
     viewModel: HomeViewModel,
     navigator: ContentNavigator,
     onOpenStreams: (StreamsRequest) -> Unit,
+    onPlayTarget: (PlaybackTarget) -> Unit,
 ) {
     LaunchedEffect(Unit) { viewModel.load() }
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val settingsRepository = LocalAppServices.current.settings
+    val services = LocalAppServices.current
+    val settingsRepository = services.settings
     val settings by settingsRepository.state.collectAsStateWithLifecycle()
     val windowSize = LocalWindowSize.current
     val snackbar = LocalSnackbarHost.current
@@ -110,6 +119,66 @@ fun HomeScreen(
         heroWaitExpired = true
     }
 
+    // "Continue watching" resumes straight into the player when the URL the title
+    // was last played with is still trusted; otherwise — expired, missing, or a
+    // pick that was never written down — the picker decides again. A debrid URL
+    // that fails to play is dropped by the player, so the next tap lands here too.
+    val scope = rememberCoroutineScope()
+    val onContinue: (ContinueEntry) -> Unit = { entry ->
+        val item = entry.item
+        val progress = entry.progress
+        val playId = resumePlayId(progress)
+        // Blank is how the backend stores "no episode", and it is also the cache
+        // key the picker wrote, so the two never disagree.
+        val videoId = progress.videoId?.takeIf { it.isNotBlank() }
+        if (playId == null) {
+            // A series row without its episode id cannot address a stream.
+            navigator.push(ContentRoute.Detail(item))
+        } else {
+            val season = progress.season
+            val episode = progress.episode
+            scope.launch {
+                val playTitle =
+                    if (season != null && episode != null) {
+                        "${item.name} · ${getString(Res.string.detail_episode_code, season.number, episode.number)}"
+                    } else {
+                        item.name
+                    }
+                // The cache is keyed by playback's own identity, the same one the
+                // picker wrote when the stream was chosen.
+                val cached = runCatchingCancellable { services.streamCache.find(progress.contentId, videoId) }.getOrNull()
+                val fresh = cached?.takeIf { it.isFresh(settings.streamUrlCache, Clock.System.now()) }
+                if (fresh == null) {
+                    cached?.let { runCatchingCancellable { services.streamCache.remove(progress.contentId, videoId) } }
+                    onOpenStreams(
+                        StreamsRequest(
+                            type = progress.contentType,
+                            id = playId,
+                            title = playTitle,
+                            year = item.year?.toString(),
+                            contentId = progress.contentId,
+                            season = season,
+                            episode = episode,
+                        ),
+                    )
+                } else {
+                    onPlayTarget(
+                        PlaybackTarget.fromContent(
+                            type = progress.contentType,
+                            id = playId,
+                            title = playTitle,
+                            source = fresh.url,
+                            httpHeaders = fresh.httpHeaders,
+                            season = season,
+                            episode = episode,
+                            contentId = progress.contentId,
+                        ),
+                    )
+                }
+            }
+        }
+    }
+
     Box(Modifier.fillMaxSize()) {
         HomeContent(
             state = state,
@@ -122,6 +191,7 @@ fun HomeScreen(
             onOpenPreview = { navigator.push(ContentRoute.Detail(LibraryItem.fromPreview(it))) },
             onOpenCatalog = { navigator.push(ContentRoute.Catalog(it)) },
             onToggleSaved = viewModel::toggleSaved,
+            onContinue = onContinue,
             onHeroArtworkSettled = { heroArtworkReady = true },
             onPlayPreview = { preview ->
                 onOpenStreams(
@@ -163,6 +233,7 @@ private fun HomeContent(
     onOpenPreview: (MetaPreview) -> Unit,
     onOpenCatalog: (CatalogRef) -> Unit,
     onPlayPreview: (MetaPreview) -> Unit,
+    onContinue: (ContinueEntry) -> Unit,
     onToggleSaved: (MetaPreview) -> Unit,
     onHeroArtworkSettled: () -> Unit,
 ) {
@@ -235,7 +306,7 @@ private fun HomeContent(
                             ) {
                                 items(state.continueWatching) { entry ->
                                     val cardWidth = if (compact) CompactContinueWidth else ContinueWidth
-                                    ContinueCard(entry, cardWidth) { onOpenDetail(entry.item) }
+                                    ContinueCard(entry, cardWidth) { onContinue(entry) }
                                 }
                             }
                         }

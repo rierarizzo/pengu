@@ -3,6 +3,9 @@ package com.misgus.pengu.core.repository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.hours
 
 /** Nominal width of a poster, so grids and rows can be consistent. */
 enum class PosterSize {
@@ -37,6 +40,23 @@ enum class HeroSource {
 }
 
 /**
+ * How long a resolved stream URL is trusted before the picker is asked again.
+ *
+ * Debrid links expire and their URLs rotate, so a resume that plays a remembered
+ * URL directly is a bet that gets worse with time. [OFF] never takes it.
+ */
+enum class StreamUrlCache(
+    val ttl: Duration,
+) {
+    ONE_HOUR(1.hours),
+    SIX_HOURS(6.hours),
+    ONE_DAY(1.days),
+
+    /** Always ask the picker; nothing is reused. */
+    OFF(Duration.ZERO),
+}
+
+/**
  * HDR tone-mapping curve for the desktop player.
  *
  * The values are the ones mpv's legacy renderer accepts; `spline` and the
@@ -65,6 +85,11 @@ data class AppSettings(
     val resumePlayback: Boolean = true,
     /** Start the next episode automatically when one finishes. */
     val autoPlayNext: Boolean = true,
+    /**
+     * How long a resolved stream URL is reused when "Continue watching" resumes
+     * a title without the picker. Past it the picker is shown again.
+     */
+    val streamUrlCache: StreamUrlCache = StreamUrlCache.SIX_HOURS,
     /**
      * Card width of the horizontal poster rows: the Home catalogs, the search
      * results and "More like this". Grids keep a fixed layout instead.
@@ -139,6 +164,8 @@ interface SettingsRepository {
 
     suspend fun setAutoPlayNext(enabled: Boolean)
 
+    suspend fun setStreamUrlCache(cache: StreamUrlCache)
+
     suspend fun setPosterSize(size: PosterSize)
 
     suspend fun setHideLabels(enabled: Boolean)
@@ -186,6 +213,8 @@ class InMemorySettingsRepository(
     override suspend fun setResumePlayback(enabled: Boolean) = update { it.copy(resumePlayback = enabled) }
 
     override suspend fun setAutoPlayNext(enabled: Boolean) = update { it.copy(autoPlayNext = enabled) }
+
+    override suspend fun setStreamUrlCache(cache: StreamUrlCache) = update { it.copy(streamUrlCache = cache) }
 
     override suspend fun setPosterSize(size: PosterSize) = update { it.copy(posterSize = size) }
 

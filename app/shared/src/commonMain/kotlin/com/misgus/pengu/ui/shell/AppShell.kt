@@ -37,6 +37,8 @@ import com.misgus.pengu.app.shared.generated.resources.Res
 import com.misgus.pengu.app.shared.generated.resources.error_playback_unavailable
 import com.misgus.pengu.app.shared.generated.resources.error_source_unplayable
 import com.misgus.pengu.core.player.PlaybackTarget
+import com.misgus.pengu.core.repository.LastStream
+import com.misgus.pengu.core.util.runCatchingCancellable
 import com.misgus.pengu.ui.platform.PlatformBackHandler
 import com.misgus.pengu.ui.profiles.ProfilePicker
 import com.misgus.pengu.ui.services.LocalAppServices
@@ -49,6 +51,7 @@ import com.misgus.pengu.ui.theme.LocalWindowSize
 import com.misgus.pengu.ui.theme.WindowSize
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
+import kotlin.time.Clock
 
 /**
  * Persistent app chrome: the navigation and the content area.
@@ -217,17 +220,40 @@ fun AppShell() {
                 streamsRequest = null
                 val url = stream.url
                 if (!url.isNullOrEmpty()) {
-                    navigator.push(
-                        ContentRoute.Player(
-                            PlaybackTarget.fromContent(
-                                type = request.type,
-                                id = request.id,
-                                title = request.title,
-                                source = url,
-                                httpHeaders = stream.httpHeaders,
-                            ),
-                        ),
-                    )
+                    val target =
+                        PlaybackTarget.fromContent(
+                            type = request.type,
+                            id = request.id,
+                            title = request.title,
+                            source = url,
+                            httpHeaders = stream.httpHeaders,
+                            season = request.season,
+                            episode = request.episode,
+                            contentId = request.contentId,
+                            episodeTitle = request.episodeTitle,
+                        )
+                    // Remembered so "Continue watching" can resume this title
+                    // without the picker while the URL is still fresh (see
+                    // `StreamUrlCache`). Written off the UI thread; a failed write
+                    // only costs a picker next time.
+                    val contentId = target.contentId
+                    if (contentId != null) {
+                        services.appScope.launch {
+                            runCatchingCancellable {
+                                services.streamCache.save(
+                                    LastStream(
+                                        contentId = contentId,
+                                        videoId = target.videoId,
+                                        url = url,
+                                        httpHeaders = stream.httpHeaders.orEmpty(),
+                                        resolvedAt = Clock.System.now(),
+                                        episodeTitle = request.episodeTitle,
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                    navigator.push(ContentRoute.Player(target))
                 } else {
                     scope.launch {
                         snackbarHost.showSnackbar(sourceUnplayable)

@@ -112,7 +112,7 @@ so the atomic read/write/delete logic lives once.
 - **Settings** live in `settings.json` as a flat JSON object with dotted keys,
   like VS Code's `settings.json` (`appearance.typeface`,
   `animations.enabled`, `player.resumePlayback`,
-  `player.autoPlayNext`, `poster.size`, `labels.hidden`, `catalog.showType`,
+  `player.autoPlayNext`, `player.streamUrlCache`, `poster.size`, `labels.hidden`, `catalog.showType`,
   `metadata.tmdbApiKey`, `metadata.tmdbLanguage`).
   `JsonSettingsRepository` reads it defensively, keeps unknown keys on write and
   can `reload()` after a manual edit; the settings screen groups the toggles into
@@ -1032,8 +1032,10 @@ The final position is written from `AppServices.appScope`, not from the
 composable's own scope (which is cancelled as the player leaves, which used to
 drop the write), and only once that write has landed does it tick
 `PlaybackUpdates.closed`. Home observes the tick and re-reads progress to repaint
-"Continue watching" against the library items it already had, so a title left
-half-watched appears at once instead of on the next load. The tick is a separate
+"Continue watching", so a title left half-watched appears at once instead of on
+the next load — through the same builder the load uses, because repainting it
+without the artwork enrichment dropped the wide art back to a cropped poster. The
+tick is a separate
 signal on purpose: `ProgressRepository.changes` bumps on every periodic save
 (every few seconds of playback), and a screen that listened to it would re-read
 progress all through the film. The row itself holds one card per title: progress
@@ -1041,12 +1043,41 @@ is stored per episode, so the ViewModel keeps only the newest `lastWatched` of
 each `contentId` — and filters mid-way after that, so a finished last episode
 hides the series — while the per-episode rows stay in the repository for resume
 and the watched badge. A card is the wide artwork with the copy inside it
-(`ContinueCard`): the title, `S1E3 · 12:34 / 45:00` and the progress bar over a
+(`ContinueCard`): the title, `S1E3 · 33 min left` and the progress bar over a
 soft bottom scrim, so the artwork gets the whole card instead of sharing it with a
-caption block. A library item stored without a backdrop would be drawn as a
+caption block. The row is about what is in progress, not about what was saved: a
+title missing from the library is resolved from its metadata (`unsavedItem`), so
+finishing an episode of something never added to the library still puts it in the
+row. A library item stored without a backdrop would be drawn as a
 cropped portrait poster, so `enrichContinue` looks its wide art up in TMDB — only
 for those entries, behind the billboard's semaphore and this screen's
-enrich-before-paint rule.
+enrich-before-paint rule, and every one of those lookups is time-boxed
+(`ENRICH_TIMEOUT`) because the row is published with the rest of Home: an addon or
+TMDB that stalls leaves a card without its enrichment instead of holding the
+screen. Tapping a card resumes playback: `LastStream`
+(`StreamCacheRepository`, written to `last_streams.json` when a stream is picked)
+remembers the URL the title was last played with, keyed by playback's own
+identity — `WatchProgress.contentId` plus the episode's `videoId`, with a blank
+`videoId` treated as absent because that is how the backend stores a movie's —
+because the library item can carry an id the addons do not answer (`tmdb:123` for
+a title opened from a TMDB recommendation) while progress records the resolved
+one. The same record carries the episode's **name**: the progress row has no
+column for it (the backend schema is not ours), so the card reads it from there
+(`S1E3 · Like a Boy · 33 min left`) instead of asking the addons for metadata
+again. Autoplay-next writes the record too, since it resolves a stream of its
+own. The card plays that URL directly
+while it is fresh under `player.streamUrlCache` — debrid links expire and rotate,
+so that setting is a ceiling on how stale a resume can be. Once it expires, or
+when nothing was remembered, the card opens the stream picker instead; the
+player drops the entry the moment a URL fails to play, so a dead debrid link
+falls back to the picker on the next tap. Where a title's episode lives is never
+read off the id alone: `StreamsRequest` and `PlaybackTarget.fromContent` carry the
+season and episode the caller knows — the addon's video object, or the progress
+row when resuming — because an anime addon names an episode `kitsu:43248:1`, whose
+middle part is the show's kitsu id and would otherwise be read as a season 43248
+under the content id `kitsu`. That mismatch is what kept a half-watched anime out
+of the row: its progress was written against an id no library item or addon
+answers.
 
 The player owns the screen on a phone: `PlayerScreen` calls the platform
 `PlayerWindowMode` (`ui/platform`), which locks the host activity to sensor
@@ -1084,6 +1115,11 @@ parsing, badge resolver with fakes) and the defensive parsers/mappers.
 
 ## Known differences / limitations
 
+- **The remembered stream is per device.** "Continue watching" resumes straight
+  into the player while the URL it was last played with is fresh, but that record
+  (`last_streams.json`) is local: on a second device the row still shows, it just
+  opens the stream picker instead. Syncing it needs a backend of our own (see
+  *Improvement backlog → Backends*).
 - The desktop player uses **mediamp**'s mpv backend, which bundles a matching
   libmpv and FFmpeg per platform: no system install and no `PENGU_LIBMPV` are
   needed. The Linux runtime is GPL-3.0 (mpv's X11 output); Windows and macOS are
@@ -1128,6 +1164,22 @@ not a one-file change. They are grouped by the axis they change, not by effort.
   change, but a usable account also needs `LibraryRepository`,
   `ProgressRepository` and `AddonRepository` against the Stremio datastore.
   The auth adapter is the small part; the data repositories are the bulk.
+- **A backend of our own, and what it unblocks.** The same seam makes the backend
+  an adapter, so replacing Nuvio is implementing those four repositories against
+  an API we control. The first thing it unlocks is resuming a title **on another
+  device**: today the URL lives in `last_streams.json`, which is local. Three
+  tables, each for a reason worth writing down before the schema is frozen:
+  `watch_progress` for identity and position, with `progress_key` unique per
+  profile and the `contentId_s{s}e{e}` formula the app already uses;
+  `progress_copy` for the copy a card draws (title, poster, background, episode
+  title and thumbnail), so the row needs neither the library join nor a metadata
+  request per card; and `source_cache` for the debrid URL and its headers, kept
+  **apart** from progress because progress is written every few seconds and the
+  URL almost never changes. The URL must carry `resolved_at`/`expires_at` — a
+  debrid link is a signed bearer token, so a row that outlives it is a leak — and
+  the client keeps applying `player.streamUrlCache` on read. When it lands,
+  `FileStreamCache` and `last_streams.json` are deleted and the row is served
+  whole, which also removes `unsavedItem`'s metadata call.
 
 ### Default catalogs
 

@@ -28,13 +28,13 @@ import com.misgus.pengu.app.shared.generated.resources.detail_status_released
 import com.misgus.pengu.app.shared.generated.resources.detail_status_returning
 import com.misgus.pengu.app.shared.generated.resources.detail_status_rumored
 import com.misgus.pengu.app.shared.generated.resources.detail_writer
-import com.misgus.pengu.core.model.ContentType
 import com.misgus.pengu.core.model.ContentTypes
 import com.misgus.pengu.core.model.LibraryItem
 import com.misgus.pengu.core.model.MetaPerson
 import com.misgus.pengu.ui.detail.CrewMember
 import com.misgus.pengu.ui.detail.CrewRole
 import com.misgus.pengu.ui.detail.DetailUiState
+import com.misgus.pengu.ui.streams.StreamsRequest
 import com.misgus.pengu.ui.theme.AppSpacing
 import com.misgus.pengu.ui.theme.safeBottomInset
 import org.jetbrains.compose.resources.stringResource
@@ -50,7 +50,7 @@ import org.jetbrains.compose.resources.stringResource
 internal fun DetailScrollContent(
     state: DetailUiState,
     item: LibraryItem,
-    openStreams: (ContentType, String, String) -> Unit,
+    openStreams: (StreamsRequest) -> Unit,
     onLoadSeason: (Int) -> Unit,
     onOpenDetail: (LibraryItem) -> Unit,
 ) {
@@ -64,7 +64,20 @@ internal fun DetailScrollContent(
             seasonsLoading = state.seasonsLoading,
             onLoadSeason = onLoadSeason,
         ) { video ->
-            openStreams(ContentTypes.SERIES, video.id, "${state.name} · ${video.title ?: episodeFallback}")
+            openStreams(
+                StreamsRequest(
+                    type = ContentTypes.SERIES,
+                    id = video.id,
+                    title = "${state.name} · ${video.title ?: episodeFallback}",
+                    year = state.year?.toString(),
+                    contentId = state.contentId,
+                    // The addon's own season and episode: an episode id such as
+                    // `kitsu:43248:1` cannot be read as `content:season:episode`.
+                    season = video.season,
+                    episode = video.episode,
+                    episodeTitle = video.title,
+                ),
+            )
         }
     }
 

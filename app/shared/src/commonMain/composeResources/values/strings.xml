@@ -47,6 +47,7 @@
 
     <!-- Home -->
     <string name="home_continue_watching">Continue watching</string>
+    <string name="home_continue_left">%1$d min left</string>
     <string name="home_error_title">Could not load Home</string>
     <string name="home_empty_message">Install a metadata addon with catalogs to fill this Home.</string>
 
@@ -97,6 +98,7 @@
     <string name="player_track_trusted">Trusted</string>
     <string name="player_no_tracks">No tracks available.</string>
     <string name="player_error">Playback error: %1$s</string>
+    <string name="player_progress_error">Could not save your progress: %1$s</string>
 
     <!-- Streams -->
     <string name="streams_copy_link">Copy link</string>
@@ -198,6 +200,12 @@
     <string name="settings_resume_subtitle">Continue a title from where you left it.</string>
     <string name="settings_autoplay">Auto-play next episode</string>
     <string name="settings_autoplay_subtitle">Start the next episode when one finishes.</string>
+    <string name="settings_stream_cache">Resumed stream URL</string>
+    <string name="settings_stream_cache_subtitle">How long a resolved URL is reused when Continue watching resumes a title. Past it, the stream picker is shown again.</string>
+    <string name="settings_stream_cache_1h">1 h</string>
+    <string name="settings_stream_cache_6h">6 h</string>
+    <string name="settings_stream_cache_1d">24 h</string>
+    <string name="settings_stream_cache_off">Off</string>
     <string name="settings_player_engine">Desktop player</string>
     <string name="settings_player_engine_subtitle">Engine options, applied on the next video.</string>
     <string name="settings_tone_mapping">HDR tone mapping</string>

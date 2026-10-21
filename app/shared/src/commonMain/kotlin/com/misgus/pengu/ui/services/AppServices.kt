@@ -7,8 +7,10 @@ import com.misgus.pengu.core.repository.AddonRepository
 import com.misgus.pengu.core.repository.CatalogRepository
 import com.misgus.pengu.core.repository.LibraryRepository
 import com.misgus.pengu.core.repository.MetadataRepository
+import com.misgus.pengu.core.repository.NoopStreamCacheRepository
 import com.misgus.pengu.core.repository.ProgressRepository
 import com.misgus.pengu.core.repository.SettingsRepository
+import com.misgus.pengu.core.repository.StreamCacheRepository
 import com.misgus.pengu.core.repository.StreamRepository
 import com.misgus.pengu.core.repository.SubtitleRepository
 import com.misgus.pengu.core.repository.TmdbRepository
@@ -57,6 +59,11 @@ class AppServices(
     val tmdb: TmdbRepository,
     /** Remembered per-series "fully watched" results. */
     val watchedCache: WatchedSeriesCache,
+    /**
+     * The stream each title was last played with, so "Continue watching" can
+     * resume without the picker while its URL is still fresh.
+     */
+    val streamCache: StreamCacheRepository = NoopStreamCacheRepository(),
     /** Immersive-mode state, shared with the player. */
     val chrome: AppChrome = AppChrome(),
     /** Addons installed in the account; used by the addon repository layer. */

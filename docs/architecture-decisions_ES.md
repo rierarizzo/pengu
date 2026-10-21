@@ -117,7 +117,7 @@ leer/escribir/borrar vive una sola vez.
   best-effort, no un keychain.
 - **Los ajustes** viven en `settings.json` como un objeto JSON plano con claves
   punteadas, como el `settings.json` de VS Code (`appearance.typeface`, `animations.enabled`,
-  `player.resumePlayback`, `player.autoPlayNext`, `poster.size`,
+  `player.resumePlayback`, `player.autoPlayNext`, `player.streamUrlCache`, `poster.size`,
   `labels.hidden`, `catalog.showType`, `metadata.tmdbApiKey`,
   `metadata.tmdbLanguage`).
   `JsonSettingsRepository` lo lee de
@@ -1109,8 +1109,10 @@ ver. La posición final se escribe desde `AppServices.appScope`, no desde el sco
 del composable (que se cancela al salir del reproductor, y eso hacía que la
 escritura se perdiera), y solo cuando esa escritura ha llegado se marca
 `PlaybackUpdates.closed`. Home observa esa marca y relee el progreso para repintar
-"Continue watching" con los títulos de biblioteca que ya tenía, así que un título
-dejado a medias aparece al instante en lugar de en la siguiente carga. La marca es
+"Continue watching", así que un título dejado a medias aparece al instante en
+lugar de en la siguiente carga — con el mismo constructor que usa la carga,
+porque repintarlo sin el enriquecimiento de arte devolvía el arte ancho a un
+póster recortado. La marca es
 una señal aparte a propósito: `ProgressRepository.changes` se incrementa en cada
 guardado periódico (cada pocos segundos de reproducción), y una pantalla que
 estuviera suscrita a eso releería el progreso durante toda la película. La fila
@@ -1119,12 +1121,43 @@ el ViewModel se queda solo con el `lastWatched` más reciente de cada `contentId
 — y filtra los que están a medias después, así que un último episodio terminado
 esconde la serie — mientras las filas por episodio se quedan en el repositorio
 para el resume y el badge de visto. Una tarjeta es el arte ancho con el texto
-dentro (`ContinueCard`): el título, `S1E3 · 12:34 / 45:00` y la barra de progreso
+dentro (`ContinueCard`): el título, `S1E3 · 33 min left` y la barra de progreso
 sobre un scrim inferior suave, así el arte ocupa toda la tarjeta en vez de compartirla
-con un bloque de caption. Un item de biblioteca guardado sin backdrop se dibujaría
+con un bloque de caption. La fila es sobre lo que está en progreso, no sobre lo
+que se guardó: un título que falta en la biblioteca se resuelve desde su metadata
+(`unsavedItem`), así que terminar un episodio de algo que nunca se añadió a la
+biblioteca igual lo pone en la fila. Un item de biblioteca guardado sin backdrop se dibujaría
 como un póster vertical recortado, así que `enrichContinue` busca su arte ancho en
 TMDB — solo para esos items, detrás del semáforo del billboard y de la regla de
-enriquecer-antes-de-pintar de esta pantalla.
+enriquecer-antes-de-pintar de esta pantalla, y cada una de esas búsquedas va con
+tope de tiempo (`ENRICH_TIMEOUT`) porque la fila se publica junto con el resto de
+Home: un addon o TMDB que se atasca deja una tarjeta sin enriquecer en vez de
+retener la pantalla. Pulsar una tarjeta reanuda la
+reproducción: `LastStream` (`StreamCacheRepository`, escrito en
+`last_streams.json` al elegir un stream) recuerda la URL con la que se reprodujo
+el título por última vez, con la identidad del propio playback —
+`WatchProgress.contentId` más el `videoId` del episodio, con un `videoId` en
+blanco tratado como ausente porque así guarda el backend el de una película —,
+porque el item de
+biblioteca puede llevar un id que los addons no responden (`tmdb:123` en un
+título abierto desde una recomendación de TMDB) mientras que el progreso guarda
+el resuelto. Ese mismo registro lleva el **nombre del episodio**: la fila de
+progreso no tiene columna para él (el esquema del backend no es nuestro), así que
+la tarjeta lo lee de ahí (`S1E3 · Like a Boy · 33 min left`) en vez de volver a
+pedir metadata a los addons. El autoplay del siguiente también escribe el
+registro, porque resuelve un stream por su cuenta. La tarjeta la usa directamente mientras siga fresca
+según `player.streamUrlCache` — los enlaces de debrid caducan y rotan, así que
+esa preferencia es un techo a lo obsoleta que puede estar una reanudación. Cuando
+caduca, o cuando no se recordaba nada, la tarjeta abre el selector de streams; el
+reproductor borra la entrada en cuanto una URL falla al reproducir, así que un
+enlace de debrid muerto cae al selector en el siguiente intento. Dónde vive el
+episodio de un título nunca se lee solo del id: `StreamsRequest` y
+`PlaybackTarget.fromContent` llevan la temporada y el episodio que el llamador ya
+conoce — el objeto video del addon, o la fila de progreso al reanudar — porque un
+addon de anime nombra un episodio `kitsu:43248:1`, cuya parte del medio es el id
+de kitsu de la serie y si no se leería como una temporada 43248 bajo el content id
+`kitsu`. Ese desajuste era lo que dejaba fuera de la fila a un anime a medias: su
+progreso se escribía contra un id que ningún item de biblioteca ni addon responde.
 
 El reproductor se adueña de la pantalla en un teléfono: `PlayerScreen` llama al
 `PlayerWindowMode` de plataforma (`ui/platform`), que bloquea la activity
@@ -1165,6 +1198,11 @@ cubre los stores de fichero y los repositorios locales. El `commonTest` de
 
 ## Diferencias conocidas / limitaciones
 
+- **El stream recordado es por dispositivo.** "Continue watching" reanuda directo
+  al reproductor mientras la URL con la que se reprodujo siga fresca, pero ese
+  registro (`last_streams.json`) es local: en un segundo dispositivo la fila se
+  ve igual, solo que abre el selector de streams. Sincronizarlo necesita un
+  backend propio (ver *Backlog de mejoras → Backends*).
 - El reproductor de desktop usa el backend mpv de **mediamp**, que incluye un
   libmpv y FFmpeg a juego por plataforma: no hace falta instalar nada ni
   `PENGU_LIBMPV`. El runtime de Linux es GPL-3.0 (salida X11 de mpv); Windows y
@@ -1213,6 +1251,22 @@ que cambian, no por esfuerzo.
   cambios en `ui/`, pero una cuenta usable también necesita `LibraryRepository`,
   `ProgressRepository` y `AddonRepository` contra el datastore de Stremio. El
   adaptador de auth es la parte pequeña; los repositorios de datos son el grueso.
+- **Un backend propio, y lo que desbloquea.** La misma costura hace del backend un
+  adaptador, así que reemplazar Nuvio es implementar esos cuatro repositorios
+  contra una API nuestra. Lo primero que desbloquea es reanudar un título **en otro
+  dispositivo**: hoy la URL vive en `last_streams.json`, que es local. Tres tablas,
+  cada una por una razón que conviene escribir antes de congelar el esquema:
+  `watch_progress` para identidad y posición, con `progress_key` único por perfil
+  y la fórmula `contentId_s{s}e{e}` que la app ya usa; `progress_copy` para el
+  texto que dibuja una tarjeta (título, póster, backdrop, título y thumbnail del
+  episodio), así la fila no necesita ni el join con la biblioteca ni una petición
+  de metadata por tarjeta; y `source_cache` para la URL de debrid y sus headers,
+  **separada** del progreso porque el progreso se escribe cada pocos segundos y la
+  URL casi nunca cambia. La URL debe llevar `resolved_at`/`expires_at` — un enlace
+  de debrid es un token bearer firmado, así que una fila que lo sobreviva es una
+  fuga — y el cliente sigue aplicando `player.streamUrlCache` al leer. Cuando
+  llegue, `FileStreamCache` y `last_streams.json` se borran y la fila se sirve
+  entera, lo que también elimina la petición de metadata de `unsavedItem`.
 
 ### Catálogos por defecto
 

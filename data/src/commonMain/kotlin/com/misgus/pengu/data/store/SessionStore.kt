@@ -20,6 +20,9 @@ object AppPaths {
     val watchedSeriesCacheFile: String by lazy { "$configDir/watched_series.json" }
     val settingsFile: String by lazy { "$configDir/settings.json" }
 
+    /** The stream each title was last played with, for resuming it. */
+    val lastStreamsFile: String by lazy { "$configDir/last_streams.json" }
+
     /** Last known addon list, per profile. */
     val addonsFile: String by lazy { "$configDir/addons.json" }
 }

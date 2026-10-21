@@ -27,6 +27,13 @@ class PlaybackProgressReporter(
     private var lastSaved: Duration = Duration.ZERO
     private var resumeResolved = false
 
+    /**
+     * The last write that failed, so the player can say the position was not
+     * stored instead of losing it quietly.
+     */
+    var lastFailure: Throwable? = null
+        private set
+
     /** Saved position to resume from, when it is worth resuming. */
     suspend fun resumePosition(): Duration? {
         if (!target.canReportProgress || resumeResolved) return null
@@ -82,7 +89,8 @@ class PlaybackProgressReporter(
                     progressKey = target.progressKey,
                 ),
             )
-        }
+        }.onSuccess { lastFailure = null }
+            .onFailure { lastFailure = it }
     }
 
     private fun find(entries: List<WatchProgress>): WatchProgress? {

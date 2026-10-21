@@ -99,6 +99,12 @@ import com.misgus.pengu.app.shared.generated.resources.settings_sign_in_other_me
 import com.misgus.pengu.app.shared.generated.resources.settings_sign_in_to_load
 import com.misgus.pengu.app.shared.generated.resources.settings_signed_in_account
 import com.misgus.pengu.app.shared.generated.resources.settings_signed_in_as
+import com.misgus.pengu.app.shared.generated.resources.settings_stream_cache
+import com.misgus.pengu.app.shared.generated.resources.settings_stream_cache_1d
+import com.misgus.pengu.app.shared.generated.resources.settings_stream_cache_1h
+import com.misgus.pengu.app.shared.generated.resources.settings_stream_cache_6h
+import com.misgus.pengu.app.shared.generated.resources.settings_stream_cache_off
+import com.misgus.pengu.app.shared.generated.resources.settings_stream_cache_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_title
 import com.misgus.pengu.app.shared.generated.resources.settings_tmdb_api_key
 import com.misgus.pengu.app.shared.generated.resources.settings_tmdb_api_key_hide
@@ -134,6 +140,7 @@ import com.misgus.pengu.core.repository.MAX_HERO_CATALOGS
 import com.misgus.pengu.core.repository.PosterSize
 import com.misgus.pengu.core.repository.SettingsRepository
 import com.misgus.pengu.core.repository.SignInMethod
+import com.misgus.pengu.core.repository.StreamUrlCache
 import com.misgus.pengu.core.repository.TmdbLanguage
 import com.misgus.pengu.core.repository.TmdbVerifyResult
 import com.misgus.pengu.core.repository.ToneMapping
@@ -364,6 +371,22 @@ private fun PlaybackSection(
             description = stringResource(Res.string.settings_autoplay_subtitle),
             checked = state.autoPlayNext,
             onCheckedChange = { value -> save { settings.setAutoPlayNext(value) } },
+        )
+        SettingsDivider()
+        val streamCacheLabels =
+            mapOf(
+                StreamUrlCache.ONE_HOUR to stringResource(Res.string.settings_stream_cache_1h),
+                StreamUrlCache.SIX_HOURS to stringResource(Res.string.settings_stream_cache_6h),
+                StreamUrlCache.ONE_DAY to stringResource(Res.string.settings_stream_cache_1d),
+                StreamUrlCache.OFF to stringResource(Res.string.settings_stream_cache_off),
+            )
+        SettingsChipRow(
+            title = stringResource(Res.string.settings_stream_cache),
+            description = stringResource(Res.string.settings_stream_cache_subtitle),
+            options = StreamUrlCache.entries,
+            selected = state.streamUrlCache,
+            label = { streamCacheLabels.getValue(it) },
+            onSelect = { value -> save { settings.setStreamUrlCache(value) } },
         )
     }
     // The engine options are mpv's: Android has no equivalent knob, so the panel

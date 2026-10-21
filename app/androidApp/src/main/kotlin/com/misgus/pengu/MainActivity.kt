@@ -14,6 +14,7 @@ import com.misgus.pengu.data.platform.createHttpClient
 import com.misgus.pengu.data.platform.initPlatform
 import com.misgus.pengu.data.store.AppPaths
 import com.misgus.pengu.data.store.FileSessionStore
+import com.misgus.pengu.data.store.FileStreamCache
 import com.misgus.pengu.data.store.FileWatchedSeriesCache
 import com.misgus.pengu.data.store.JsonMapStore
 import com.misgus.pengu.data.store.JsonSettingsRepository
@@ -86,6 +87,7 @@ class MainActivity : ComponentActivity() {
                 // Same persistence as desktop: the watched-series cache lives in
                 // the app's config directory.
                 watchedCache = FileWatchedSeriesCache(),
+                streamCache = FileStreamCache(),
             )
 
         setContent {

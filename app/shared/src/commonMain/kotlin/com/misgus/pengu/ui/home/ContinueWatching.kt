@@ -12,7 +12,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -21,13 +25,16 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.misgus.pengu.app.shared.generated.resources.Res
 import com.misgus.pengu.app.shared.generated.resources.detail_episode_code
+import com.misgus.pengu.app.shared.generated.resources.home_continue_left
+import com.misgus.pengu.core.model.ContentTypes
 import com.misgus.pengu.core.model.WatchProgress
+import com.misgus.pengu.core.util.runCatchingCancellable
 import com.misgus.pengu.ui.components.CardProgressBar
 import com.misgus.pengu.ui.components.PosterImage
 import com.misgus.pengu.ui.components.clickableSurface
 import com.misgus.pengu.ui.components.motionBorder
 import com.misgus.pengu.ui.components.rememberInteraction
-import com.misgus.pengu.ui.player.formatPlayerTime
+import com.misgus.pengu.ui.services.LocalAppServices
 import com.misgus.pengu.ui.theme.AppCorner
 import com.misgus.pengu.ui.theme.AppScrim
 import com.misgus.pengu.ui.theme.AppSizes
@@ -35,6 +42,24 @@ import com.misgus.pengu.ui.theme.AppSpacing
 import com.misgus.pengu.ui.theme.PosterCaption
 import com.misgus.pengu.ui.theme.motionTween
 import org.jetbrains.compose.resources.stringResource
+import kotlin.math.ceil
+import kotlin.time.Duration
+
+/**
+ * The id the stream addons are asked with when a continue card resumes.
+ *
+ * It comes from the progress row, not from the library item: progress is written
+ * with the id playback was reported with (the resolved IMDb id, and the episode's
+ * own id for a series), while the library keeps the id the title was saved with —
+ * `tmdb:123` for a title opened from a TMDB recommendation, which the addons do
+ * not answer. `null` means the row cannot address a stream at all (a series
+ * without its episode id), so the card falls back to the detail page.
+ */
+internal fun resumePlayId(progress: WatchProgress): String? {
+    // The backend records "no episode" as an empty string, not `null`.
+    progress.videoId?.takeIf { it.isNotBlank() }?.let { return it }
+    return progress.contentId.takeIf { it.isNotBlank() && !ContentTypes.isSeries(progress.contentType) }
+}
 
 /** Width of a 16:9 "Continue watching" card, smaller on a phone. */
 internal val ContinueWidth = 400.dp
@@ -57,10 +82,20 @@ internal fun ContinueCard(
     val progress = entry.progress
     val season = progress.season
     val episode = progress.episode
+    // The episode's name is not part of the progress row (the backend has no column
+    // for it), so it comes from the record written when the stream was resolved.
+    // The store keeps its file in memory after the first read.
+    val streamCache = LocalAppServices.current.streamCache
+    val videoId = progress.videoId?.takeIf { it.isNotBlank() }
+    var episodeTitle by remember(progress.contentId, videoId, progress.lastWatched) { mutableStateOf<String?>(null) }
+    LaunchedEffect(progress.contentId, videoId, progress.lastWatched) {
+        episodeTitle = runCatchingCancellable { streamCache.find(progress.contentId, videoId) }.getOrNull()?.episodeTitle
+    }
     val meta =
         listOfNotNull(
             if (season != null && episode != null) stringResource(Res.string.detail_episode_code, season, episode) else null,
-            timecode(progress),
+            episodeTitle,
+            remainingLabel(progress),
         ).joinToString(" · ")
     val artwork = item.background ?: item.poster
 
@@ -121,9 +156,16 @@ internal fun ContinueCard(
     }
 }
 
-/** How far in the user is, as `12:34 / 45:00`; `null` when the length is unknown. */
-internal fun timecode(progress: WatchProgress): String? {
+/** Minutes left to play, rounded up; `null` when the length or position is unknown. */
+internal fun remainingMinutes(progress: WatchProgress): Int? {
     val position = progress.position ?: return null
     val duration = progress.duration ?: return null
-    return "${formatPlayerTime(position)} / ${formatPlayerTime(duration)}"
+    val left = duration - position
+    if (left <= Duration.ZERO) return null
+    return ceil(left.inWholeSeconds / 60.0).toInt()
 }
+
+/** [remainingMinutes] as `35 min left`, or `null` when there is nothing to say. */
+@Composable
+private fun remainingLabel(progress: WatchProgress): String? =
+    remainingMinutes(progress)?.let { stringResource(Res.string.home_continue_left, it) }

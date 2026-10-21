@@ -38,6 +38,7 @@ fun SectionHost(
                         catalogs = services.catalogs,
                         library = services.library,
                         progress = services.progress,
+                        metadata = services.metadata,
                         badges = services.watchedBadges,
                         tmdb = services.tmdb,
                         addons = services.addons,
@@ -45,7 +46,7 @@ fun SectionHost(
                         playbackUpdates = services.playbackUpdates,
                     )
                 }
-            HomeScreen(viewModel, navigator, onOpenStreams)
+            HomeScreen(viewModel, navigator, onOpenStreams, onOpenPlayer)
         }
         AppSection.LIBRARY -> {
             val viewModel: LibraryViewModel =
