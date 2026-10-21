@@ -199,8 +199,9 @@ into a fake error.
 **KMP source sets** — `commonMain` is shared; `jvmMain` and `androidMain` hold
 platform code. Desktop-only code lives in `app/desktopApp` (a JVM module), not in
 `app/shared/jvmMain`, unless it is UI. `data/jvmSharedMain` is shared by the JVM
-and Android targets: the file helpers, the on-disk HTTP cache storage (Ktor's
-`FileStorage` over `kotlinx.io`) and the gzip decoder live there once.
+and Android targets: the I/O dispatcher, the system language tag, the file
+helpers, the on-disk HTTP cache storage (Ktor's `FileStorage` over `kotlinx.io`)
+and the gzip decoder live there once.
 
 ---
 

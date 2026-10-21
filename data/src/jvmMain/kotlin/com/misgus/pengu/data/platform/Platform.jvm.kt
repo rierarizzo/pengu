@@ -3,17 +3,11 @@ package com.misgus.pengu.data.platform
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.engine.okhttp.OkHttp
-import kotlinx.coroutines.Dispatchers
 import java.io.File
 import java.net.Proxy
 import java.nio.file.Files
 import java.nio.file.attribute.PosixFileAttributeView
 import java.nio.file.attribute.PosixFilePermissions
-import java.util.Locale
-
-actual val ioDispatcher = Dispatchers.IO
-
-actual fun systemLanguageTag(): String = Locale.getDefault().toLanguageTag()
 
 actual fun createHttpClient(): HttpClient =
     HttpClient(CIO) {
@@ -67,15 +61,6 @@ actual fun cacheDirectory(): String {
         }
     return File(base, "Pengu").path
 }
-
-actual fun readTextFile(path: String): String? = PlatformFileIO.read(path)
-
-actual fun writeTextFile(
-    path: String,
-    text: String,
-) = PlatformFileIO.write(path, text)
-
-actual fun deleteFile(path: String) = PlatformFileIO.delete(path)
 
 actual fun hardenFilePermissions(path: String) {
     val file = File(path)

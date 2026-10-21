@@ -205,9 +205,10 @@ la cancelación en un error falso.
 **Source sets KMP** — `commonMain` es compartido; `jvmMain` y `androidMain`
 guardan código de plataforma. El código solo de desktop vive en
 `app/desktopApp` (un módulo JVM), no en `app/shared/jvmMain`, salvo que sea UI.
-`data/jvmSharedMain` es compartido por los targets JVM y Android: los helpers de
-ficheros, el almacenamiento en disco de la caché HTTP (el `FileStorage` de Ktor
-sobre `kotlinx.io`) y el decodificador gzip viven ahí una sola vez.
+`data/jvmSharedMain` es compartido por los targets JVM y Android: el dispatcher
+de E/S, el idioma del sistema, los helpers de ficheros, el almacenamiento en
+disco de la caché HTTP (el `FileStorage` de Ktor sobre `kotlinx.io`) y el
+decodificador gzip viven ahí una sola vez.
 
 ---
 

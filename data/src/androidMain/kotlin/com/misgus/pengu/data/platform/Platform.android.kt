@@ -5,14 +5,8 @@ import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.engine.okhttp.OkHttpConfig
-import kotlinx.coroutines.Dispatchers
 import java.io.File
 import java.net.Proxy
-import java.util.Locale
-
-actual val ioDispatcher = Dispatchers.IO
-
-actual fun systemLanguageTag(): String = Locale.getDefault().toLanguageTag()
 
 private var applicationContext: Context? = null
 
@@ -69,15 +63,6 @@ actual fun cacheDirectory(): String {
             ?: return File(System.getProperty("java.io.tmpdir") ?: ".", "Pengu").path
     return File(context.cacheDir, "Pengu").path
 }
-
-actual fun readTextFile(path: String): String? = PlatformFileIO.read(path)
-
-actual fun writeTextFile(
-    path: String,
-    text: String,
-) = PlatformFileIO.write(path, text)
-
-actual fun deleteFile(path: String) = PlatformFileIO.delete(path)
 
 actual fun hardenFilePermissions(path: String) {
     val file = File(path)
