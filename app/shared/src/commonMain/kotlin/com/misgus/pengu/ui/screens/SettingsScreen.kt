@@ -30,18 +30,31 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.misgus.pengu.app.shared.generated.resources.Res
 import com.misgus.pengu.app.shared.generated.resources.action_back
+import com.misgus.pengu.app.shared.generated.resources.action_open
 import com.misgus.pengu.app.shared.generated.resources.action_save
 import com.misgus.pengu.app.shared.generated.resources.action_sign_out
 import com.misgus.pengu.app.shared.generated.resources.action_try_again
 import com.misgus.pengu.app.shared.generated.resources.error_open_file
 import com.misgus.pengu.app.shared.generated.resources.poster_size_default
 import com.misgus.pengu.app.shared.generated.resources.poster_size_large
+import com.misgus.pengu.app.shared.generated.resources.settings_about_credits
+import com.misgus.pengu.app.shared.generated.resources.settings_about_description
+import com.misgus.pengu.app.shared.generated.resources.settings_about_license
+import com.misgus.pengu.app.shared.generated.resources.settings_about_license_text
+import com.misgus.pengu.app.shared.generated.resources.settings_about_mediamp
+import com.misgus.pengu.app.shared.generated.resources.settings_about_mediamp_name
+import com.misgus.pengu.app.shared.generated.resources.settings_about_pengu
+import com.misgus.pengu.app.shared.generated.resources.settings_about_read_license
+import com.misgus.pengu.app.shared.generated.resources.settings_about_stremio
+import com.misgus.pengu.app.shared.generated.resources.settings_about_stremio_name
+import com.misgus.pengu.app.shared.generated.resources.settings_about_tmdb_name
 import com.misgus.pengu.app.shared.generated.resources.settings_account
 import com.misgus.pengu.app.shared.generated.resources.settings_animations
 import com.misgus.pengu.app.shared.generated.resources.settings_animations_subtitle
@@ -53,6 +66,7 @@ import com.misgus.pengu.app.shared.generated.resources.settings_deband
 import com.misgus.pengu.app.shared.generated.resources.settings_deband_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_hardware_decoding
 import com.misgus.pengu.app.shared.generated.resources.settings_hardware_decoding_subtitle
+import com.misgus.pengu.app.shared.generated.resources.settings_hero
 import com.misgus.pengu.app.shared.generated.resources.settings_hero_catalogs
 import com.misgus.pengu.app.shared.generated.resources.settings_hero_catalogs_empty
 import com.misgus.pengu.app.shared.generated.resources.settings_hero_catalogs_error
@@ -62,6 +76,7 @@ import com.misgus.pengu.app.shared.generated.resources.settings_hero_manual
 import com.misgus.pengu.app.shared.generated.resources.settings_hero_smart
 import com.misgus.pengu.app.shared.generated.resources.settings_hero_source
 import com.misgus.pengu.app.shared.generated.resources.settings_hero_source_subtitle
+import com.misgus.pengu.app.shared.generated.resources.settings_hero_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_hide_labels
 import com.misgus.pengu.app.shared.generated.resources.settings_hide_labels_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_open_file
@@ -73,6 +88,8 @@ import com.misgus.pengu.app.shared.generated.resources.settings_player_engine
 import com.misgus.pengu.app.shared.generated.resources.settings_player_engine_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_poster_size
 import com.misgus.pengu.app.shared.generated.resources.settings_poster_size_subtitle
+import com.misgus.pengu.app.shared.generated.resources.settings_posters
+import com.misgus.pengu.app.shared.generated.resources.settings_posters_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_reload
 import com.misgus.pengu.app.shared.generated.resources.settings_resume
 import com.misgus.pengu.app.shared.generated.resources.settings_resume_subtitle
@@ -105,11 +122,16 @@ import com.misgus.pengu.app.shared.generated.resources.settings_tone_mapping_bt2
 import com.misgus.pengu.app.shared.generated.resources.settings_tone_mapping_hable
 import com.misgus.pengu.app.shared.generated.resources.settings_tone_mapping_mobius
 import com.misgus.pengu.app.shared.generated.resources.settings_tone_mapping_subtitle
+import com.misgus.pengu.app.shared.generated.resources.settings_typeface
+import com.misgus.pengu.app.shared.generated.resources.settings_typeface_ibm_plex
+import com.misgus.pengu.app.shared.generated.resources.settings_typeface_inter
+import com.misgus.pengu.app.shared.generated.resources.settings_typeface_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_video_url
 import com.misgus.pengu.app.shared.generated.resources.theme_coffee
 import com.misgus.pengu.core.player.PlaybackTarget
 import com.misgus.pengu.core.repository.AppSettings
 import com.misgus.pengu.core.repository.AppTheme
+import com.misgus.pengu.core.repository.AppTypeface
 import com.misgus.pengu.core.repository.CatalogRef
 import com.misgus.pengu.core.repository.HeroSource
 import com.misgus.pengu.core.repository.MAX_HERO_CATALOGS
@@ -139,6 +161,7 @@ import com.misgus.pengu.ui.theme.AppSpacing
 import com.misgus.pengu.ui.theme.AppType
 import com.misgus.pengu.ui.theme.LocalWindowSize
 import com.misgus.pengu.ui.theme.WindowSize
+import com.misgus.pengu.ui.theme.appFontFamily
 import com.misgus.pengu.ui.theme.screenPadding
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
@@ -302,12 +325,12 @@ private fun SettingsCategoryContent(
         SettingsCategoryHeader(category)
         when (category) {
             SettingsCategory.PLAYBACK -> PlaybackSection(state, settings, save)
-            SettingsCategory.INTERFACE -> InterfaceSection(state, settings, save)
-            SettingsCategory.THEME -> ThemeSection(state, settings, save)
-            SettingsCategory.HERO -> HeroSection(state, settings, save)
+            SettingsCategory.APPEARANCE -> AppearanceSection(state, settings, save)
+            SettingsCategory.HOME -> HomeSection(state, settings, save)
             SettingsCategory.ADDONS -> AddonsSection()
             SettingsCategory.METADATA -> MetadataSection(state, settings, save)
             SettingsCategory.ACCOUNT -> AccountSection()
+            SettingsCategory.ABOUT -> AboutSection()
             SettingsCategory.ADVANCED ->
                 AdvancedSection(
                     settings = settings,
@@ -403,7 +426,56 @@ private fun DesktopPlayerPanel(
 }
 
 @Composable
-private fun InterfaceSection(
+private fun AppearanceSection(
+    state: AppSettings,
+    settings: SettingsRepository,
+    save: Save,
+) {
+    val themeLabels = mapOf(AppTheme.COFFEE to stringResource(Res.string.theme_coffee))
+    val typefaceLabels =
+        mapOf(
+            AppTypeface.IBM_PLEX_SANS to stringResource(Res.string.settings_typeface_ibm_plex),
+            AppTypeface.INTER to stringResource(Res.string.settings_typeface_inter),
+        )
+    SettingsPanel {
+        SettingsSelectRow(
+            title = stringResource(Res.string.settings_theme),
+            description = stringResource(Res.string.settings_theme_subtitle),
+            options = AppTheme.entries,
+            selected = state.theme,
+            label = { themeLabels.getValue(it) },
+            onSelect = { value -> save { settings.setTheme(value) } },
+        )
+        SettingsDivider()
+        SettingsChipRow(
+            title = stringResource(Res.string.settings_typeface),
+            description = stringResource(Res.string.settings_typeface_subtitle),
+            options = AppTypeface.entries,
+            selected = state.typeface,
+            label = { typefaceLabels.getValue(it) },
+            onSelect = { value -> save { settings.setTypeface(value) } },
+            // Each option is set in its own family, so the picker is its preview.
+            labelFamily = { appFontFamily(it) },
+        )
+        SettingsDivider()
+        SettingsToggleRow(
+            title = stringResource(Res.string.settings_animations),
+            description = stringResource(Res.string.settings_animations_subtitle),
+            checked = state.animationsEnabled,
+            onCheckedChange = { value -> save { settings.setAnimationsEnabled(value) } },
+        )
+    }
+}
+
+/**
+ * The Home page: the billboard and the poster rows.
+ *
+ * Both decide how the feed looks, so they share a page instead of living under a
+ * generic "interface" entry: the billboard first, then the poster rows under
+ * their own heading.
+ */
+@Composable
+private fun HomeSection(
     state: AppSettings,
     settings: SettingsRepository,
     save: Save,
@@ -413,14 +485,18 @@ private fun InterfaceSection(
             PosterSize.DEFAULT to stringResource(Res.string.poster_size_default),
             PosterSize.LARGE to stringResource(Res.string.poster_size_large),
         )
+
+    SettingsSubsection(
+        title = stringResource(Res.string.settings_hero),
+        subtitle = stringResource(Res.string.settings_hero_subtitle),
+    )
+    BillboardPanel(state, settings, save)
+
+    SettingsSubsection(
+        title = stringResource(Res.string.settings_posters),
+        subtitle = stringResource(Res.string.settings_posters_subtitle),
+    )
     SettingsPanel {
-        SettingsToggleRow(
-            title = stringResource(Res.string.settings_animations),
-            description = stringResource(Res.string.settings_animations_subtitle),
-            checked = state.animationsEnabled,
-            onCheckedChange = { value -> save { settings.setAnimationsEnabled(value) } },
-        )
-        SettingsDivider()
         SettingsChipRow(
             title = stringResource(Res.string.settings_poster_size),
             description = stringResource(Res.string.settings_poster_size_subtitle),
@@ -446,25 +522,6 @@ private fun InterfaceSection(
     }
 }
 
-@Composable
-private fun ThemeSection(
-    state: AppSettings,
-    settings: SettingsRepository,
-    save: Save,
-) {
-    val themeLabels = mapOf(AppTheme.COFFEE to stringResource(Res.string.theme_coffee))
-    SettingsPanel {
-        SettingsSelectRow(
-            title = stringResource(Res.string.settings_theme),
-            description = stringResource(Res.string.settings_theme_subtitle),
-            options = AppTheme.entries,
-            selected = state.theme,
-            label = { themeLabels.getValue(it) },
-            onSelect = { value -> save { settings.setTheme(value) } },
-        )
-    }
-}
-
 /**
  * Source of the featured titles on Home.
  *
@@ -474,7 +531,7 @@ private fun ThemeSection(
  * needs the names, not just the keys.
  */
 @Composable
-private fun HeroSection(
+private fun BillboardPanel(
     state: AppSettings,
     settings: SettingsRepository,
     save: Save,
@@ -689,13 +746,6 @@ private fun MetadataSection(
             label = { languageLabels.getValue(it) },
             onSelect = { value -> save { settings.setTmdbLanguage(value) } },
         )
-        SettingsDivider()
-        Text(
-            stringResource(Res.string.settings_tmdb_attribution),
-            style = AppType.caption(),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(AppSizes.cardPadding),
-        )
     }
 }
 
@@ -748,6 +798,77 @@ private fun AccountSection() {
         }
     }
 }
+
+@Composable
+private fun AboutSection() {
+    val uriHandler = LocalUriHandler.current
+    SettingsSubsection(
+        title = stringResource(Res.string.settings_about_pengu),
+        subtitle = stringResource(Res.string.settings_about_description),
+    )
+    SettingsSubsection(
+        title = stringResource(Res.string.settings_about_license),
+        subtitle = stringResource(Res.string.settings_about_license_text),
+    )
+    SettingsPanel {
+        SettingsRow(
+            title = stringResource(Res.string.settings_about_read_license),
+            trailing = {
+                ActionButton(
+                    text = stringResource(Res.string.action_open),
+                    onClick = { uriHandler.openUri(LICENSE_URL) },
+                    style = ActionButtonStyle.Text,
+                )
+            },
+        )
+    }
+    SettingsSubsection(title = stringResource(Res.string.settings_about_credits))
+    SettingsPanel {
+        AboutLinkRow(
+            title = Res.string.settings_about_mediamp_name,
+            description = Res.string.settings_about_mediamp,
+            url = MEDIAMP_URL,
+        )
+        SettingsDivider()
+        AboutLinkRow(
+            title = Res.string.settings_about_stremio_name,
+            description = Res.string.settings_about_stremio,
+            url = STREMIO_PROTOCOL_URL,
+        )
+        SettingsDivider()
+        AboutLinkRow(
+            title = Res.string.settings_about_tmdb_name,
+            description = Res.string.settings_tmdb_attribution,
+            url = TMDB_URL,
+        )
+    }
+}
+
+/** One credited project: what it does, and a link to it. */
+@Composable
+private fun AboutLinkRow(
+    title: StringResource,
+    description: StringResource,
+    url: String,
+) {
+    val uriHandler = LocalUriHandler.current
+    SettingsRow(
+        title = stringResource(title),
+        description = stringResource(description),
+        trailing = {
+            ActionButton(
+                text = stringResource(Res.string.action_open),
+                onClick = { uriHandler.openUri(url) },
+                style = ActionButtonStyle.Text,
+            )
+        },
+    )
+}
+
+private const val LICENSE_URL = "https://www.gnu.org/licenses/gpl-3.0.html"
+private const val MEDIAMP_URL = "https://github.com/open-ani/mediamp"
+private const val STREMIO_PROTOCOL_URL = "https://github.com/Stremio/stremio-addon-sdk/blob/master/docs/protocol.md"
+private const val TMDB_URL = "https://www.themoviedb.org"
 
 @Composable
 private fun AdvancedSection(

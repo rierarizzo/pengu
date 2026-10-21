@@ -65,12 +65,17 @@ class FakeAccountRepository(
 /** In-memory [LibraryRepository] for tests. */
 class FakeLibraryRepository(
     initial: List<LibraryItem> = emptyList(),
+    /** Optional gate a test completes to control when the first read answers. */
+    private val gate: CompletableDeferred<Unit>? = null,
 ) : LibraryRepository {
     private val items = initial.toMutableList()
     private val _changes = MutableStateFlow(0L)
     override val changes: StateFlow<Long> = _changes
 
-    override suspend fun all(): List<LibraryItem> = items.toList()
+    override suspend fun all(): List<LibraryItem> {
+        gate?.await()
+        return items.toList()
+    }
 
     override suspend fun contains(contentId: String): Boolean = items.any { it.contentId == contentId }
 

@@ -44,8 +44,9 @@ object AppType {
      * Metadata line under a hero title (`Series • 2026 • Drama • ★ 7.8`).
      *
      * Reads one step down the label roles, like the rest of the billboard copy,
-     * but in Inter Tight: the line is a dense ribbon, and the tighter fit keeps
-     * it to one line under the title on both the home and the detail billboard.
+     * with a small negative tracking: IBM Plex Sans is wider than the geometric
+     * faces it was compared against, and the dot-separated ribbon has to stay on
+     * one line under the title on both billboards.
      */
     @Composable
     fun heroMeta(): TextStyle {
@@ -55,7 +56,7 @@ object AppType {
             } else {
                 MaterialTheme.typography.labelLarge
             }
-        return base.copy(fontFamily = interTightFontFamily())
+        return base.copy(letterSpacing = (-0.2).sp)
     }
 
     /** Title of a screen: onboarding, profile picker, splash, catalog, settings. */

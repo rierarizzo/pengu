@@ -1,14 +1,22 @@
 package com.misgus.pengu.ui
 
+import com.misgus.pengu.core.model.BackendProfile
 import com.misgus.pengu.core.model.ContentType
 import com.misgus.pengu.core.model.Episode
 import com.misgus.pengu.core.model.LibraryItem
+import com.misgus.pengu.core.model.MetaDetail
 import com.misgus.pengu.core.model.MetaPreview
 import com.misgus.pengu.core.model.Season
 import com.misgus.pengu.core.model.TmdbMediaType
 import com.misgus.pengu.core.model.TmdbTitle
 import com.misgus.pengu.core.model.WatchProgress
+import com.misgus.pengu.core.repository.AccountState
+import com.misgus.pengu.core.repository.AppSettings
 import com.misgus.pengu.core.repository.CatalogRef
+import com.misgus.pengu.core.repository.CatalogRepository
+import com.misgus.pengu.core.repository.HeroSource
+import com.misgus.pengu.core.repository.InMemorySettingsRepository
+import com.misgus.pengu.core.repository.SettingsRepository
 import com.misgus.pengu.core.watched.WatchedBadgeResolver
 import com.misgus.pengu.ui.home.HomeViewModel
 import com.misgus.pengu.ui.library.LibraryViewModel
@@ -30,6 +38,7 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
@@ -169,7 +178,7 @@ class HomeViewModelTest {
         }
 
     @Test
-    fun publishesTheFirstBatchBeforeTheRestIsLoaded() =
+    fun waitsForEveryCatalogBeforePublishing() =
         runTest(dispatcher) {
             val refs =
                 (0 until 6).map { index ->
@@ -203,18 +212,17 @@ class HomeViewModelTest {
             viewModel.load()
             advanceUntilIdle()
 
-            // The first batch is on screen, and already leads the billboard, while
-            // the second is still loading.
-            assertEquals(
-                listOf("c0", "c1", "c2", "c3"),
+            // Nothing half-loaded: the answered first batch stays off screen while
+            // the rest is still in flight, so the loading state covers the whole load.
+            assertTrue(viewModel.state.value.isLoading)
+            assertTrue(
                 viewModel.state.value.rows
-                    .map { it.ref.id },
+                    .isEmpty(),
             )
             assertTrue(
                 viewModel.state.value.featured
-                    .isNotEmpty(),
+                    .isEmpty(),
             )
-            assertTrue(viewModel.state.value.isLoading)
 
             gate.complete(Unit)
             advanceUntilIdle()
@@ -226,6 +234,7 @@ class HomeViewModelTest {
                     .map { it.ref.id },
             )
             assertTrue(viewModel.state.value.hasLoaded)
+            assertFalse(viewModel.state.value.isLoading)
         }
 
     @Test
@@ -389,6 +398,256 @@ class HomeViewModelTest {
             val row = viewModel.state.value.continueWatching
             assertTrue(row.isEmpty())
         }
+
+    @Test
+    fun paintsTheFeedAndTheWatchHistoryTogether() =
+        runTest(dispatcher) {
+            val top = ref("top")
+            val libraryGate = CompletableDeferred<Unit>()
+            val viewModel =
+                HomeViewModel(
+                    account = FakeAccountRepository(),
+                    catalogs = FakeCatalogRepository(listOf(top), mapOf(top.key to listOf(preview("tt1")))),
+                    library = FakeLibraryRepository(listOf(item("tt1", "movie")), gate = libraryGate),
+                    progress = FakeProgressRepository(progress = listOf(watchProgress("tt1", lastWatched = 1_000))),
+                    badges = WatchedBadgeResolver(FakeProgressRepository(), FakeMetadataRepository()),
+                )
+            viewModel.load()
+            advanceUntilIdle()
+
+            // The backend read is still in flight, so nothing is painted yet: the
+            // first frame must not show the rows and then grow the watch row above
+            // them.
+            assertTrue(viewModel.state.value.isLoading)
+            assertTrue(
+                viewModel.state.value.rows
+                    .isEmpty(),
+            )
+            assertTrue(
+                viewModel.state.value.continueWatching
+                    .isEmpty(),
+            )
+
+            libraryGate.complete(Unit)
+            advanceUntilIdle()
+
+            // Both arrive in the same paint.
+            assertEquals(
+                listOf("tt1"),
+                viewModel.state.value.rows
+                    .single()
+                    .items
+                    .map(MetaPreview::id),
+            )
+            assertEquals(
+                listOf("tt1"),
+                viewModel.state.value.continueWatching
+                    .map { it.item.contentId },
+            )
+            assertFalse(viewModel.state.value.isLoading)
+        }
+
+    @Test
+    fun aManualBillboardDrawsOnlyFromThePickedCatalogs() =
+        runTest(dispatcher) {
+            val picked = ref("picked")
+            val other = ref("other")
+            val viewModel =
+                homeViewModel(
+                    catalogs =
+                        FakeCatalogRepository(
+                            refs = listOf(picked, other),
+                            items =
+                                mapOf(
+                                    picked.key to listOf(preview("tt-picked")),
+                                    other.key to listOf(preview("tt-other")),
+                                ),
+                        ),
+                    settings =
+                        InMemorySettingsRepository(
+                            AppSettings(heroSource = HeroSource.MANUAL, heroCatalogKeys = listOf(picked.key)),
+                        ),
+                )
+
+            viewModel.load()
+            advanceUntilIdle()
+
+            // Every row still loads; only the billboard is narrowed.
+            assertEquals(2, viewModel.state.value.rows.size)
+            assertEquals(
+                listOf("tt-picked"),
+                viewModel.state.value.featured
+                    .map(MetaPreview::id),
+            )
+        }
+
+    @Test
+    fun aManualBillboardFallsBackToEveryRowWhenItsCatalogsAreGone() =
+        runTest(dispatcher) {
+            val top = ref("top")
+            val viewModel =
+                homeViewModel(
+                    catalogs = FakeCatalogRepository(listOf(top), mapOf(top.key to listOf(preview("tt1")))),
+                    settings =
+                        InMemorySettingsRepository(
+                            AppSettings(
+                                heroSource = HeroSource.MANUAL,
+                                heroCatalogKeys = listOf("https://old|movie|gone"),
+                            ),
+                        ),
+                )
+
+            viewModel.load()
+            advanceUntilIdle()
+
+            assertEquals(
+                listOf("tt1"),
+                viewModel.state.value.featured
+                    .map(MetaPreview::id),
+            )
+        }
+
+    @Test
+    fun changingTheSourceRePicksTheBillboardAtOnce() =
+        runTest(dispatcher) {
+            val picked = ref("picked")
+            val other = ref("other")
+            val settings = InMemorySettingsRepository()
+            val viewModel =
+                homeViewModel(
+                    catalogs =
+                        FakeCatalogRepository(
+                            refs = listOf(picked, other),
+                            items =
+                                mapOf(
+                                    picked.key to listOf(preview("tt-picked")),
+                                    other.key to listOf(preview("tt-other")),
+                                ),
+                        ),
+                    settings = settings,
+                )
+
+            viewModel.load()
+            advanceUntilIdle()
+            assertTrue(
+                viewModel.state.value.featured
+                    .any { it.id == "tt-other" },
+            )
+
+            settings.setHeroSource(HeroSource.MANUAL)
+            settings.setHeroCatalogKeys(listOf(picked.key))
+            advanceUntilIdle()
+
+            // No reload and no timer: the deliberate change is applied at once.
+            assertEquals(
+                listOf("tt-picked"),
+                viewModel.state.value.featured
+                    .map(MetaPreview::id),
+            )
+        }
+
+    @Test
+    fun dropsTheRowsOfThePreviousProfileWhileTheNewOneLoads() =
+        runTest(dispatcher) {
+            val top = ref("top")
+            val catalogs =
+                SwappingCatalogRepository(
+                    refs = listOf(top),
+                    first = listOf(preview("tt-one")),
+                    second = listOf(preview("tt-two")),
+                )
+            val account =
+                FakeAccountRepository(AccountState(isSignedIn = true, requiresProfile = true))
+            val viewModel =
+                HomeViewModel(
+                    account = account,
+                    catalogs = catalogs,
+                    library = FakeLibraryRepository(),
+                    progress = FakeProgressRepository(),
+                    badges = WatchedBadgeResolver(FakeProgressRepository(), FakeMetadataRepository()),
+                )
+            account.selectProfile(BackendProfile(id = "p1", name = "One"))
+            advanceUntilIdle()
+            assertEquals(
+                listOf("tt-one"),
+                viewModel.state.value.rows
+                    .single()
+                    .items
+                    .map(MetaPreview::id),
+            )
+
+            account.selectProfile(BackendProfile(id = "p2", name = "Two"))
+            advanceUntilIdle()
+
+            // The previous profile's rows are gone while the new ones load: Home
+            // shows its loading state instead of refreshing behind them.
+            assertTrue(viewModel.state.value.isLoading)
+            assertTrue(
+                viewModel.state.value.rows
+                    .isEmpty(),
+            )
+
+            catalogs.releaseSecondCall.complete(Unit)
+            advanceUntilIdle()
+
+            assertEquals(
+                listOf("tt-two"),
+                viewModel.state.value.rows
+                    .single()
+                    .items
+                    .map(MetaPreview::id),
+            )
+        }
+
+    private fun ref(id: String) =
+        CatalogRef(
+            addonName = "Addon",
+            addonBaseUrl = "https://addon",
+            type = ContentType("movie"),
+            id = id,
+            name = id,
+        )
+
+    private fun preview(id: String) = MetaPreview(id = id, type = ContentType("movie"), name = id)
+
+    private fun homeViewModel(
+        catalogs: FakeCatalogRepository,
+        settings: SettingsRepository = InMemorySettingsRepository(),
+    ): HomeViewModel =
+        HomeViewModel(
+            account = FakeAccountRepository(),
+            catalogs = catalogs,
+            library = FakeLibraryRepository(),
+            progress = FakeProgressRepository(),
+            badges = WatchedBadgeResolver(FakeProgressRepository(), FakeMetadataRepository()),
+            settings = settings,
+        )
+
+    /** Catalog whose second read waits for the test, so a load can be held in flight. */
+    private class SwappingCatalogRepository(
+        private val refs: List<CatalogRef>,
+        private val first: List<MetaPreview>,
+        private val second: List<MetaPreview>,
+    ) : CatalogRepository {
+        val releaseSecondCall = CompletableDeferred<Unit>()
+        private var calls = 0
+
+        override suspend fun catalogs(): List<CatalogRef> = refs
+
+        override suspend fun items(
+            ref: CatalogRef,
+            extra: Map<String, String>?,
+        ): List<MetaPreview> {
+            val call = calls++
+            if (call > 0) releaseSecondCall.await()
+            return if (call == 0) first else second
+        }
+
+        override suspend fun detailedItems(
+            ref: CatalogRef,
+            extra: Map<String, String>?,
+        ): List<MetaDetail> = emptyList()
+    }
 
     private fun watchProgress(
         contentId: String,

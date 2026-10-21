@@ -40,6 +40,11 @@ kotlin {
         jvmMain.get().dependsOn(jvmSharedMain)
         androidMain.get().dependsOn(jvmSharedMain)
 
+        jvmSharedMain.dependencies {
+            // The shared DNS resolver speaks OkHttp's `Dns`, and both platform
+            // addon clients run on OkHttp.
+            implementation(libs.ktor.clientOkhttp)
+        }
         commonMain.dependencies {
             api(project(":core"))
             implementation(libs.kotlinx.coroutines.core)
@@ -49,6 +54,7 @@ kotlin {
         }
         jvmMain.dependencies {
             implementation(libs.ktor.clientCio)
+            implementation(libs.ktor.clientOkhttp)
         }
         androidMain.dependencies {
             implementation(libs.ktor.clientOkhttp)

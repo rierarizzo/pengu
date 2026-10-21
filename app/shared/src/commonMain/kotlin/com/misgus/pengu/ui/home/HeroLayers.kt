@@ -54,6 +54,11 @@ import org.jetbrains.compose.resources.stringResource
  * The alpha is read inside `graphicsLayer`, so a swipe updates the layer instead
  * of recomposing; a single-image layer is also what keeps the cross-fade off the
  * offscreen-buffer path a whole-page alpha would take.
+ *
+ * [onSettled] fires once the request finishes (loaded, failed, or no artwork at
+ * all). Home uses it to keep its loading screen up until the first slide can
+ * actually be drawn, so the billboard never flashes the background and then fills
+ * in.
  */
 @Composable
 internal fun BoxScope.HeroBackdropLayer(
@@ -63,8 +68,13 @@ internal fun BoxScope.HeroBackdropLayer(
     pageWidthPx: Int,
     pagerState: PagerState,
     onAspect: (Float) -> Unit,
+    onSettled: () -> Unit = {},
 ) {
-    val artwork = heroArtwork(item, wide) ?: return
+    val artwork = heroArtwork(item, wide)
+    if (artwork == null) {
+        onSettled()
+        return
+    }
     AsyncImage(
         model = artwork.url,
         contentDescription = null,
@@ -80,7 +90,9 @@ internal fun BoxScope.HeroBackdropLayer(
             if (image.width > 0 && image.height > 0) {
                 onAspect(image.width.toFloat() / image.height.toFloat())
             }
+            onSettled()
         },
+        onError = { onSettled() },
         modifier =
             Modifier
                 .then(

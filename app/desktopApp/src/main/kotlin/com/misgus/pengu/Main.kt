@@ -27,7 +27,6 @@ import com.misgus.pengu.data.createBackend
 import com.misgus.pengu.data.platform.createAddonHttpClient
 import com.misgus.pengu.data.platform.createHttpClient
 import com.misgus.pengu.data.store.AppPaths
-import com.misgus.pengu.data.store.FileHomeSnapshotStore
 import com.misgus.pengu.data.store.FileSessionStore
 import com.misgus.pengu.data.store.FileWatchedSeriesCache
 import com.misgus.pengu.data.store.JsonMapStore
@@ -99,7 +98,6 @@ fun main(args: Array<String>) {
                     subtitles = stremio.subtitles,
                     tmdb = TmdbMetadataRepository(httpClient, settings),
                     watchedCache = watchedCache,
-                    homeSnapshot = FileHomeSnapshotStore(),
                     player = player,
                     window = windowController,
                     addons = addons,

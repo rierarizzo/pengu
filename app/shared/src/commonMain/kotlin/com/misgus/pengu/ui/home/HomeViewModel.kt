@@ -1,10 +1,6 @@
 package com.misgus.pengu.ui.home
 
 import androidx.lifecycle.viewModelScope
-import com.misgus.pengu.core.catalog.HomeSnapshot
-import com.misgus.pengu.core.catalog.HomeSnapshotRow
-import com.misgus.pengu.core.catalog.HomeSnapshotStore
-import com.misgus.pengu.core.catalog.NoopHomeSnapshotStore
 import com.misgus.pengu.core.model.ContentType
 import com.misgus.pengu.core.model.ContentTypes
 import com.misgus.pengu.core.model.LibraryItem
@@ -49,7 +45,6 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlin.random.Random
 import kotlin.time.Clock
-import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
@@ -85,16 +80,17 @@ data class HomeUiState(
  * Loads Home: a featured set, "Continue watching" and catalog rows.
  *
  * Catalogs come from the addons; continue watching comes from the backend
- * (watch progress joined with the library). Catalogs load in batches and the
- * screen paints after the first one, with the featured artwork already enriched
- * so the billboard never swaps; later batches only append rows. Re-entering the
- * section keeps the loaded content and refreshes behind it, and a cold start
- * paints the previous session's rows from disk before the first request. The
- * billboard comes from every loaded row (Smart) or from the catalogs picked in
- * Settings (Manual), and a stored set older than [HERO_PICK_TTL] is re-picked on
- * a cold start. The
- * watched badges are resolved after the paint. Every browsable catalog gets a
- * row; only the items per row are capped.
+ * (watch progress joined with the library). The rows are fetched with a bounded
+ * number of requests in flight; the watch history is read at the same time, and
+ * the feed is published once, with both already in it, so nothing appears after
+ * the first paint: no row half-loaded, no "Continue watching" popping in, and the
+ * billboard is picked and enriched from the full set before it is shown. Only the
+ * watched badges resolve afterwards, since they are not part of the layout.
+ * Re-entering the section keeps what is on screen and refreshes behind it,
+ * replacing it once at the end; changing profile drops it and starts from the
+ * loading state again. The billboard comes from every loaded row (Smart) or from
+ * the catalogs picked in Settings (Manual). Every browsable catalog gets a row;
+ * only the items per row are capped.
  */
 class HomeViewModel(
     account: AccountRepository,
@@ -103,7 +99,6 @@ class HomeViewModel(
     private val progress: ProgressRepository,
     badges: WatchedBadgeResolver,
     private val tmdb: TmdbRepository = NoTmdbRepository(),
-    private val snapshot: HomeSnapshotStore = NoopHomeSnapshotStore(),
     addons: AddonRepository = NoopAddonRepository(),
     private val settings: SettingsRepository = InMemorySettingsRepository(),
     private val playbackUpdates: PlaybackUpdates = PlaybackUpdates(),
@@ -130,13 +125,12 @@ class HomeViewModel(
     private var libraryByContent: Map<String, LibraryItem> = emptyMap()
 
     /**
-     * When the billboard set was picked.
+     * Profile whose rows are on screen.
      *
-     * Kept across loads so the snapshot carries the pick time, not the time of the
-     * last write: a re-entry that refreshes the rows behind must not make the set
-     * look freshly picked (nor older than it is).
+     * A different profile is a different Home, so its rows are dropped instead of
+     * refreshed behind the previous profile's content.
      */
-    private var billboardAt: Instant? = null
+    private var loadedProfile: String? = null
 
     init {
         // A save or a remove made elsewhere (the detail screen, the library)
@@ -153,13 +147,13 @@ class HomeViewModel(
             addons.changes.collect { if (_state.value.hasLoaded) load(force = true) }
         }
         // Picking a different billboard source is a deliberate change, so it
-        // applies at once instead of waiting for the next rotation or reload.
+        // applies at once instead of waiting for the next load.
         viewModelScope.launch {
             settings.state
                 .map { it.heroSource to it.heroCatalogKeys }
                 .distinctUntilChanged()
                 .drop(1)
-                .collect { if (_state.value.rows.isNotEmpty()) rotateFeatured() }
+                .collect { if (_state.value.rows.isNotEmpty()) repickFeatured() }
         }
         // A playback just saved its last position and closed. The section stays
         // composed while the player is open, so nothing else would notice: without
@@ -171,9 +165,19 @@ class HomeViewModel(
         }
     }
 
-    override fun onAccountReady() = load(force = true)
+    override fun onAccountReady() {
+        val profile =
+            account.state.value.activeProfile
+                ?.id
+        if (loadedProfile != null && loadedProfile != profile) clear()
+        loadedProfile = profile
+        load(force = true)
+    }
 
-    override fun onAccountCleared() = clear()
+    override fun onAccountCleared() {
+        loadedProfile = null
+        clear()
+    }
 
     /** Loads everything. Does nothing when already loaded, unless [force]. */
     fun load(force: Boolean = false) {
@@ -187,14 +191,12 @@ class HomeViewModel(
         // past a state check and load twice.
         if (loadJob?.isActive == true) return
         if (_state.value.hasLoaded && !force) {
-            // Re-entering Home keeps the loaded rows on screen and refreshes
-            // behind them, unless the last load is recent enough to reuse.
+            // Re-entering Home keeps what is on screen and refreshes behind it,
+            // unless the last load is recent enough to reuse.
             val last = lastLoadedAt
             if (last != null && now() - last < HOME_REFRESH_INTERVAL) return
-            loadJob = viewModelScope.launch { doLoad(refresh = true) }
-            return
         }
-        loadJob = viewModelScope.launch { doLoad(refresh = false) }
+        loadJob = viewModelScope.launch { doLoad() }
     }
 
     /**
@@ -243,115 +245,89 @@ class HomeViewModel(
                 ContinueEntry(item, entry)
             }.take(MAX_CONTINUE)
 
-    private suspend fun doLoad(refresh: Boolean) {
+    private suspend fun doLoad() {
         _state.update { it.copy(isLoading = true, error = null) }
-        var progressEntries: List<WatchProgress> = emptyList()
-        var loaded = false
+        val rows: List<HomeRow>
+        val watching: Watching?
         try {
-            // Paint the previous session's rows from disk before the first
-            // request, so a cold start shows content instead of a spinner. The
-            // network pass then replaces them row by row; the billboard that is
-            // already on screen is kept, unless its set is old enough to be
-            // re-picked (the stored rows paint either way).
-            val stored = restoreSnapshot()
-            val keepsBillboard = refresh || (stored != null && !stored.billboardExpired())
-            // Watch progress, library and the catalog list are independent, so
-            // they all start at once instead of paying three round-trips in a row.
-            val (entries, libraryItems, refs) =
-                coroutineScope {
-                    val progressDeferred = async { progress.all() }
-                    val libraryDeferred = async { library.all() }
-                    val catalogsDeferred = async { catalogs.catalogs().filter { it.browsable } }
-                    Triple(progressDeferred.await(), libraryDeferred.await(), catalogsDeferred.await())
-                }
-            progressEntries = entries
-            libraryByContent = libraryItems.associateBy { it.contentId }
-            val continueWatching = continueEntries(progressEntries)
-            val savedIds = libraryItems.mapTo(mutableSetOf()) { item -> item.contentId }
-
-            // Catalogs load in batches and the screen paints after the first one,
-            // instead of waiting for the slowest catalog. The featured set is
-            // picked and enriched from the rows on screen before that first paint,
-            // so the billboard never shows the catalog artwork and then swaps to
-            // TMDB's; later batches only append rows and leave the billboard alone.
-            // A refresh keeps the billboard that is already on screen, and so does
-            // a cold start with stored rows: there the rows stay until the load
-            // finishes, so the screen never shrinks to the first batch's catalogs,
-            // and an expired set is re-picked from the final rows below.
-            val paintsEarly = !refresh && stored == null && _state.value.rows.isEmpty()
-            val order = refs.mapIndexed { index, ref -> ref.key to index }.toMap()
-            val batches = refs.chunked(HOME_CATALOG_FETCH_BATCH_SIZE)
-            val rows = mutableListOf<HomeRow>()
-            var featured = if (keepsBillboard) _state.value.featured else emptyList()
-
-            batches.forEachIndexed { batchIndex, batch ->
-                val results = coroutineScope { batch.map { ref -> async { loadRow(ref) } }.awaitAll() }
-                rows += results.filterNotNull()
-                rows.sortBy { order[it.ref.key] ?: Int.MAX_VALUE }
-                val firstContentPaint = paintsEarly && featured.isEmpty() && rows.isNotEmpty()
-                if (firstContentPaint) {
-                    featured = pickBillboard(rows)
-                }
-                val last = batchIndex == batches.lastIndex
-                val publishNow =
-                    paintsEarly &&
-                        (batchIndex == 0 || (batchIndex + 1) % HOME_CATALOG_PUBLISH_INTERVAL == 0 || last)
-                if (publishNow || firstContentPaint) {
-                    publishContent(isLoading = true, continueWatching, savedIds, rows, featured)
-                } else if (batchIndex == 0) {
-                    // Content was already on screen: the stored rows stay, but the
-                    // backend-owned rows (continue watching) do not have to wait for
-                    // the last batch.
-                    publishBackend(continueWatching, savedIds)
-                }
+            // The catalogs and the watch history are independent, so they load
+            // together and are published in the same update: "Continue watching"
+            // must be there from the first frame, not pop in after the rows.
+            coroutineScope {
+                val rowsDeferred = async { fetchRows(catalogs.catalogs().filter { it.browsable }) }
+                val watchingDeferred = async { readWatching() }
+                rows = rowsDeferred.await()
+                watching = watchingDeferred.await()
             }
-
-            // A set that was dropped above (its snapshot had aged out) is picked
-            // from the rows that are actually loaded, not from the first batch.
-            if (featured.isEmpty() && rows.isNotEmpty()) {
-                featured = pickBillboard(rows)
-            }
-
-            publishContent(isLoading = false, continueWatching, savedIds, rows, featured)
-            lastLoadedAt = now()
-            writeSnapshot(rows, featured, billboardAt)
-            loaded = true
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (error: Throwable) {
             _state.update { it.copy(isLoading = false, error = error) }
+            return
         }
-        // Home paints without waiting for the watch history; the checks fill in
-        // when the lookup finishes.
-        if (loaded) syncWatched(progressEntries)
-    }
 
-    /** Publishes the loaded content, keeping [rows] stable for the state. */
-    private fun publishContent(
-        isLoading: Boolean,
-        continueWatching: List<ContinueEntry>,
-        savedIds: Set<String>,
-        rows: List<HomeRow>,
-        featured: List<MetaPreview>,
-    ) {
+        if (watching != null) {
+            libraryByContent = watching.library.associateBy { it.contentId }
+        }
+        val progress = watching?.progress.orEmpty()
+        // Enriched before the paint on purpose: a second artwork URL arriving after
+        // the hero is on screen is exactly the swap this screen must not show.
+        val featured = if (rows.isEmpty()) emptyList() else pickBillboard(rows)
         _state.update {
             it.copy(
-                isLoading = isLoading,
+                isLoading = false,
                 hasLoaded = true,
-                continueWatching = continueWatching,
-                savedIds = savedIds,
-                rows = rows.toList(),
+                rows = rows,
                 featured = featured,
+                continueWatching = continueEntries(progress),
+                savedIds = watching?.library?.mapTo(mutableSetOf()) { item -> item.contentId }.orEmpty(),
             )
         }
+        lastLoadedAt = now()
+        syncWatched(progress)
     }
 
-    /** Publishes the backend-owned rows, leaving the loaded catalogs untouched. */
-    private fun publishBackend(
-        continueWatching: List<ContinueEntry>,
-        savedIds: Set<String>,
-    ) {
-        _state.update { it.copy(continueWatching = continueWatching, savedIds = savedIds) }
+    /** One reading of the watch history: progress plus the titles it joins with. */
+    private data class Watching(
+        val progress: List<WatchProgress>,
+        val library: List<LibraryItem>,
+    )
+
+    /**
+     * Reads the two watch-history sources together.
+     *
+     * Best-effort: a backend failure leaves the row empty instead of failing
+     * Home, because the feed is still worth showing.
+     */
+    private suspend fun readWatching(): Watching? =
+        try {
+            coroutineScope {
+                val progressDeferred = async { progress.all() }
+                val libraryDeferred = async { library.all() }
+                Watching(progressDeferred.await(), libraryDeferred.await())
+            }
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (_: Throwable) {
+            null
+        }
+
+    /**
+     * Fetches every catalog row with at most [HOME_CATALOG_CONCURRENCY] requests in
+     * flight, in catalog order.
+     *
+     * The limit is a sliding window, not a batch: a row that answers frees its slot
+     * for the next catalog immediately, so one slow addon does not hold back the
+     * rest of its group.
+     */
+    private suspend fun fetchRows(refs: List<CatalogRef>): List<HomeRow> {
+        if (refs.isEmpty()) return emptyList()
+        val order = refs.mapIndexed { index, ref -> ref.key to index }.toMap()
+        val permits = Semaphore(HOME_CATALOG_CONCURRENCY)
+        return coroutineScope {
+            refs.map { ref -> async { permits.withPermit { loadRow(ref) } } }.awaitAll()
+        }.filterNotNull()
+            .sortedBy { order[it.ref.key] ?: Int.MAX_VALUE }
     }
 
     /** Loads one catalog row, or `null` when it is empty or fails. */
@@ -360,26 +336,6 @@ class HomeViewModel(
             val items = catalogs.items(ref)
             if (items.isEmpty()) null else HomeRow(ref, ref.name, items.take(MAX_ITEMS_PER_ROW))
         }.getOrNull()
-
-    /**
-     * Publishes the rows of the last session and returns its snapshot.
-     *
-     * The rows go on screen whatever their age — that is the point of the
-     * snapshot — while the caller decides whether the billboard that came with
-     * them is recent enough to keep. An unreadable snapshot is treated as no
-     * snapshot: the load simply starts from the network.
-     */
-    private suspend fun restoreSnapshot(): HomeSnapshot? {
-        val stored = runCatchingCancellable { snapshot.read(profileKey()) }.getOrNull() ?: return null
-        val rows =
-            stored.rows
-                .filter { it.items.isNotEmpty() }
-                .map { HomeRow(ref = it.ref, title = it.ref.name, items = it.items.take(MAX_ITEMS_PER_ROW)) }
-        if (rows.isEmpty()) return null
-        _state.update { it.copy(rows = rows, featured = stored.featured, hasLoaded = true) }
-        if (billboardAt == null) billboardAt = stored.featuredAt
-        return stored
-    }
 
     /**
      * The rows the billboard is built from.
@@ -393,43 +349,6 @@ class HomeViewModel(
         if (current.heroSource != HeroSource.MANUAL || current.heroCatalogKeys.isEmpty()) return rows
         return rows.filter { it.ref.key in current.heroCatalogKeys }.ifEmpty { rows }
     }
-
-    /** Whether the stored set is old enough that a cold start should re-pick it. */
-    private fun HomeSnapshot.billboardExpired(): Boolean {
-        val pickedAt = featuredAt ?: return true
-        return now() - pickedAt >= HERO_PICK_TTL
-    }
-
-    /** Stores what is on screen, so the next cold start can paint it. */
-    private suspend fun writeSnapshot(
-        rows: List<HomeRow>,
-        featured: List<MetaPreview>,
-        featuredAt: Instant?,
-    ) {
-        if (rows.isEmpty()) return
-        runCatchingCancellable {
-            snapshot.write(
-                profileKey(),
-                HomeSnapshot(
-                    rows = rows.map { HomeSnapshotRow(it.ref, it.items) },
-                    featured = featured,
-                    featuredAt = featuredAt,
-                ),
-            )
-        }
-    }
-
-    /**
-     * Scopes the on-disk snapshot.
-     *
-     * The integer profile id is what every other local cache keys on, and a
-     * backend without profiles (local mode) keeps a single snapshot under
-     * [LOCAL_PROFILE_KEY].
-     */
-    private fun profileKey(): String =
-        account.state.value.activeProfile
-            ?.profileId
-            ?.toString() ?: LOCAL_PROFILE_KEY
 
     private suspend fun syncWatched(progressEntries: List<WatchProgress>) {
         val candidates =
@@ -506,13 +425,14 @@ class HomeViewModel(
     }
 
     /**
-     * Replaces the featured set with a new random mix of the loaded rows.
+     * Replaces the featured set with a new mix of the loaded rows.
      *
-     * The screen calls it on a timer, so the billboard changes over time without
-     * re-picking (or reshuffling) on every recomposition. Items already on screen
-     * are dropped when the pool is large enough, so a rotation shows new ones.
+     * Only a deliberate change calls it (the billboard source in Settings); the set
+     * otherwise stays put for the session, so Home does not rearrange itself while
+     * it is being looked at. Items already on screen are dropped when the pool is
+     * large enough, so the new pick is visibly different.
      */
-    fun rotateFeatured() {
+    private fun repickFeatured() {
         val rows = _state.value.rows
         if (rows.isEmpty()) return
         val current =
@@ -520,25 +440,24 @@ class HomeViewModel(
                 .map { it.type to it.id }
                 .toSet()
         viewModelScope.launch {
+            // Picked and enriched before it replaces what is on screen, so the hero
+            // does not swap twice.
             val featured = pickBillboard(rows, exclude = current)
             _state.update { it.copy(featured = featured) }
-            writeSnapshot(rows, featured, billboardAt)
         }
     }
 
     /**
-     * Picks the billboard set from [rows] and records when it was picked.
+     * Picks the billboard set from [rows], enriched with TMDB artwork.
      *
-     * The one place that turns rows into a billboard, so the first paint, a cold
-     * start that re-picks an aged set and the timed rotation cannot drift.
+     * The one place that turns rows into a billboard, so the first load and a
+     * source change cannot drift. It runs before the feed is painted: the hero is
+     * enriched while the loading screen is still up, never after.
      */
     private suspend fun pickBillboard(
         rows: List<HomeRow>,
         exclude: Set<Pair<ContentType, String>> = emptySet(),
-    ): List<MetaPreview> {
-        billboardAt = now()
-        return enrichFeatured(pickFeatured(billboardRows(rows), MAX_FEATURED, random, exclude))
-    }
+    ): List<MetaPreview> = enrichFeatured(pickFeatured(billboardRows(rows), MAX_FEATURED, random, exclude))
 
     /**
      * Fills each featured billboard item's missing artwork from TMDB.
@@ -575,7 +494,6 @@ class HomeViewModel(
         loadJob?.cancel()
         loadJob = null
         lastLoadedAt = null
-        billboardAt = null
         watchedSync.invalidate()
         _state.value = HomeUiState()
     }
@@ -587,26 +505,13 @@ class HomeViewModel(
         const val MAX_ENRICH_CONCURRENCY = 4
 
         /**
-         * Catalogs fetched per batch, and how often a batch is published while
-         * the first load streams in. The screen paints after the first batch, so
-         * a phone with many addons does not wait for the slowest catalog; the
-         * batch size is also the fetch concurrency.
+         * Catalogs fetched at once. A sliding window, not a batch: a row that answers
+         * frees its slot immediately, and the rows are still published together.
          */
-        const val HOME_CATALOG_FETCH_BATCH_SIZE = 4
-        const val HOME_CATALOG_PUBLISH_INTERVAL = 2
+        const val HOME_CATALOG_CONCURRENCY = 4
 
         /** A re-entry refreshes behind only when the loaded content is this old. */
         val HOME_REFRESH_INTERVAL = 5.minutes
-
-        /**
-         * How long a stored billboard set is reused before a cold start re-picks
-         * it. Long on purpose: the set is enriched and on disk, so replacing it
-         * is a visible change, not a repair.
-         */
-        val HERO_PICK_TTL = 6.hours
-
-        /** Snapshot key for a backend without profiles. */
-        const val LOCAL_PROFILE_KEY = "local"
     }
 }
 

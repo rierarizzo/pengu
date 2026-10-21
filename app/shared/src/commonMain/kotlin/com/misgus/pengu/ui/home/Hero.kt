@@ -199,6 +199,7 @@ internal fun Hero(
     onOpen: (MetaPreview) -> Unit,
     onPlay: (MetaPreview) -> Unit,
     onToggleSaved: (MetaPreview) -> Unit,
+    onArtworkSettled: () -> Unit = {},
 ) {
     if (items.isEmpty()) return
     val density = LocalDensity.current
@@ -218,6 +219,7 @@ internal fun Hero(
             onOpen = onOpen,
             onPlay = onPlay,
             onToggleSaved = onToggleSaved,
+            onArtworkSettled = onArtworkSettled,
         )
     }
 }
@@ -240,6 +242,7 @@ internal fun WideHero(
     onPlay: (MetaPreview) -> Unit,
     onToggleSaved: (MetaPreview) -> Unit,
     height: Dp,
+    onArtworkSettled: () -> Unit = {},
 ) {
     if (items.isEmpty()) return
     val density = LocalDensity.current
@@ -264,6 +267,7 @@ internal fun WideHero(
             onOpen = onOpen,
             onPlay = onPlay,
             onToggleSaved = onToggleSaved,
+            onArtworkSettled = onArtworkSettled,
         )
     }
 }
@@ -283,6 +287,7 @@ private fun HeroCarousel(
     onOpen: (MetaPreview) -> Unit,
     onPlay: (MetaPreview) -> Unit,
     onToggleSaved: (MetaPreview) -> Unit,
+    onArtworkSettled: () -> Unit,
 ) {
     // Infinite pager so the auto-advance and a swipe wrap around instead of
     // scrolling back through every page from the last slide to the first. The
@@ -387,6 +392,10 @@ private fun HeroCarousel(
                         pageWidthPx = pageWidthPx,
                         pagerState = pagerState,
                         onAspect = { ratio -> onBackdropAspect(page % items.size, ratio) },
+                        // Only the settled page decides when the billboard is
+                        // ready: a neighbour finishing first is not the frame the
+                        // user is waiting for.
+                        onSettled = { if (page == pagerState.currentPage) onArtworkSettled() },
                     )
                 }
             }

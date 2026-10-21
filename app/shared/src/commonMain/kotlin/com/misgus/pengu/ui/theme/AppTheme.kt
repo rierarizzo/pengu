@@ -14,21 +14,17 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.misgus.pengu.app.shared.generated.resources.Res
+import com.misgus.pengu.app.shared.generated.resources.ibm_plex_sans_bold
+import com.misgus.pengu.app.shared.generated.resources.ibm_plex_sans_medium
+import com.misgus.pengu.app.shared.generated.resources.ibm_plex_sans_regular
+import com.misgus.pengu.app.shared.generated.resources.ibm_plex_sans_semibold
 import com.misgus.pengu.app.shared.generated.resources.inter_bold
 import com.misgus.pengu.app.shared.generated.resources.inter_medium
 import com.misgus.pengu.app.shared.generated.resources.inter_regular
 import com.misgus.pengu.app.shared.generated.resources.inter_semibold
-import com.misgus.pengu.app.shared.generated.resources.inter_tight_bold
-import com.misgus.pengu.app.shared.generated.resources.inter_tight_medium
-import com.misgus.pengu.app.shared.generated.resources.inter_tight_regular
-import com.misgus.pengu.app.shared.generated.resources.inter_tight_semibold
 import com.misgus.pengu.core.repository.AppTheme
-import com.misgus.pengu.fonts.generated.resources.ibm_plex_sans_bold
-import com.misgus.pengu.fonts.generated.resources.ibm_plex_sans_medium
-import com.misgus.pengu.fonts.generated.resources.ibm_plex_sans_regular
-import com.misgus.pengu.fonts.generated.resources.ibm_plex_sans_semibold
+import com.misgus.pengu.core.repository.AppTypeface
 import org.jetbrains.compose.resources.Font
-import com.misgus.pengu.fonts.generated.resources.Res as FontsRes
 
 /** Material 3 shapes, built from [AppCorner]. */
 private val AppShapes =
@@ -100,6 +96,11 @@ private fun BrandPalette.toColorScheme(): ColorScheme =
  * that reach for other roles — dialogs, text fields, chips — on the same
  * typeface and weight hierarchy. No slot carries a colour: text colour comes
  * from the colour scheme at the call site, exactly as Material intends.
+ *
+ * The small roles (`bodySmall`, `labelMedium`, `labelSmall`) sit at Medium rather
+ * than Normal: at 12sp the Regular stems are thin enough that grayscale
+ * antialiasing (Compose Desktop has no ClearType) makes them read as jagged.
+ * Everything above them keeps the lighter-than-stock scale.
  */
 private fun appTypography(font: FontFamily): Typography {
     val base = Typography()
@@ -115,50 +116,39 @@ private fun appTypography(font: FontFamily): Typography {
         titleSmall = base.titleSmall.copy(fontFamily = font, fontWeight = FontWeight.Normal),
         bodyLarge = base.bodyLarge.copy(fontFamily = font, fontWeight = FontWeight.Normal),
         bodyMedium = base.bodyMedium.copy(fontFamily = font, fontWeight = FontWeight.Normal),
-        bodySmall = base.bodySmall.copy(fontFamily = font, fontWeight = FontWeight.Normal),
+        bodySmall = base.bodySmall.copy(fontFamily = font, fontWeight = FontWeight.Medium),
         labelLarge = base.labelLarge.copy(fontFamily = font, fontWeight = FontWeight.Normal),
-        labelMedium = base.labelMedium.copy(fontFamily = font, fontWeight = FontWeight.Normal),
-        labelSmall = base.labelSmall.copy(fontFamily = font, fontWeight = FontWeight.Normal),
+        labelMedium = base.labelMedium.copy(fontFamily = font, fontWeight = FontWeight.Medium),
+        labelSmall = base.labelSmall.copy(fontFamily = font, fontWeight = FontWeight.Medium),
     )
 }
 
-/** Typeface in use. Set to `true` to compare against IBM Plex Sans. */
-private const val USE_IBM_PLEX_SANS = false
-
-@Composable
-private fun interFontFamily(): FontFamily =
-    FontFamily(
-        Font(Res.font.inter_regular, FontWeight.Normal),
-        Font(Res.font.inter_medium, FontWeight.Medium),
-        Font(Res.font.inter_semibold, FontWeight.SemiBold),
-        Font(Res.font.inter_bold, FontWeight.Bold),
-    )
-
-@Composable
-private fun ibmPlexSansFontFamily(): FontFamily =
-    FontFamily(
-        Font(FontsRes.font.ibm_plex_sans_regular, FontWeight.Normal),
-        Font(FontsRes.font.ibm_plex_sans_medium, FontWeight.Medium),
-        Font(FontsRes.font.ibm_plex_sans_semibold, FontWeight.SemiBold),
-        Font(FontsRes.font.ibm_plex_sans_bold, FontWeight.Bold),
-    )
-
 /**
- * Inter Tight, the compact companion of the UI typeface.
+ * The family for [typeface], bundled at the four weights the scale uses.
  *
- * Used where a line has to read as one ribbon, such as the billboard metadata,
- * instead of the default Inter spacing. It is an accent of the app's own
- * typeface, not the IBM Plex comparison target, so it stays Inter Tight in both
- * modes.
+ * Both bundled families follow the same weight map, so switching the setting
+ * changes the letterforms only: Regular carries body and titles, Medium the
+ * display and section headings and SemiBold buttons and the player title. Bold is
+ * bundled with each family so a heavier accent is one call-site choice away.
  */
 @Composable
-internal fun interTightFontFamily(): FontFamily =
-    FontFamily(
-        Font(Res.font.inter_tight_regular, FontWeight.Normal),
-        Font(Res.font.inter_tight_medium, FontWeight.Medium),
-        Font(Res.font.inter_tight_semibold, FontWeight.SemiBold),
-        Font(Res.font.inter_tight_bold, FontWeight.Bold),
-    )
+internal fun appFontFamily(typeface: AppTypeface): FontFamily =
+    when (typeface) {
+        AppTypeface.IBM_PLEX_SANS ->
+            FontFamily(
+                Font(Res.font.ibm_plex_sans_regular, FontWeight.Normal),
+                Font(Res.font.ibm_plex_sans_medium, FontWeight.Medium),
+                Font(Res.font.ibm_plex_sans_semibold, FontWeight.SemiBold),
+                Font(Res.font.ibm_plex_sans_bold, FontWeight.Bold),
+            )
+        AppTypeface.INTER ->
+            FontFamily(
+                Font(Res.font.inter_regular, FontWeight.Normal),
+                Font(Res.font.inter_medium, FontWeight.Medium),
+                Font(Res.font.inter_semibold, FontWeight.SemiBold),
+                Font(Res.font.inter_bold, FontWeight.Bold),
+            )
+    }
 
 /**
  * Provides the palette for [theme] without installing a `MaterialTheme`.
@@ -176,7 +166,7 @@ fun PenguThemePalette(
 }
 
 /**
- * The app's dark Material3 theme, with the Inter typeface and the MD3 shapes.
+ * The app's dark Material3 theme, with the [typeface] and the MD3 shapes.
  *
  * [theme] selects the [BrandPalette]; it is provided through [LocalBrandPalette]
  * so the scrims and the window chrome repaint together with the scheme.
@@ -184,9 +174,10 @@ fun PenguThemePalette(
 @Composable
 fun PenguTheme(
     theme: AppTheme = AppTheme.COFFEE,
+    typeface: AppTypeface = AppTypeface.IBM_PLEX_SANS,
     content: @Composable () -> Unit,
 ) {
-    val fontFamily = if (USE_IBM_PLEX_SANS) ibmPlexSansFontFamily() else interFontFamily()
+    val fontFamily = appFontFamily(typeface)
 
     PenguThemePalette(theme) {
         MaterialTheme(

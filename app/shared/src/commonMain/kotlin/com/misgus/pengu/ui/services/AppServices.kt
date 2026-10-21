@@ -1,8 +1,6 @@
 package com.misgus.pengu.ui.services
 
 import androidx.compose.runtime.staticCompositionLocalOf
-import com.misgus.pengu.core.catalog.HomeSnapshotStore
-import com.misgus.pengu.core.catalog.NoopHomeSnapshotStore
 import com.misgus.pengu.core.player.NoopPlayerService
 import com.misgus.pengu.core.player.PlayerService
 import com.misgus.pengu.core.repository.AccountRepository
@@ -64,11 +62,6 @@ class AppServices(
     val tmdb: TmdbRepository = NoTmdbRepository(),
     /** Remembered per-series "fully watched" results. */
     val watchedCache: WatchedSeriesCache = NoopWatchedSeriesCache(),
-    /**
-     * Last Home paint, per profile, so a cold start shows the previous catalogs
-     * while the network answer is on its way.
-     */
-    val homeSnapshot: HomeSnapshotStore = NoopHomeSnapshotStore(),
     /** Immersive-mode state, shared with the player. */
     val chrome: AppChrome = AppChrome(),
     /** Addons installed in the account; used by the addon repository layer. */

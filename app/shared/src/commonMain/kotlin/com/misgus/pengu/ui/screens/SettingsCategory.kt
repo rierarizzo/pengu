@@ -1,32 +1,36 @@
 package com.misgus.pengu.ui.screens
 
 import com.misgus.pengu.app.shared.generated.resources.Res
+import com.misgus.pengu.app.shared.generated.resources.settings_about
+import com.misgus.pengu.app.shared.generated.resources.settings_about_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_account
 import com.misgus.pengu.app.shared.generated.resources.settings_account_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_addons
 import com.misgus.pengu.app.shared.generated.resources.settings_addons_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_advanced
 import com.misgus.pengu.app.shared.generated.resources.settings_advanced_subtitle
-import com.misgus.pengu.app.shared.generated.resources.settings_group_app
-import com.misgus.pengu.app.shared.generated.resources.settings_group_playback
-import com.misgus.pengu.app.shared.generated.resources.settings_hero
-import com.misgus.pengu.app.shared.generated.resources.settings_hero_subtitle
-import com.misgus.pengu.app.shared.generated.resources.settings_interface
-import com.misgus.pengu.app.shared.generated.resources.settings_interface_subtitle
+import com.misgus.pengu.app.shared.generated.resources.settings_appearance
+import com.misgus.pengu.app.shared.generated.resources.settings_appearance_subtitle
+import com.misgus.pengu.app.shared.generated.resources.settings_group_about
+import com.misgus.pengu.app.shared.generated.resources.settings_group_account
+import com.misgus.pengu.app.shared.generated.resources.settings_group_advanced
+import com.misgus.pengu.app.shared.generated.resources.settings_group_general
+import com.misgus.pengu.app.shared.generated.resources.settings_home
+import com.misgus.pengu.app.shared.generated.resources.settings_home_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_metadata
 import com.misgus.pengu.app.shared.generated.resources.settings_metadata_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_playback
 import com.misgus.pengu.app.shared.generated.resources.settings_playback_subtitle
-import com.misgus.pengu.app.shared.generated.resources.settings_theme
-import com.misgus.pengu.app.shared.generated.resources.settings_theme_subtitle
 import org.jetbrains.compose.resources.StringResource
 
 /** A titled cluster of [SettingsCategory] entries in the settings sidebar. */
 enum class SettingsGroup(
     val label: StringResource,
 ) {
-    PLAYBACK(Res.string.settings_group_playback),
-    APP(Res.string.settings_group_app),
+    ACCOUNT(Res.string.settings_group_account),
+    GENERAL(Res.string.settings_group_general),
+    ABOUT(Res.string.settings_group_about),
+    ADVANCED(Res.string.settings_group_advanced),
 }
 
 /**
@@ -48,42 +52,42 @@ enum class SettingsCategory(
     PLAYBACK(
         label = Res.string.settings_playback,
         subtitle = Res.string.settings_playback_subtitle,
-        group = SettingsGroup.PLAYBACK,
+        group = SettingsGroup.GENERAL,
     ),
-    INTERFACE(
-        label = Res.string.settings_interface,
-        subtitle = Res.string.settings_interface_subtitle,
-        group = SettingsGroup.APP,
+    APPEARANCE(
+        label = Res.string.settings_appearance,
+        subtitle = Res.string.settings_appearance_subtitle,
+        group = SettingsGroup.GENERAL,
     ),
-    THEME(
-        label = Res.string.settings_theme,
-        subtitle = Res.string.settings_theme_subtitle,
-        group = SettingsGroup.APP,
-    ),
-    HERO(
-        label = Res.string.settings_hero,
-        subtitle = Res.string.settings_hero_subtitle,
-        group = SettingsGroup.APP,
+    HOME(
+        label = Res.string.settings_home,
+        subtitle = Res.string.settings_home_subtitle,
+        group = SettingsGroup.GENERAL,
     ),
     ADDONS(
         label = Res.string.settings_addons,
         subtitle = Res.string.settings_addons_subtitle,
-        group = SettingsGroup.APP,
+        group = SettingsGroup.GENERAL,
     ),
     METADATA(
         label = Res.string.settings_metadata,
         subtitle = Res.string.settings_metadata_subtitle,
-        group = SettingsGroup.APP,
+        group = SettingsGroup.GENERAL,
     ),
     ACCOUNT(
         label = Res.string.settings_account,
         subtitle = Res.string.settings_account_subtitle,
-        group = SettingsGroup.APP,
+        group = SettingsGroup.ACCOUNT,
+    ),
+    ABOUT(
+        label = Res.string.settings_about,
+        subtitle = Res.string.settings_about_subtitle,
+        group = SettingsGroup.ABOUT,
     ),
     ADVANCED(
         label = Res.string.settings_advanced,
         subtitle = Res.string.settings_advanced_subtitle,
-        group = SettingsGroup.APP,
+        group = SettingsGroup.ADVANCED,
     ),
     ;
 

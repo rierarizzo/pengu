@@ -1,6 +1,7 @@
 package com.misgus.pengu.data.store
 
 import com.misgus.pengu.core.repository.AppTheme
+import com.misgus.pengu.core.repository.AppTypeface
 import com.misgus.pengu.core.repository.HeroSource
 import com.misgus.pengu.core.repository.PosterSize
 import com.misgus.pengu.core.repository.TmdbLanguage
@@ -37,6 +38,7 @@ class SettingsRepositoryTest {
             assertTrue(settings.state.value.showCatalogType)
             val loaded = settings.state.value
             assertEquals(AppTheme.COFFEE, loaded.theme)
+            assertEquals(AppTypeface.IBM_PLEX_SANS, loaded.typeface)
             assertEquals(HeroSource.SMART, loaded.heroSource)
             assertTrue(loaded.heroCatalogKeys.isEmpty())
             assertEquals("", loaded.tmdbApiKey)
@@ -58,6 +60,33 @@ class SettingsRepositoryTest {
 
             assertEquals(HeroSource.MANUAL, reloaded.state.value.heroSource)
             assertEquals(listOf("https://a|movie|top", "https://b|series|new"), reloaded.state.value.heroCatalogKeys)
+        }
+
+    @Test
+    fun persistsTheTypeface() =
+        runTest {
+            val path = File(tempDir(), "settings.json").path
+            val settings = JsonSettingsRepository(JsonMapStore(path, pretty = true))
+            settings.load()
+
+            settings.setTypeface(AppTypeface.INTER)
+
+            val reloaded = JsonSettingsRepository(JsonMapStore(path, pretty = true))
+            reloaded.load()
+
+            assertEquals(AppTypeface.INTER, reloaded.state.value.typeface)
+        }
+
+    @Test
+    fun readsTheTypefaceSpellingsAPersonWrites() =
+        runTest {
+            val path = File(tempDir(), "settings.json").path
+            File(path).writeText("""{"appearance.typeface":"plex"}""")
+            val settings = JsonSettingsRepository(JsonMapStore(path, pretty = true))
+
+            settings.load()
+
+            assertEquals(AppTypeface.IBM_PLEX_SANS, settings.state.value.typeface)
         }
 
     @Test

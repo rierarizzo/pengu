@@ -16,6 +16,15 @@ enum class AppTheme {
     COFFEE,
 }
 
+/** Typeface every screen is set in. */
+enum class AppTypeface {
+    /** IBM Plex Sans: humanist and slightly warm, the app default. */
+    IBM_PLEX_SANS,
+
+    /** Inter: neutral and compact, tighter at small sizes. */
+    INTER,
+}
+
 /** Language TMDB returns titles, synopses and logos in. */
 enum class TmdbLanguage {
     /** Follow the operating system's locale. */
@@ -58,6 +67,8 @@ data class AppSettings(
     val animationsEnabled: Boolean = true,
     /** Colour palette for every surface, control and scrim. */
     val theme: AppTheme = AppTheme.COFFEE,
+    /** Typeface every screen is set in. */
+    val typeface: AppTypeface = AppTypeface.IBM_PLEX_SANS,
     /** Resume a title from its saved position instead of the start. */
     val resumePlayback: Boolean = true,
     /** Start the next episode automatically when one finishes. */
@@ -130,6 +141,8 @@ interface SettingsRepository {
 
     suspend fun setTheme(theme: AppTheme)
 
+    suspend fun setTypeface(typeface: AppTypeface)
+
     suspend fun setAnimationsEnabled(enabled: Boolean)
 
     suspend fun setResumePlayback(enabled: Boolean)
@@ -177,6 +190,8 @@ class InMemorySettingsRepository(
     override suspend fun reload() = Unit
 
     override suspend fun setTheme(theme: AppTheme) = update { it.copy(theme = theme) }
+
+    override suspend fun setTypeface(typeface: AppTypeface) = update { it.copy(typeface = typeface) }
 
     override suspend fun setAnimationsEnabled(enabled: Boolean) = update { it.copy(animationsEnabled = enabled) }
 

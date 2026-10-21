@@ -2,8 +2,10 @@ package com.misgus.pengu.data.platform
 
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.engine.okhttp.OkHttp
 import kotlinx.coroutines.Dispatchers
 import java.io.File
+import java.net.Proxy
 import java.nio.file.Files
 import java.nio.file.attribute.PosixFileAttributeView
 import java.nio.file.attribute.PosixFilePermissions
@@ -18,8 +20,24 @@ actual fun createHttpClient(): HttpClient =
         installHttpDefaults()
     }
 
+/**
+ * Addon traffic runs on OkHttp, like the phones.
+ *
+ * CIO is HTTP/1.1 only, so a cold Home opened one TCP+TLS connection per
+ * catalog — several of them usually live on the same host. OkHttp multiplexes
+ * them over HTTP/2 and, with [IPv4FirstDns], does not wait on a broken AAAA
+ * record before trying IPv4. Backend and TMDB traffic keeps CIO.
+ */
 actual fun createAddonHttpClient(): HttpClient =
-    HttpClient(CIO) {
+    HttpClient(OkHttp) {
+        engine {
+            config {
+                dns(IPv4FirstDns())
+                // Public addons are reached directly: a system proxy that only
+                // knows a corporate network would just fail every request.
+                proxy(Proxy.NO_PROXY)
+            }
+        }
         installHttpDefaults(cacheStorage = diskCacheStorage())
     }
 

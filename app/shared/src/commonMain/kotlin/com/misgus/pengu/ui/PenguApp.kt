@@ -91,7 +91,7 @@ fun PenguApp(
         LocalViewModelStoreOwner provides owner,
         LocalMotionEnabled provides (settings.animationsEnabled && systemAnimationsEnabled()),
     ) {
-        PenguTheme(theme = settings.theme) {
+        PenguTheme(theme = settings.theme, typeface = settings.typeface) {
             // Publish the window class and insets once, at the root, so every
             // surface — the shell, onboarding and the player — reads the same one.
             BoxWithConstraints(Modifier.fillMaxSize()) {

@@ -1,5 +1,6 @@
 package com.misgus.pengu.ui.home
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,9 +16,13 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.layout
@@ -59,7 +64,7 @@ import com.misgus.pengu.ui.theme.safeTopInset
 import com.misgus.pengu.ui.theme.screenPadding
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
-import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 /** Home section: a featured carousel, "Continue watching" and catalog rows. */
 @Composable
@@ -69,15 +74,6 @@ fun HomeScreen(
     onOpenStreams: (StreamsRequest) -> Unit,
 ) {
     LaunchedEffect(Unit) { viewModel.load() }
-    // Rotate the featured set while Home is on screen, so the billboard changes
-    // over time instead of staying pinned to one pick. Leaving the section
-    // cancels the loop with the composition.
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(FEATURED_ROTATION_INTERVAL)
-            viewModel.rotateFeatured()
-        }
-    }
     val state by viewModel.state.collectAsStateWithLifecycle()
     val settingsRepository = LocalAppServices.current.settings
     val settings by settingsRepository.state.collectAsStateWithLifecycle()
@@ -94,6 +90,27 @@ fun HomeScreen(
         }
     }
 
+    // The feed and the watch history are published together, so rows and
+    // "Continue watching" appear in the same paint. The last thing that can still
+    // pop in is the billboard artwork, a full-size image: on the transition from
+    // loading to loaded, Home keeps its loading screen until the first slide is
+    // decoded (or the wait times out), so the hero never shows the bare background
+    // and then fills in. A Home that was already loaded when the screen composed
+    // (coming back from another section) is not gated again.
+    val cameLoaded = remember { state.rows.isNotEmpty() }
+    var heroArtworkReady by remember { mutableStateOf(false) }
+    val featuredKey = state.featured.map { it.type to it.id }
+    LaunchedEffect(featuredKey) { heroArtworkReady = false }
+    val waitsForHero =
+        !cameLoaded && !heroArtworkReady && state.rows.isNotEmpty() && state.featured.isNotEmpty()
+    var heroWaitExpired by remember { mutableStateOf(false) }
+    LaunchedEffect(waitsForHero, featuredKey) {
+        if (!waitsForHero) return@LaunchedEffect
+        heroWaitExpired = false
+        delay(HERO_ARTWORK_TIMEOUT)
+        heroWaitExpired = true
+    }
+
     Box(Modifier.fillMaxSize()) {
         HomeContent(
             state = state,
@@ -106,6 +123,7 @@ fun HomeScreen(
             onOpenPreview = { navigator.push(ContentRoute.Detail(LibraryItem.fromPreview(it))) },
             onOpenCatalog = { navigator.push(ContentRoute.Catalog(it)) },
             onToggleSaved = viewModel::toggleSaved,
+            onHeroArtworkSettled = { heroArtworkReady = true },
             onPlayPreview = { preview ->
                 onOpenStreams(
                     StreamsRequest(
@@ -117,6 +135,11 @@ fun HomeScreen(
                 )
             },
         )
+        // The feed is already composed behind this (so its images are loading);
+        // the screen stays covered until the billboard can be drawn whole.
+        if (waitsForHero && !heroWaitExpired) {
+            Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) { HomeLoading() }
+        }
         if (state.isSyncingWatched) {
             // A wide window already clears the system bars for the section; a
             // phone keeps the billboard full-bleed, so the indicator clears the
@@ -142,6 +165,7 @@ private fun HomeContent(
     onOpenCatalog: (CatalogRef) -> Unit,
     onPlayPreview: (MetaPreview) -> Unit,
     onToggleSaved: (MetaPreview) -> Unit,
+    onHeroArtworkSettled: () -> Unit,
 ) {
     val windowSize = LocalWindowSize.current
     when {
@@ -151,9 +175,10 @@ private fun HomeContent(
                 title = stringResource(Res.string.home_error_title),
                 message = stringResource(state.error.toUserMessage()),
             )
-        // The screen paints after the first catalog batch; until a row is in, a
-        // full-screen loading indicator stands in for it. A refresh behind keeps
-        // the loaded rows, so it never gets here.
+        // Nothing is published until every catalog and the watch history have
+        // answered, so what is on screen is loaded: the loading screen covers the
+        // whole first load. A refresh behind keeps the loaded rows, so it never
+        // gets here.
         state.rows.isEmpty() && (state.isLoading || !state.hasLoaded) ->
             HomeLoading()
         state.rows.isEmpty() && state.continueWatching.isEmpty() ->
@@ -184,6 +209,7 @@ private fun HomeContent(
                                 onPlay = onPlayPreview,
                                 onToggleSaved = onToggleSaved,
                                 height = heroHeight,
+                                onArtworkSettled = onHeroArtworkSettled,
                             )
                         state.featured.isNotEmpty() ->
                             Hero(
@@ -193,6 +219,7 @@ private fun HomeContent(
                                 onOpen = onOpenPreview,
                                 onPlay = onPlayPreview,
                                 onToggleSaved = onToggleSaved,
+                                onArtworkSettled = onHeroArtworkSettled,
                             )
                         compact ->
                             // No billboard to tuck under the status bar: reserve its height.
@@ -247,23 +274,13 @@ private fun HomeContent(
     }
 }
 
-/** Full-screen loading indicator shown while the first catalog batch is fetched. */
+/** Full-screen loading indicator shown until every catalog has been fetched. */
 @Composable
 private fun HomeLoading() {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         CircularProgressIndicator()
     }
 }
-
-/**
- * How often the featured billboard rotates to a new random mix of the rows.
- *
- * Far apart on purpose: the six slides auto-advance on their own, so the set
- * only needs to change after the user has seen it a few times. Most streaming
- * apps keep the featured set for the whole session; 10 minutes is a middle
- * ground between a stale billboard and one that changes before it is seen.
- */
-private val FEATURED_ROTATION_INTERVAL = 10.minutes
 
 /**
  * Share of the screen work-area height the wide billboard occupies.
@@ -309,6 +326,15 @@ private fun homeHeroHeight(): Dp {
  * bottom (the phone's paginator is only ~32dp above the edge).
  */
 private val HOME_CONTENT_LIFT = 32.dp
+
+/**
+ * How long Home waits for the billboard artwork before showing the feed anyway.
+ *
+ * The loading screen exists to avoid a black hero that fills in a moment later; a
+ * slow or unreachable image is not worth an indefinite spinner, so after this the
+ * feed wins over a perfect first frame.
+ */
+private val HERO_ARTWORK_TIMEOUT = 4.seconds
 
 /**
  * Lifts the content by [px] pixels and shrinks the reported height by the same

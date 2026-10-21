@@ -16,7 +16,6 @@ Multiplatform ideas** the code relies on. For the *why* behind decisions, read
 ```
 app/desktopApp   Composition root: window, mpv player (mediamp), main()
 app/androidApp   Composition root: Activity, ExoPlayer player (mediamp)
-app/fonts        IBM Plex Sans assets (kept for comparison)
 app/player       Shared PlayerService adapter over mediamp (both roots use it)
 app/shared       Compose UI + ViewModels (the whole product UI)
 core             Pure domain: models, repository contracts, rules, constants
@@ -59,6 +58,7 @@ inject in-memory fakes.
 | Share behavior across data sections | `app/shared/.../ui/common/` (`AccountScopedViewModel`, `WatchedBadgeSync`) |
 | Change colors, spacing, type, motion | `app/shared/.../ui/theme/` (`Tokens.kt`, `AppTheme.kt`, `AppType.kt`, `Motion.kt`, `WindowSize.kt`, `PosterSize.kt`) |
 | Add a theme | `AppTheme` / `AppSettings.theme` in `core/.../repository/SettingsRepository.kt`, `AppThemes` in `ui/theme/Tokens.kt`, picker in `SettingsScreen.kt` |
+| Change the typeface | `AppTypeface` / `AppSettings.typeface` in `core/.../repository/SettingsRepository.kt`, `appFontFamily` in `ui/theme/AppTheme.kt`, picker in `SettingsScreen.kt`, the TTFs in `app/shared/.../composeResources/font/` |
 | Reuse a widget (buttons, posters, search field) | `app/shared/.../ui/components/` |
 | Change a domain model or add one | `core/.../core/model/` |
 | Use a shared constant (content type, catalog extra, threshold) | `core/.../core/model/` (`ContentTypes`, `CatalogExtras`, `ProgressThresholds`) |
@@ -117,15 +117,13 @@ These exist so the same concern is not re-implemented per screen:
   repository.
 - **`ProfileScope`** (`data/backend`) — `AccountRepository.requireProfileId()` /
   `requireActiveProfile()`, used by every profile-scoped Nuvio repository.
-- **`AddonSnapshotStore` / `HomeSnapshotStore`** (`core` contracts,
-  `data/store` file implementations) — the last known addon list and the last
-  Home paint, per profile. The addon snapshot keeps every installed addon,
-  enabled or not, so `AddonsSettings` can manage them while `all()` filters the
-  disabled ones out. They are the local-first layer: `NuvioAddonRepository`
-  answers from its snapshot and refreshes behind it, and `HomeViewModel`
-  publishes its snapshot before the first request and rewrites it after a
-  successful load. Both degrade to "nothing stored" when the file is missing or
-  corrupt.
+- **`AddonSnapshotStore`** (`core` contract, `data/store` file
+  implementation) — the last known addon list, per profile. It keeps every
+  installed addon, enabled or not, so `AddonsSettings` can manage them while
+  `all()` filters the disabled ones out. It is the local-first layer:
+  `NuvioAddonRepository` answers from its snapshot and refreshes behind it, and
+  degrades to "nothing stored" when the file is missing or corrupt. The feed
+  itself is not persisted: Home always loads its catalogs.
 - **`VideoOutput`** (`core/player`) — typed marker for the player's platform
   output; `VideoSurfaceRenderer` (in `app/player`) extends it and draws the video
   as Compose content, whichever engine is wired in.

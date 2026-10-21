@@ -125,8 +125,8 @@ fun MediaTitle(
 fun MetadataRow(parts: List<String>) {
     if (parts.isEmpty()) return
     // A phone tightens the separators, so the metadata does not compete with the
-    // title above a shorter billboard. The line is set in the tighter Inter
-    // Tight (see [AppType.heroMeta]).
+    // title above a shorter billboard. The line also carries a small negative
+    // tracking to keep the ribbon on one line (see [AppType.heroMeta]).
     val compact = LocalWindowSize.current == WindowSize.COMPACT
     val style = AppType.heroMeta()
     val separatorPadding = if (compact) AppSpacing.xs else AppSpacing.sm

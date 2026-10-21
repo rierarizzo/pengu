@@ -15,6 +15,9 @@ import io.ktor.client.plugins.cache.storage.CacheStorage
  * from disk instead of the network, which is what makes a warm start paint
  * before the first round-trip finishes.
  *
+ * Freshness belongs to the addon: a response that declares nothing is not reused,
+ * so Home always shows what the addons currently answer.
+ *
  * `Cache-Control: no-cache` stays meaningful: the cache revalidates the entry
  * with the addon (`If-None-Match` / `If-Modified-Since`) instead of returning
  * it blind. Nothing here asks for compression; the addon client sets

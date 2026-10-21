@@ -17,9 +17,8 @@ or the playback engine directly.
 ```
 :core      pure domain (models, repository contracts, watched rules, player contract)
 :data      implementations (Stremio addons, Nuvio/Supabase, local JSON store)
-:app:fonts   alternate typeface (IBM Plex Sans) assets as Compose Resources
 :app:player  shared PlayerService adapter over mediamp's player contract
-:app:shared  Compose UI + ViewModels (depends on :core, :app:player and :app:fonts)
+:app:shared  Compose UI + ViewModels (depends on :core and :app:player)
 :app:desktopApp  composition root: mpv player (mediamp), window control, main()
 :app:androidApp  composition root: ExoPlayer player (mediamp), MainActivity
 ```
@@ -77,7 +76,8 @@ so the atomic read/write/delete logic lives once.
 
 ## Data (`:data`)
 
-- **Ktor client** (CIO on desktop, OkHttp on Android) instead of `package:http`.
+- **Ktor client** (CIO for the backend, OkHttp for addons on both desktop and
+  Android) instead of `package:http`.
 - **kotlinx.serialization** with the `JsonElement` API and small defensive
   coercion helpers (`JsonUtils.kt`), mirroring `json_utils.dart`: third-party
   payloads degrade to `null`/empty instead of throwing.
@@ -101,7 +101,7 @@ so the atomic read/write/delete logic lives once.
   refresh, sign-out) and `NuvioRest` (PostgREST select/insert/update/delete and the
   `sync_*` RPCs). Repositories take the slice they need. Session tokens live in
   `data/`, never in the domain.
-- **Local store**: `JsonFileStore`/`JsonMapStore` and the session / snapshot /
+- **Local store**: `JsonFileStore`/`JsonMapStore` and the session / addon-list /
   watched-series stores. Path resolution is a platform `expect`
   (`%APPDATA%\Pengu` on Windows, XDG elsewhere). Writes go through a
   sibling temporary file and are renamed into place, so an interrupted write
@@ -110,17 +110,24 @@ so the atomic read/write/delete logic lives once.
   serialized with a `Mutex`. The session file is restricted to the current user
   where the OS allows it; that is best-effort hardening, not a keychain.
 - **Settings** live in `settings.json` as a flat JSON object with dotted keys,
-  like VS Code's `settings.json` (`animations.enabled`, `player.resumePlayback`,
+  like VS Code's `settings.json` (`appearance.theme`, `appearance.typeface`,
+  `animations.enabled`, `player.resumePlayback`,
   `player.autoPlayNext`, `poster.size`, `labels.hidden`, `catalog.showType`,
   `metadata.tmdbApiKey`, `metadata.tmdbLanguage`).
   `JsonSettingsRepository` reads it defensively, keeps unknown keys on write and
   can `reload()` after a manual edit; the settings screen groups the toggles into
   categories (`SettingsCategory`, in `ui/screens`), edits the same file, shows
-  its path and can open it in the OS editor. A wide window renders the categories
-  as a grouped sidebar beside the selected page; a compact window renders them as
-  a flat index and pushes each page as a `ContentRoute.SettingsPage`, so a phone
-  walks into one category at a time while each setting is defined
-  once.
+  its path and can open it in the OS editor. The pages sit in four groups, like a
+  desktop settings app: **Account**, **General**, **About** and **Advanced**.
+  General holds Playback, Appearance (theme, typeface, motion), Home (billboard,
+  poster size, row labels), Addons and Metadata; About holds the product, license
+  and credits page; Advanced holds the configuration file and the playback test.
+  A page never mixes two unrelated concerns, and the look-and-feel settings that
+  used to live under "Interface" and "Theme" share the Appearance page. A wide
+  window renders the groups in a sidebar beside the selected page; a compact
+  window renders the same groups as an index and pushes each page as a
+  `ContentRoute.SettingsPage`, so a phone walks into one category at a time while
+  each setting is defined once.
 - **Settings controls are app components, not stock Material.** A toggle row is
   itself the target and its switch is the shared compact `AppSwitch` (40x22,
   accent track), not Material's 52x32 control; it paints its track and thumb in
@@ -131,10 +138,11 @@ so the atomic read/write/delete logic lives once.
   and a group is a borderless card on the page background, filled with the
   `surfaceCard` palette role so the index and the pages share one warm tone.
   The categories are a
-  stack of those cards (`SettingsNavCard`) instead of icon rows: the compact
-  index shows a semibold label and a chevron with no description and no group
-  labels — the phone title bar names the screen and the cards carry the rest —
-  while the wide sidebar keeps the groups, drops the chevron and marks the open
+  stack of those cards (`SettingsNavCard`) instead of icon rows: both the compact
+  index and the wide sidebar read the same four groups, the compact one shows the
+  group label plus a semibold card with a chevron and no description — the phone
+  title bar names the screen and the cards carry the rest — while the wide
+  sidebar drops the chevron and marks the open
   page with an accent tint over the card and an accent label. Inside a page, the
   section labels are semibold and the row titles step up to semibold too, so the
   hierarchy reads the same as the index; the picker reads as a field (no fill,
@@ -195,15 +203,19 @@ so the atomic read/write/delete logic lives once.
 - **`BackendKind` + `createBackend`** is the single place that knows the
   concrete implementations, replacing the Flutter `backend_factory.dart`.
 - **Parallel I/O and caching.** Independent reads run together instead of in a
-  row: Home loads watch progress, the library and the catalog list concurrently,
-  then fetches the catalogs in batches of four and paints after the first one,
-  with the featured artwork already enriched, so a phone does not wait for the
-  slowest catalog; re-entering the section keeps the loaded rows and refreshes
-  behind them. Library loads the library and its progress together; the watched-badge
+  row. Home resolves the catalogs with a sliding window of four requests (a row
+  that answers frees its slot immediately) while the watch history is read at the
+  same time, and publishes the feed once — rows, "Continue watching" and the
+  enriched billboard — so the screen goes from its loading state to the complete
+  set in one step. Re-entering the
+  section keeps the loaded rows and refreshes behind them, and the addon manifests
+  are warmed as soon as a profile exists. Library loads the
+  library and its progress together; the watched-badge
   resolver reads the two progress sources in parallel and its metadata lookups
   are bounded but concurrent; `watched_items` chunks are queried together;
   catalog manifests are fetched in parallel and cached per addon (a manifest is
-  immutable, and the disk cache below keeps it across launches). The addon list
+  immutable, and the disk cache below keeps it across launches when the addon
+  declares freshness). The addon list
   is cached per profile uuid, so the watched-badge sync does not re-query it for
   every series. Account-scoped ViewModels (Home,
   Library, Search (and its discover feed), Calendar) wait for a profile before
@@ -214,15 +226,17 @@ so the atomic read/write/delete logic lives once.
   disposable and on Windows must not land in a roaming profile. A manifest or a
   catalog page the addon declared as cacheable is served from disk, and
   `Cache-Control: no-cache` still revalidates with `If-None-Match` /
-  `If-Modified-Since` instead of being served blind.
-  `CacheStorageWithFallbackTtl` gives the responses that declare nothing at all
-  — no `Cache-Control`, no `Expires`, no validator, which a large part of the
-  Stremio ecosystem sends — a five-minute lifetime, the same window Home already
-  uses to consider content fresh; anything the addon did declare wins, and
-  `no-cache`/`must-revalidate` are never overridden. Addon traffic is
+  `If-Modified-Since` instead of being served blind. Freshness belongs to the
+  addon: a response that declares nothing — no `Cache-Control`, no `Expires`, no
+  validator, which a large part of the Stremio ecosystem sends — is fetched again
+  on the next read, so Home always shows what the addons currently answer. Addon
+  traffic is
   deliberately the only cached traffic: `createHttpClient()`, used by the Nuvio
   backend and TMDB, has no cache, because a stale `library_items` or
-  `watch_progress` read would show the user data they just changed.
+  `watch_progress` read would show the user data they just changed. The addon
+  client runs on **OkHttp on both platforms** and the backend client on CIO on
+  desktop / OkHttp on Android; CIO is HTTP/1.1 only, so a cold Home would open one
+  TLS connection per catalog, several of which usually live on the same host.
 - **Catalog JSON is requested gzipped.** Neither engine adds `Accept-Encoding`,
   so `StremioAddonClient` asks for `gzip` itself and decodes the body
   (`gzipDecode`, implemented once for the JVM and Android targets). A catalog
@@ -257,18 +271,25 @@ so the atomic read/write/delete logic lives once.
   when the manifest cannot be read. A backend that cannot write (local mode)
   lists its fixed set read-only and hides the install action and the card
   controls.
-- **Home paints the last session before the first request.**
-  `FileHomeSnapshotStore` keeps the rows and the billboard that were on screen
-  (`HomeSnapshot`, keyed by profile id) and `HomeViewModel` publishes them before
-  the load starts. The network answer then replaces the rows batch by batch and
-  keeps the billboard already on screen, so the hero never swaps from the stored
-  artwork to a fresh pick; a failed load leaves the snapshot visible instead of
-  an error page. The snapshot is rewritten after every successful load, and it
-  carries the instant the billboard set was picked: a set older than six hours is
-  re-picked on a cold start (the rows still paint at once, the new set replaces
-  the hero once it is enriched), so the billboard does not stay frozen for weeks
-  while the first frame stays instant. A re-entry keeps the pick time, because it
-  refreshes the rows behind and must not make the set look fresher than it is.
+- **Home is loaded, never restored.** Nothing about the feed is persisted: the
+  rows and the billboard live in the `HomeViewModel` for the session, so a cold
+  start (or a profile change) shows the loading screen until every catalog has
+  answered and then paints the whole feed at once. There is no stored paint to
+  go stale or to be replaced under the user, and a catalog edited on the addon
+  shows up on the next load instead of from a stored copy. That first paint is the
+  whole screen: the rows, "Continue watching" (its backend read runs alongside the
+  catalogs) and the billboard already enriched with TMDB artwork, so nothing fills
+  in after the user is looking at it. The one thing that still arrives later is the
+  billboard's image itself, so the screen keeps its loading overlay until the first
+  slide is decoded (with a short timeout, and the feed is composed behind it, so
+  its images are already loading): the hero never shows the bare background and
+  then fills in. Re-entering
+  Home within `HOME_REFRESH_INTERVAL` reuses what is on screen; after that it
+  refreshes behind the loaded rows, replacing them once at the end. A different
+  profile is a different Home: choosing one drops the previous rows rather than
+  refreshing over them. The billboard set is picked from the full set and stays
+  for the session (the slides still auto-advance); only switching the billboard
+  source re-picks it.
 - **The billboard source is a setting.** `hero.source` is `smart` (the default:
   every loaded row, mixed and ranked by the app) or `manual`, and
   `hero.catalogs` holds up to two `CatalogRef.key`s picked in Settings → Home
@@ -277,13 +298,15 @@ so the atomic read/write/delete logic lives once.
   cannot leave Home without a billboard; every catalog still gets its own row
   either way. Home listens to the setting (`distinctUntilChanged` on the two
   fields), so switching it re-picks immediately instead of waiting for the next
-  rotation. The catalog list for the picker is read from the addons in the
+  load. The catalog list for the picker is read from the addons in the
   settings screen, not stored: only the keys are persisted, which keeps
   `settings.json` hand-editable and free of stale names.
-- **Android resolves IPv4 first and bypasses the system proxy.** `IPv4FirstDns`
-  sorts the DNS answers, so a host with a broken AAAA record does not stall every
-  connect until IPv6 times out; `Proxy.NO_PROXY` stops a proxy that only knows a
-  corporate network from failing every public addon request.
+- **Both platforms resolve IPv4 first and bypass the system proxy.**
+  `IPv4FirstDns` (`jvmSharedMain`) sorts the DNS answers, so a host with a broken
+  AAAA record does not stall every connect until IPv6 times out; `Proxy.NO_PROXY`
+  stops a proxy that only knows a corporate network from failing every public
+  addon request. It lives next to the addon clients, which run on OkHttp, so the
+  resolver is shared by desktop and Android.
 
 ## UI (`:app:shared`)
 
@@ -386,9 +409,9 @@ so the atomic read/write/delete logic lives once.
 - **The Home hero draws from every catalog.** `pickFeatured` (in
   `HomeViewModel`) takes the pool of every row's items, dedupes by `type:id`,
   balances movies and series, and shuffles, so the billboard is not tied to the
-  first catalog. The featured set is picked from the rows on screen at the first
-  content paint and enriched before it, then left alone as later batches append
-  rows, so the billboard never changes under the user. Well-rated titles
+  first catalog. The featured set is picked from the full set of rows and enriched
+  from TMDB before the paint, while the loading screen is still up, so the hero
+  appears once and is never swapped afterwards. Well-rated titles
   (IMDb >= 6, unknown passes) come first and low ratings are only used when there
   is not enough good content. The six
   slides auto-advance every `HERO_AUTO_ADVANCE_INTERVAL` (7 s, in the usual 5-8 s
@@ -401,13 +424,11 @@ so the atomic read/write/delete logic lives once.
   page back to its item), so the auto-advance always moves forward: the last
   slide does not scroll back through every page to reach the first. The advance
   snaps with a spring (`motionSpring`) and respects `LocalMotionEnabled`, so
-  "disable animations" jumps to the target like every other transition. The
-  screen
-  re-picks the whole set every
-  `FEATURED_ROTATION_INTERVAL` (10 minutes) while Home is visible, preferring
-  items that are not already on screen, so it changes over time instead of on
-  every recomposition. The selection goes through an injectable `Random`, so
-  tests are deterministic.
+  "disable animations" jumps to the target like every other transition. The set
+  itself stays for the session: only switching the billboard source in Settings
+  re-picks it, preferring items that are not already on screen, so it does not
+  rearrange while it is being looked at. The selection goes through an injectable
+  `Random`, so tests are deterministic.
 - **Home virtualizes its sections.** The hero, "Continue watching" and every
   catalog row live in one `LazyColumn` (each rail is its own `LazyRow`), so a
   phone with many addons composes only the sections on screen instead of every
@@ -547,13 +568,16 @@ so the atomic read/write/delete logic lives once.
   falls through. On a
   wide window the rail floats over the content,
   which reserves its width, so the navigation never overlaps it.
-- **Typography.** Inter is bundled through Compose Resources in `:app:shared`
-  and is the typeface rendered. IBM Plex Sans stays isolated in its own
-  `:app:fonts` module so the two typefaces can be swapped for comparison through
-  `USE_IBM_PLEX_SANS` in `PenguTheme`. Inter Tight is bundled alongside Inter and
-  applied only to the billboard metadata line (`AppType.heroMeta`), where its
-  tighter fit keeps the dot-separated `Series • 2026 • Drama` ribbon to one line.
-  Every target renders the same
+- **Typography.** Two typefaces are bundled through Compose Resources in
+  `:app:shared`: **IBM Plex Sans** (the default) and Inter. Both ship the same
+  four weights (Regular, Medium, SemiBold, Bold) and go through the same weight
+  map, so `appearance.typeface` swaps the letterforms without touching the scale:
+  `PenguTheme(typeface)` resolves the family once per theme and the whole UI reads
+  it through `MaterialTheme.typography`. The billboard metadata line
+  (`AppType.heroMeta`) carries a small negative tracking, so the dot-separated
+  `Series • 2026 • Drama` ribbon stays on one line. Every
+  target renders
+  the same
   typeface, and text is written in `sp` so
   Android's system font size keeps working. `LocalDensity` is deliberately
   never overridden: that is the common hack, and it lies to every component
@@ -562,10 +586,12 @@ so the atomic read/write/delete logic lives once.
   them down one role on a compact window (hero title, screen titles, hero
   synopsis); desktop and tablet keep the full scale. The whole Material scale
   runs lighter than stock (`Bold` to `Medium`, `SemiBold` to `Normal`), so
-  headings sit at Medium while titles, labels and body sit at Normal; `body*`
-  bottoms out at `Normal` because no lighter weight is bundled, so a genuinely
-  thinner body needs `inter_light.ttf` added to `:app:shared` (or
-  `ibm_plex_sans_light.ttf` to `:app:fonts` while comparing). No type
+  headings sit at Medium while titles, body and large labels sit at Normal. The
+  small roles (`bodySmall`, `labelMedium`, `labelSmall`) keep Medium: at 12sp
+  the Regular stems of IBM Plex Sans are thin enough that grayscale antialiasing
+  — Compose Desktop has no ClearType — makes them read as jagged. `body*` bottoms
+  out at `Normal` because no lighter weight is bundled, so a genuinely
+  thinner body needs `ibm_plex_sans_light.ttf` added to `:app:shared`. No type
   slot carries a colour: text colour comes from the colour scheme at the call
   site, as Material intends. The reading palette is white-based —
   `BrandPalette.textPrimary` is `#FFFFFF` and the secondary roles
@@ -678,8 +704,9 @@ so the atomic read/write/delete logic lives once.
   a theme change repaints the hero gradients and the title bar in the same frame.
   `AppThemes.Coffee` is the default and only theme for now: a warm
   cream/amber/burnt-orange palette, selected in Settings → Appearance → Theme and
-  persisted as `appearance.theme` in `settings.json`. The Inter typeface loaded
-  from Compose Resources and the small, square-ish shape scale (`AppCorner` feeds
+  persisted as `appearance.theme` in `settings.json`. The typeface loaded from
+  Compose Resources (IBM Plex Sans by default, Inter as the alternative, picked in
+  Settings → Appearance) and the small, square-ish shape scale (`AppCorner` feeds
   `MaterialTheme.shapes`: 1/2/3/4/6dp; the app reads square, not rounded) stay
   theme-independent. Dialogs and bottom sheets take the same scale
   (`shapes.extraLarge` and `AppBottomSheetShape`) instead of Material's 28dp
@@ -791,8 +818,9 @@ so the atomic read/write/delete logic lives once.
   single shimmer read in the draw phase: the poster grid derives its cell count
   from the viewport, so it never stops halfway down a wide window, and the
   static gradient stops are built once instead of on every frame. Home shows a
-  full-screen loading indicator until the first catalog batch lands, then paints
-  the billboard and the rows together. The detail hero does not paint the library fallback as if it were the final
+  full-screen loading indicator until every catalog and the watch history have
+  answered and the billboard's first artwork is decoded, then paints the hero, the
+  rows and "Continue watching" together. The detail hero does not paint the library fallback as if it were the final
   artwork: it reserves the logo's space without drawing a placeholder, and the
   logo and backdrop fade in when the image itself is ready (`RemoteImage(fadeIn)`),
   so a slow load never pops. The player is deliberately outside the route
@@ -818,9 +846,9 @@ so the atomic read/write/delete logic lives once.
   artwork is only darkened at the bottom, under the copy. It also waits for the
   enrichment to settle before painting, so the choice is never re-made on screen.
   The Home preloader goes through the same helper, so it always
-  warms the URL the layer will draw, and the featured set is enriched before the
-  billboard's first paint, so it never shows the catalog artwork and then swaps
-  to TMDB's.
+  warms the URL the layer will draw. The featured set is enriched before the paint
+  and Home keeps its loading overlay until the first slide's image is decoded, so
+  the billboard is never seen with the bare background.
 - **Poster size** is a single setting (`PosterSize`: default / large, 210 / 230
   dp) that only drives the horizontal poster rows — the Home catalogs, the
   search results and "More like this" — where a card can be resized without a

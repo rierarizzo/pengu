@@ -13,9 +13,9 @@ against the same shared code; each composition root picks its player engine.
 
 | Layer | Technology |
 | --- | --- |
-| UI | Compose Multiplatform + Material 3, Inter |
+| UI | Compose Multiplatform + Material 3, IBM Plex Sans or Inter |
 | State | `androidx.lifecycle` ViewModel + `StateFlow` |
-| HTTP | Ktor client (CIO on desktop, OkHttp on Android) |
+| HTTP | Ktor client (CIO for the backend, OkHttp for addons) |
 | JSON | kotlinx.serialization (defensive `JsonElement` parsing) |
 | Images | Coil 3 |
 | Playback | mediamp (mpv on desktop, ExoPlayer on Android), isolated behind `PlayerService` |
@@ -28,7 +28,6 @@ against the same shared code; each composition root picks its player engine.
 ```
 app/desktopApp   composition root: window, mpv player (mediamp), main()
 app/androidApp   composition root: Activity, ExoPlayer player (mediamp)
-app/fonts        IBM Plex Sans assets as Compose Resources (kept for comparison)
 app/shared       Compose UI and ViewModels
 core             pure domain: models, repository contracts, watched rules
 data             Stremio, Nuvio and local implementations

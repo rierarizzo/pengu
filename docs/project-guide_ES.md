@@ -16,7 +16,6 @@ Compose Multiplatform** usa el código. Para el *porqué* de las decisiones, lee
 ```
 app/desktopApp   Composition root: ventana, reproductor mpv (mediamp), main()
 app/androidApp   Composition root: Activity, reproductor ExoPlayer (mediamp)
-app/fonts        Assets de IBM Plex Sans (se mantienen para comparar)
 app/player       Adaptador compartido de PlayerService sobre mediamp (lo usan ambos roots)
 app/shared       UI Compose + ViewModels (toda la UI del producto)
 core             Dominio puro: modelos, contratos de repositorio, reglas, constantes
@@ -59,6 +58,7 @@ usan ambas plataformas (ver §7).
 | Compartir comportamiento entre secciones | `app/shared/.../ui/common/` (`AccountScopedViewModel`, `WatchedBadgeSync`) |
 | Cambiar colores, espaciado, tipografía, movimiento | `app/shared/.../ui/theme/` (`Tokens.kt`, `AppTheme.kt`, `AppType.kt`, `Motion.kt`, `WindowSize.kt`, `PosterSize.kt`) |
 | Añadir un tema | `AppTheme` / `AppSettings.theme` en `core/.../repository/SettingsRepository.kt`, `AppThemes` en `ui/theme/Tokens.kt`, selector en `SettingsScreen.kt` |
+| Cambiar la tipografía | `AppTypeface` / `AppSettings.typeface` en `core/.../repository/SettingsRepository.kt`, `appFontFamily` en `ui/theme/AppTheme.kt`, selector en `SettingsScreen.kt`, los TTFs en `app/shared/.../composeResources/font/` |
 | Reutilizar un widget (botones, pósters, campo de búsqueda) | `app/shared/.../ui/components/` |
 | Cambiar o añadir un modelo de dominio | `core/.../core/model/` |
 | Usar una constante compartida (tipo de contenido, extra, umbral) | `core/.../core/model/` (`ContentTypes`, `CatalogExtras`, `ProgressThresholds`) |
@@ -119,15 +119,13 @@ Existen para no reimplementar la misma preocupación en cada pantalla:
   reconstruirse por repositorio.
 - **`ProfileScope`** (`data/backend`) — `AccountRepository.requireProfileId()` /
   `requireActiveProfile()`, usado por cada repositorio Nuvio con scope de perfil.
-- **`AddonSnapshotStore` / `HomeSnapshotStore`** (contratos en `core`,
-  implementaciones de fichero en `data/store`) — la última lista de addons
-  conocida y la última pintura de Home, por perfil. El snapshot de addons guarda
-  todos los instalados, activos o no, para que `AddonsSettings` pueda
-  administrarlos mientras `all()` filtra los desactivados. Son la capa
-  local-first: `NuvioAddonRepository` responde desde su snapshot y refresca
-  detrás, y `HomeViewModel` publica el suyo antes de la primera petición y lo
-  reescribe tras una carga correcta. Ambos degradan a "nada guardado" si el
-  fichero falta o está corrupto.
+- **`AddonSnapshotStore`** (contrato en `core`, implementación de fichero en
+  `data/store`) — la última lista de addons conocida, por perfil. Guarda todos
+  los instalados, activos o no, para que `AddonsSettings` pueda administrarlos
+  mientras `all()` filtra los desactivados. Es la capa local-first:
+  `NuvioAddonRepository` responde desde su snapshot y refresca detrás, y degrada
+  a "nada guardado" si el fichero falta o está corrupto. El feed no se persiste:
+  Home siempre carga sus catálogos.
 - **`VideoOutput`** (`core/player`) — marcador tipado de la salida de plataforma
   del reproductor; `VideoSurfaceRenderer` (en `app/player`) lo extiende
   y dibuja el vídeo como contenido Compose, sea cual sea el motor cableado.

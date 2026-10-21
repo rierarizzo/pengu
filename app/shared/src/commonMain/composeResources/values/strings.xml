@@ -17,6 +17,7 @@
     <string name="action_remove">Remove</string>
     <string name="action_close">Close</string>
     <string name="action_refresh">Refresh</string>
+    <string name="action_open">Open</string>
     <string name="field_password_show">Show password</string>
     <string name="field_password_hide">Hide password</string>
     <string name="status_syncing">Syncing…</string>
@@ -175,14 +176,31 @@
     <!-- Settings -->
     <string name="settings_title">Settings</string>
     <!-- Sidebar groups and category headers -->
-    <string name="settings_group_playback">Playback</string>
-    <string name="settings_group_app">App</string>
+    <string name="settings_group_account">Account</string>
+    <string name="settings_group_general">General</string>
+    <string name="settings_group_about">About</string>
+    <string name="settings_group_advanced">Advanced</string>
     <string name="settings_account">Account</string>
     <string name="settings_account_subtitle">Your session and sign-in.</string>
     <string name="settings_advanced">Advanced</string>
     <string name="settings_advanced_subtitle">The configuration file and a playback test.</string>
-    <string name="settings_interface">Interface</string>
-    <string name="settings_interface_subtitle">How the app looks and moves.</string>
+    <string name="settings_about">About</string>
+    <string name="settings_about_subtitle">The app, its license and the projects it builds on.</string>
+    <string name="settings_about_pengu">Pengu</string>
+    <string name="settings_about_description">A Compose Multiplatform client for the Stremio addon protocol, for desktop and Android.</string>
+    <string name="settings_about_license">License</string>
+    <string name="settings_about_license_text">Free software under the GNU General Public License v3.0.</string>
+    <string name="settings_about_read_license">Read the license</string>
+    <string name="settings_about_credits">Credits</string>
+    <string name="settings_about_mediamp_name">mediamp</string>
+    <string name="settings_about_mediamp">Playback by mediamp: mpv on desktop, ExoPlayer on Android.</string>
+    <string name="settings_about_stremio_name">Stremio addon protocol</string>
+    <string name="settings_about_stremio">Catalogs, metadata, streams and subtitles follow the Stremio addon protocol.</string>
+    <string name="settings_about_tmdb_name">TMDB</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_appearance_subtitle">Theme, typeface and motion.</string>
+    <string name="settings_home">Home</string>
+    <string name="settings_home_subtitle">Billboard, poster size and row labels.</string>
     <string name="settings_signed_in_as">Signed in as %1$s.</string>
     <string name="settings_signed_in_account">your account</string>
     <string name="settings_sign_in_to_load">Sign in to load your library.</string>
@@ -191,6 +209,12 @@
     <string name="settings_animations_subtitle">Transitions, hover effects and loading skeletons.</string>
     <string name="settings_theme">Theme</string>
     <string name="settings_theme_subtitle">The colour palette for every surface and control.</string>
+    <string name="settings_typeface">Typeface</string>
+    <string name="settings_typeface_subtitle">The font every screen is set in.</string>
+    <string name="settings_typeface_ibm_plex">IBM Plex Sans</string>
+    <string name="settings_typeface_inter">Inter</string>
+    <string name="settings_posters">Posters</string>
+    <string name="settings_posters_subtitle">Size and captions of the poster rows.</string>
     <string name="settings_poster_size">Poster size</string>
     <string name="settings_poster_size_subtitle">The horizontal rows on Home, Search and &quot;More like this&quot;.</string>
     <string name="settings_hide_labels">Hide labels</string>

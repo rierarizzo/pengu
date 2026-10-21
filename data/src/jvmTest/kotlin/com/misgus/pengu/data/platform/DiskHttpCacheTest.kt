@@ -76,33 +76,7 @@ class DiskHttpCacheTest {
         }
 
     @Test
-    fun reusesAResponseThatDeclaresNoFreshnessAtAll() =
-        runTest {
-            var requests = 0
-            val engine =
-                MockEngine {
-                    requests++
-                    respond(
-                        content = gzip("""{"metas":[]}"""),
-                        status = HttpStatusCode.OK,
-                        headers =
-                            headersOf(
-                                HttpHeaders.ContentType to listOf("application/json"),
-                                HttpHeaders.ContentEncoding to listOf("gzip"),
-                            ),
-                    )
-                }
-            val client = HttpClient(engine) { installHttpDefaults(diskCacheStorage(tempDir().path)) }
-            val addon = StremioAddonClient("https://addon.example", client)
-
-            addon.fetchCatalog("movie", "top")
-            addon.fetchCatalog("movie", "top")
-
-            assertEquals(1, requests)
-        }
-
-    @Test
-    fun asksTheAddonAgainWhenTheResponseSaysNotToReuseIt() =
+    fun revalidatesAResponseThatSaysNotToReuseIt() =
         runTest {
             var requests = 0
             val engine =
@@ -125,6 +99,34 @@ class DiskHttpCacheTest {
             addon.fetchCatalog("movie", "top")
             addon.fetchCatalog("movie", "top")
 
+            assertEquals(2, requests)
+        }
+
+    @Test
+    fun asksTheAddonAgainWhenTheResponseDeclaresNoFreshness() =
+        runTest {
+            var requests = 0
+            val engine =
+                MockEngine {
+                    requests++
+                    respond(
+                        content = gzip("""{"metas":[]}"""),
+                        status = HttpStatusCode.OK,
+                        headers =
+                            headersOf(
+                                HttpHeaders.ContentType to listOf("application/json"),
+                                HttpHeaders.ContentEncoding to listOf("gzip"),
+                            ),
+                    )
+                }
+            val client = HttpClient(engine) { installHttpDefaults(diskCacheStorage(tempDir().path)) }
+            val addon = StremioAddonClient("https://addon.example", client)
+
+            addon.fetchCatalog("movie", "top")
+            addon.fetchCatalog("movie", "top")
+
+            // Freshness belongs to the addon: with nothing declared, the cache
+            // has no lifetime to reuse and the second read goes to the network.
             assertEquals(2, requests)
         }
 

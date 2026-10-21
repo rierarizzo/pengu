@@ -24,9 +24,9 @@ expect fun createHttpClient(): HttpClient
  *
  * Addon responses (manifests, catalogs, metas) are the app's bulk download and
  * the ones that are safe to reuse: a catalog page is the same for every caller
- * and expires on its own schedule. The backend client deliberately has no cache,
- * because a stale `library_items` or `watch_progress` read would show the user
- * data they just changed.
+ * and expires on the schedule the addon declares. The backend client deliberately
+ * has no cache, because a stale `library_items` or `watch_progress` read would
+ * show the user data they just changed.
  */
 expect fun createAddonHttpClient(): HttpClient
 

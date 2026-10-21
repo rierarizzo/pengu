@@ -17,9 +17,8 @@ habla directamente con HTTP, el sistema de ficheros ni el motor de reproducción
 ```
 :core      pure domain (models, repository contracts, watched rules, player contract)
 :data      implementations (Stremio addons, Nuvio/Supabase, local JSON store)
-:app:fonts   alternate typeface (IBM Plex Sans) assets as Compose Resources
 :app:player  adaptador compartido de PlayerService sobre el contrato de mediamp
-:app:shared  Compose UI + ViewModels (depends on :core, :app:player and :app:fonts)
+:app:shared  Compose UI + ViewModels (depends on :core and :app:player)
 :app:desktopApp  composition root: reproductor mpv (mediamp), control de ventana, main()
 :app:androidApp  composition root: reproductor ExoPlayer (mediamp), MainActivity
 ```
@@ -81,8 +80,8 @@ leer/escribir/borrar vive una sola vez.
 
 ## Datos (`:data`)
 
-- **Cliente Ktor** (CIO en desktop, OkHttp en Android) en lugar de
-  `package:http`.
+- **Cliente Ktor** (CIO para backend/TMDB, OkHttp para addons en ambas
+  plataformas) en lugar de `package:http`.
 - **kotlinx.serialization** con la API `JsonElement` y pequeños helpers
   defensivos de coerción (`JsonUtils.kt`), reflejando `json_utils.dart`: los
   payloads de terceros degradan a `null`/vacío en lugar de lanzar.
@@ -108,7 +107,7 @@ leer/escribir/borrar vive una sola vez.
   las RPC `sync_*`). Los repositorios toman la parte que necesitan. Los tokens de
   sesión viven en `data/`, nunca en el dominio.
 - **Almacén local**: `JsonFileStore`/`JsonMapStore` y los stores de sesión /
-  snapshot / series vistas. La resolución de rutas es un `expect` de
+  lista de addons / series vistas. La resolución de rutas es un `expect` de
   plataforma (`%APPDATA%\Pengu` en Windows, XDG en el resto). Las escrituras
   pasan por un fichero temporal hermano y se renombran en su sitio, así que una
   escritura interrumpida no puede dejar un documento truncado, y una escritura
@@ -117,7 +116,8 @@ leer/escribir/borrar vive una sola vez.
   restringe al usuario actual donde el SO lo permite; es endurecimiento
   best-effort, no un keychain.
 - **Los ajustes** viven en `settings.json` como un objeto JSON plano con claves
-  punteadas, como el `settings.json` de VS Code (`animations.enabled`,
+  punteadas, como el `settings.json` de VS Code (`appearance.theme`,
+  `appearance.typeface`, `animations.enabled`,
   `player.resumePlayback`, `player.autoPlayNext`, `poster.size`,
   `labels.hidden`, `catalog.showType`, `metadata.tmdbApiKey`,
   `metadata.tmdbLanguage`).
@@ -125,11 +125,18 @@ leer/escribir/borrar vive una sola vez.
   forma defensiva, conserva las claves desconocidas al escribir y puede
   `reload()` tras una edición manual; la pantalla de ajustes agrupa los toggles
   en categorías (`SettingsCategory`, en `ui/screens`), edita el mismo fichero,
-  muestra su ruta y puede abrirlo en el editor del SO. Una ventana ancha pinta
-  las categorías como una barra lateral agrupada junto a la página seleccionada;
-  una ventana compacta las pinta como un índice plano y apila cada página
-  como `ContentRoute.SettingsPage`, así que un móvil entra en una categoría cada
-  vez mientras cada ajuste se define una sola vez.
+  muestra su ruta y puede abrirlo en el editor del SO. Las páginas se agrupan en
+  cuatro bloques, como una app de ajustes de escritorio: **Cuenta**, **General**,
+  **Acerca de** y **Avanzado**. General contiene Playback, Apariencia (tema,
+  tipografía, movimiento), Home (billboard, tamaño de póster, etiquetas de fila),
+  Addons y Metadata; Acerca de contiene la página de producto, licencia y
+  créditos; Avanzado contiene el fichero de configuración y la prueba de
+  reproducción. Una página nunca mezcla dos asuntos sin relación, y los ajustes de
+  aspecto que antes vivían en "Interface" y "Theme" comparten la página
+  Apariencia. Una ventana ancha pinta los grupos en una barra lateral junto a la
+  página seleccionada; una ventana compacta pinta los mismos grupos como índice y
+  apila cada página como `ContentRoute.SettingsPage`, así que un móvil entra en una
+  categoría cada vez mientras cada ajuste se define una sola vez.
 - **Los controles de ajustes son componentes de la app, no Material de serie.**
   Una fila de toggle es ella misma el target y su switch es el `AppSwitch`
   compacto compartido (40x22, track de acento), no el control de 52x32 de
@@ -139,11 +146,12 @@ leer/escribir/borrar vive una sola vez.
   insetan al texto de la fila; y un grupo es una tarjeta sin borde sobre el
   fondo de página, rellena con el rol `surfaceCard` para que el índice y las
   páginas compartan un mismo tono cálido. Las categorías son una pila de esas
-  tarjetas (`SettingsNavCard`) en vez de filas con ícono: el índice compacto
-  muestra label en semibold y chevron, sin descripción ni etiquetas de grupo —
-  la barra de título del móvil nombra la pantalla y las tarjetas llevan el
-  resto —, mientras la barra lateral ancha conserva los grupos, quita el chevron
-  y marca la página abierta con un tinte de acento sobre la tarjeta y el label
+  tarjetas (`SettingsNavCard`) en vez de filas con ícono: tanto el índice
+  compacto como la barra lateral leen los mismos cuatro grupos; el compacto
+  muestra la etiqueta del grupo y una tarjeta en semibold con chevron y sin
+  descripción — la barra de título del móvil nombra la pantalla y las tarjetas
+  llevan el resto —, mientras la barra lateral ancha quita el chevron y marca la
+  página abierta con un tinte de acento sobre la tarjeta y el label
   de acento. Dentro de una página, las etiquetas de sección van en semibold y
   los títulos de fila suben también a semibold, para que la jerarquía se lea
   igual que el índice; el picker se lee como un campo (sin relleno, borde
@@ -209,16 +217,18 @@ leer/escribir/borrar vive una sola vez.
 - **`BackendKind` + `createBackend`** es el único sitio que conoce las
   implementaciones concretas, reemplazando `backend_factory.dart` de Flutter.
 - **I/O en paralelo y caché.** Las lecturas independientes se ejecutan juntas en
-  lugar de en fila: Home carga el progreso, la biblioteca y la lista de catálogos
-  de forma concurrente, luego pide los catálogos en lotes de cuatro y pinta tras
-  el primero, con el artwork destacado ya enriquecido, así un teléfono no espera
-  al catálogo más lento; al volver a la sección conserva las filas cargadas y
-  refresca detrás. Library carga la biblioteca y su progreso juntos; el
+  lugar de en fila. Home resuelve los catálogos con una ventana deslizante de
+  cuatro peticiones (una fila que responde libera su hueco de inmediato) mientras
+  lee el historial de reproducción en paralelo, y publica el feed una sola vez —
+  filas, "Continuar viendo" y el billboard ya enriquecido —, así que la pantalla
+  pasa de su estado de carga al conjunto entero de una vez. Al volver a la sección conserva las filas
+  cargadas y refresca detrás, y los manifiestos de addons se precalientan en
+  cuanto hay perfil. Library carga la biblioteca y su progreso juntos; el
   resolver de badges lee las dos fuentes de progreso en paralelo y sus búsquedas
   de metadata son acotadas pero concurrentes; los chunks de `watched_items` se
   consultan juntos; los manifiestos de catálogo se piden en paralelo y se cachean
   por addon (un manifiesto es inmutable, y la caché en disco de abajo lo conserva
-  entre arranques). La lista de addons se cachea por uuid de perfil, así que la
+  entre arranques cuando el addon declara frescura). La lista de addons se cachea por uuid de perfil, así que la
   sincronización de badges no la reconsulta para cada
   serie. Los ViewModels con scope de cuenta (Home, Library, Search (y su feed de
   discover), Calendar) esperan a un perfil antes de cargar en vez de cargar sin
@@ -229,15 +239,18 @@ leer/escribir/borrar vive una sola vez.
   caché es desechable y en Windows no debe acabar en un perfil móvil. Un
   manifiesto o una página de catálogo que el addon marcó como cacheable se sirve
   desde disco, y `Cache-Control: no-cache` sigue revalidando con `If-None-Match` /
-  `If-Modified-Since` en lugar de servirse a ciegas.
-  `CacheStorageWithFallbackTtl` da a las respuestas que no declaran nada — sin
-  `Cache-Control`, sin `Expires` y sin validador, que es lo que manda buena parte
-  del ecosistema Stremio — una vida de cinco minutos, la misma ventana que Home
-  ya usa para considerar el contenido fresco; lo que el addon sí declaró manda, y
-  `no-cache`/`must-revalidate` nunca se sobrescriben. El tráfico de addons es
+  `If-Modified-Since` en lugar de servirse a ciegas. La frescura es cosa del
+  addon: una respuesta que no declara nada — sin `Cache-Control`, sin `Expires` y
+  sin validador, que es lo que manda buena parte del ecosistema Stremio — se
+  vuelve a pedir en la siguiente lectura, así que Home siempre muestra lo que los
+  addons responden ahora. El tráfico de addons es
   deliberadamente el único cacheado: `createHttpClient()`, usado por el backend
   Nuvio y TMDB, no tiene caché, porque servir un `library_items` o un
-  `watch_progress` viejo le mostraría al usuario datos que acaba de cambiar.
+  `watch_progress` viejo le mostraría al usuario datos que acaba de cambiar. El
+  cliente de addons corre sobre **OkHttp en ambas plataformas** y el del backend
+  sobre CIO en desktop / OkHttp en Android; CIO es solo HTTP/1.1, así que un Home
+  en frío abriría una conexión TLS por catálogo, y varios suelen vivir en el mismo
+  host.
 - **El JSON de catálogo se pide comprimido con gzip.** Ningún motor añade
   `Accept-Encoding`, así que `StremioAddonClient` pide `gzip` él mismo y decodifica
   el cuerpo (`gzipDecode`, implementado una vez para los targets JVM y Android).
@@ -276,20 +289,26 @@ leer/escribir/borrar vive una sola vez.
   cuando el manifiesto no se puede leer. Un backend que no puede escribir (modo
   local) lista su conjunto fijo en solo lectura y oculta la acción de instalar y
   los controles de la card.
-- **Home pinta la última sesión antes de la primera petición.**
-  `FileHomeSnapshotStore` guarda las filas y el billboard que estaban en pantalla
-  (`HomeSnapshot`, por id de perfil) y `HomeViewModel` los publica antes de
-  empezar la carga. La respuesta de red reemplaza después las filas lote a lote y
-  conserva el billboard ya visible, así que el hero nunca cambia del artwork
-  guardado a una elección nueva; una carga fallida deja el snapshot en pantalla
-  en vez de una página de error. El snapshot se reescribe tras cada carga
-  correcta y lleva el instante en que se eligió el set del billboard: un set con
-  más de seis horas se vuelve a elegir en un arranque en frío (las filas siguen
-  pintando de inmediato y el set nuevo reemplaza al hero cuando ya está
-  enriquecido), así el billboard no se queda congelado semanas mientras el primer
-  frame sigue siendo instantáneo. Una re-entrada conserva el instante de la
-  elección, porque refresca las filas por detrás y no debe hacer que el set
-  parezca más reciente de lo que es.
+- **Home se carga, nunca se restaura.** Nada del feed se persiste: las filas y
+  el billboard viven en el `HomeViewModel` durante la sesión, así que un arranque
+  en frío (o un cambio de perfil) muestra la pantalla de carga hasta que todos los
+  catálogos han respondido y entonces pinta el feed entero de una vez. No hay un
+  pintado guardado que pueda quedar viejo ni reemplazarse bajo el usuario, y un
+  catálogo editado en el addon aparece en la siguiente carga en vez de desde una
+  copia guardada. Ese primer pintado es la pantalla entera: las filas,
+  "Continuar viendo" (su lectura del backend corre junto a los catálogos) y el
+  billboard ya enriquecido con el artwork de TMDB, así que nada se rellena después
+  de que el usuario esté mirando. Lo único que sigue llegando más tarde es la
+  propia imagen del billboard, así que la pantalla mantiene su overlay de carga
+  hasta que el primer slide está decodificado (con un timeout corto, y con el feed
+  compuesto detrás para que sus imágenes ya estén cargando): el hero nunca muestra
+  el fondo pelado y luego se llena. Volver a Home dentro de `HOME_REFRESH_INTERVAL` reutiliza lo que
+  está en pantalla; pasado ese tiempo refresca detrás de las filas cargadas,
+  reemplazándolas una sola vez al final. Un perfil distinto es un Home distinto:
+  elegirlo descarta las filas anteriores en vez de refrescar encima de ellas. El
+  set del billboard se elige del conjunto completo y se mantiene durante la
+  sesión (los slides siguen auto-avanzando); solo cambiar la fuente del billboard
+  lo vuelve a elegir.
 - **La fuente del billboard es un ajuste.** `hero.source` es `smart` (el
   defecto: todas las filas cargadas, mezcladas y ordenadas por la app) o
   `manual`, y `hero.catalogs` guarda hasta dos `CatalogRef.key` elegidos en
@@ -298,14 +317,16 @@ leer/escribir/borrar vive una sola vez.
   addon eliminado en otro sitio no puede dejar Home sin billboard; cada catálogo
   sigue teniendo su fila en cualquier caso. Home escucha el ajuste
   (`distinctUntilChanged` sobre los dos campos), así que cambiarlo vuelve a
-  elegir al instante en vez de esperar a la siguiente rotación. La lista de
+  elegir al instante en vez de esperar a la siguiente carga. La lista de
   catálogos del selector se lee de los addons en la pantalla de ajustes, no se
   guarda: solo se persisten las claves, lo que mantiene `settings.json`
   editable a mano y sin nombres obsoletos.
-- **Android resuelve IPv4 primero y evita el proxy del sistema.** `IPv4FirstDns`
-  ordena las respuestas DNS, así que un host con un registro AAAA roto no bloquea
-  cada conexión hasta que IPv6 caduque; `Proxy.NO_PROXY` evita que un proxy que
-  solo conoce una red corporativa haga fallar cada petición a un addon público.
+- **Ambas plataformas resuelven IPv4 primero y evitan el proxy del sistema.**
+  `IPv4FirstDns` (`jvmSharedMain`) ordena las respuestas DNS, así que un host con
+  un registro AAAA roto no bloquea cada conexión hasta que IPv6 caduque;
+  `Proxy.NO_PROXY` evita que un proxy que solo conoce una red corporativa haga
+  fallar cada petición a un addon público. Vive junto a los clientes de addons,
+  que corren sobre OkHttp, así que desktop y Android comparten el resolver.
 
 ## UI (`:app:shared`)
 
@@ -416,10 +437,9 @@ leer/escribir/borrar vive una sola vez.
 - **El hero de Home toma de todos los catálogos.** `pickFeatured` (en
   `HomeViewModel`) arma el pool con los ítems de todas las filas, deduplica por
   `type:id`, balancea películas y series y baraja, así que el billboard no queda
-  atado al primer catálogo. El set destacado se elige de las filas en pantalla en
-  el primer pintado de contenido y se enriquece antes, y luego se deja quieto
-  mientras los lotes siguientes agregan filas, así el billboard nunca cambia bajo
-  el usuario. Los títulos bien calificados (IMDb >= 6, desconocido pasa) van
+  atado al primer catálogo. El set destacado se elige del conjunto completo de
+  filas y se enriquece desde TMDB antes del pintado, con la pantalla de carga
+  todavía arriba, así que el hero aparece una vez y no se cambia después. Los títulos bien calificados (IMDb >= 6, desconocido pasa) van
   primero y los de baja calificación solo se usan cuando no alcanza el buen
   contenido. Los seis slides auto-avanzan cada `HERO_AUTO_ADVANCE_INTERVAL`
   (7 s, dentro del rango usual de 5-8 s para carruseles), y un cambio manual
@@ -432,11 +452,10 @@ leer/escribir/borrar vive una sola vez.
   el auto-avance siempre va hacia adelante: el último slide no recorre todas las
   páginas hacia atrás para llegar a la primera. El avance hace snap con un
   spring (`motionSpring`) y respeta `LocalMotionEnabled`, así que "desactivar
-  animaciones" salta al objetivo como el resto de transiciones. La pantalla
-  vuelve a
-  elegir el set completo cada `FEATURED_ROTATION_INTERVAL` (10 minutos) mientras
-  Home está visible, priorizando los ítems que no están en pantalla, así cambia
-  con el tiempo y no en cada recomposición. La selección usa un `Random`
+  animaciones" salta al objetivo como el resto de transiciones. El set se mantiene
+  durante la sesión: solo cambiar la fuente del billboard en Ajustes lo vuelve a
+  elegir, priorizando los ítems que no están en pantalla, así no se reordena
+  mientras se está mirando. La selección usa un `Random`
   inyectable, así los tests son deterministas.
 - **Home virtualiza sus secciones.** El hero, "Continuar viendo" y cada fila de
   catálogo viven en un único `LazyColumn` (cada rail es su propio `LazyRow`), así
@@ -585,13 +604,16 @@ leer/escribir/borrar vive una sola vez.
   funcionando ahí mientras un tap cae al botón. En ventana ancha el rail flota
   sobre el contenido, que reserva su ancho, así que la navegación nunca lo
   solapa.
-- **Tipografía.** Inter se incluye mediante Compose Resources en `:app:shared` y
-  es la tipografía renderizada. IBM Plex Sans queda aislada en su propio módulo
-  `:app:fonts` para que las dos tipografías se puedan intercambiar para comparar
-  mediante `USE_IBM_PLEX_SANS` en `PenguTheme`. Inter Tight se incluye junto a
-  Inter y se aplica solo a la línea de metadata del billboard
-  (`AppType.heroMeta`), donde su ajuste más apretado mantiene en una línea la
-  cinta `Series • 2026 • Drama`. Cada target renderiza la
+- **Tipografía.** Dos tipografías se incluyen mediante Compose Resources en
+  `:app:shared`: **IBM Plex Sans** (la de por defecto) e Inter. Ambas traen los
+  mismos cuatro pesos (Regular, Medium, SemiBold, Bold) y pasan por el mismo mapa
+  de pesos, así que `appearance.typeface` cambia las formas sin tocar la escala:
+  `PenguTheme(typeface)` resuelve la familia una vez por tema y toda la UI la lee
+  a través de `MaterialTheme.typography`. La línea de metadata del billboard
+  (`AppType.heroMeta`) lleva un
+  tracking negativo pequeño, así que la cinta `Series • 2026 • Drama` queda en
+  una línea.
+  Cada target renderiza la
   misma tipografía, y el texto se escribe en `sp` para que el tamaño de fuente
   del sistema de Android siga funcionando. `LocalDensity` nunca se sobrescribe
   deliberadamente: ese es el hack común, y miente a cada componente sobre la
@@ -600,10 +622,14 @@ leer/escribir/borrar vive una sola vez.
   de hero, títulos de pantalla, sinopsis de hero); desktop y tablet mantienen la
   escala completa. Toda la escala de Material corre más ligera que la de serie
   (`Bold` a `Medium`, `SemiBold` a `Normal`), así que los encabezados se sientan
-  en Medium mientras títulos, labels y cuerpo se sientan en Normal; `body*` llega
+  en Medium mientras títulos, cuerpo y labels grandes se sientan en Normal. Los
+  roles pequeños (`bodySmall`, `labelMedium`, `labelSmall`) se quedan en Medium:
+  a 12sp los tallos de IBM Plex Sans Regular son lo bastante finos como para que
+  el antialiasing en escala de grises — Compose Desktop no tiene ClearType — los
+  haga leerse como irregulares. `body*` llega
   como mínimo a `Normal` porque no se incluye ningún peso más ligero, así que un
-  cuerpo realmente más fino necesita añadir `inter_light.ttf` a `:app:shared` (o
-  `ibm_plex_sans_light.ttf` a `:app:fonts` mientras se compara). Ningún slot de
+  cuerpo realmente más fino necesita añadir `ibm_plex_sans_light.ttf` a
+  `:app:shared`. Ningún slot de
   tipo lleva color: el color del texto viene del esquema de color en el punto de
   llamada, como pretende Material. La paleta de lectura está basada en blanco —
   `BrandPalette.textPrimary` es `#FFFFFF` y los roles secundarios (`textSecondary`
@@ -726,7 +752,8 @@ leer/escribir/borrar vive una sola vez.
   el mismo frame. `AppThemes.Coffee` es el tema por defecto y único por ahora: una
   paleta cálida crema/ámbar/naranja quemado, elegida en Ajustes → Apariencia →
   Tema y persistida como `appearance.theme` en `settings.json`. La tipografía
-  Inter cargada desde Compose Resources y la escala de formas pequeña y tirando a
+  cargada desde Compose Resources (IBM Plex Sans por defecto, Inter como
+  alternativa, elegida en Ajustes → Apariencia) y la escala de formas pequeña y tirando a
   cuadrada (`AppCorner` alimenta `MaterialTheme.shapes`: 1/2/3/4/6dp; la app se
   lee cuadrada, no redondeada) no dependen del tema. Los diálogos y las bottom
   sheets usan la misma escala (`shapes.extraLarge` y `AppBottomSheetShape`) en
@@ -851,8 +878,9 @@ leer/escribir/borrar vive una sola vez.
   deriva su número de celdas del viewport, así que nunca se detiene a mitad de
   una ventana ancha, y los stops de degradado estáticos se construyen una vez en
   vez de cada frame. Home muestra una pantalla de carga a pantalla completa hasta
-  que llega el primer lote de catálogos, y luego pinta el billboard y las filas
-  juntas. El hero de detalle no pinta el fallback de la biblioteca como
+  que todos los catálogos y el historial de reproducción han respondido y el
+  artwork del primer slide del billboard está decodificado; luego pinta el hero,
+  las filas y "Continuar viendo" juntos. El hero de detalle no pinta el fallback de la biblioteca como
   si fuera el artwork final: reserva el espacio del logo sin dibujar un
   placeholder, y el logo y el backdrop se funden cuando la imagen está lista
   (`RemoteImage(fadeIn)`), así que una carga lenta nunca aparece de golpe. El
@@ -881,9 +909,10 @@ leer/escribir/borrar vive una sola vez.
   bajo el copy. Además espera a que el enriquecimiento se resuelva antes de
   pintar, así que la decisión nunca se rehace en pantalla.
   El preloader de Home pasa por
-  el mismo helper, así que siempre precarga la URL que la capa va a dibujar, y el
-  set destacado se enriquece antes del primer pintado del billboard, así que
-  nunca muestra el arte del catálogo y luego lo cambia por el de TMDB.
+  el mismo helper, así que siempre precarga la URL que la capa va a dibujar. El
+  set destacado se enriquece antes del pintado y Home mantiene su overlay de carga
+  hasta que la imagen del primer slide está decodificada, así que el billboard
+  nunca se ve con el fondo pelado.
 - **Tamaño de póster** es un único ajuste (`PosterSize`: default / large,
   210 / 230 dp) que solo gobierna las filas horizontales de pósters — los
   catálogos de Home, los resultados de búsqueda y "More like this" — donde una

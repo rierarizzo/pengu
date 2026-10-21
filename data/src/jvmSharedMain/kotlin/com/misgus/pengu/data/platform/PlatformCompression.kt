@@ -16,12 +16,11 @@ import java.util.zip.GZIPInputStream
  * On-disk store for cached HTTP responses.
  *
  * [directory] defaults to the platform cache directory; tests point it at a
- * temporary one.
+ * temporary one. Freshness is the addon's call alone: a response is only reused
+ * while the headers it carried say so, so a catalog cannot be served from disk
+ * behind the addon's back.
  */
-internal fun diskCacheStorage(directory: String = cacheDirectory()): CacheStorage =
-    CacheStorageWithFallbackTtl(
-        FileStorage(Path(directory, HTTP_CACHE_DIR)),
-    )
+internal fun diskCacheStorage(directory: String = cacheDirectory()): CacheStorage = FileStorage(Path(directory, HTTP_CACHE_DIR))
 
 actual fun gzipDecode(bytes: ByteArray): ByteArray =
     GZIPInputStream(ByteArrayInputStream(bytes)).use { stream ->

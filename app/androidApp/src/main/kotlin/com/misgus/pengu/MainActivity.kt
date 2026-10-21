@@ -13,7 +13,6 @@ import com.misgus.pengu.data.platform.createAddonHttpClient
 import com.misgus.pengu.data.platform.createHttpClient
 import com.misgus.pengu.data.platform.initPlatform
 import com.misgus.pengu.data.store.AppPaths
-import com.misgus.pengu.data.store.FileHomeSnapshotStore
 import com.misgus.pengu.data.store.FileSessionStore
 import com.misgus.pengu.data.store.FileWatchedSeriesCache
 import com.misgus.pengu.data.store.JsonMapStore
@@ -84,10 +83,9 @@ class MainActivity : ComponentActivity() {
                 player = player,
                 window = NoopWindowController(),
                 addons = addons,
-                // Same persistence as desktop: the watched-series cache and the
-                // Home snapshot both live in the app's config directory.
+                // Same persistence as desktop: the watched-series cache lives in
+                // the app's config directory.
                 watchedCache = FileWatchedSeriesCache(),
-                homeSnapshot = FileHomeSnapshotStore(),
             )
 
         setContent {

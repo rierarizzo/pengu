@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -117,7 +118,7 @@ fun SettingsSidebar(
     }
 }
 
-/** Compact-window index: one card per category, in declaration order. */
+/** Compact-window index: the same groups and categories as the sidebar. */
 @Composable
 fun SettingsIndex(
     onOpen: (SettingsCategory) -> Unit,
@@ -125,10 +126,13 @@ fun SettingsIndex(
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
-        SettingsCategory.entries.forEach { category ->
-            SettingsNavCard(category = category, onClick = { onOpen(category) })
+        SettingsCategory.grouped.forEach { (group, categories) ->
+            SettingsGroupLabel(stringResource(group.label))
+            categories.forEach { category ->
+                SettingsNavCard(category = category, onClick = { onOpen(category) })
+            }
         }
     }
 }
@@ -392,6 +396,8 @@ fun <T> SettingsChipRow(
     selected: T,
     label: (T) -> String,
     onSelect: (T) -> Unit,
+    /** Optional family per option, so a typeface picker previews its own fonts. */
+    labelFamily: @Composable (T) -> FontFamily? = { null },
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(AppSizes.cardPadding),
@@ -414,6 +420,7 @@ fun <T> SettingsChipRow(
                     label = label(option),
                     selected = option == selected,
                     onClick = { onSelect(option) },
+                    family = labelFamily(option),
                 )
             }
         }
@@ -425,8 +432,11 @@ private fun SettingsChip(
     label: String,
     selected: Boolean,
     onClick: () -> Unit,
+    family: FontFamily? = null,
 ) {
     val interaction = rememberInteraction()
+    val base = AppType.buttonLabel()
+    val style = if (family == null) base else base.copy(fontFamily = family)
     val fill = if (selected) AppColors.surfaceSelected else Color.Transparent
     val borderColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
     Row(
@@ -442,7 +452,7 @@ private fun SettingsChip(
     ) {
         Text(
             label,
-            style = AppType.buttonLabel(),
+            style = style,
             color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
         )

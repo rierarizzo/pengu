@@ -111,6 +111,17 @@ fun AppShell() {
     // content can spare. A new section or route always opens expanded.
     val showBottomNav = showNav && !scrollCollapsed
     val gate = account.isSignedIn && account.requiresProfile && account.activeProfile == null
+
+    // Warm the addon manifests as soon as a profile is available. Resolving them
+    // is the first hop of Home's load, and `StremioAddonClient` caches each
+    // manifest for the process, so Home starts straight with the catalog requests
+    // instead of waiting on a manifest round-trip. Same reason Nuvio prefetches at
+    // app start rather than when its Home tab composes.
+    LaunchedEffect(account.isSignedIn, account.activeProfile?.id) {
+        if (gate) return@LaunchedEffect
+        runCatching { services.catalogs.catalogs() }
+    }
+
     LaunchedEffect(selected, navigator.current) { chrome.updateScrollCollapsed(false) }
 
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {

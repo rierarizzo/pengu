@@ -17,8 +17,10 @@ import io.ktor.client.statement.readRawBytes
 import io.ktor.http.HttpHeaders
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonObject
 
 /** Thrown when an addon request fails or returns something unexpected. */
@@ -65,7 +67,7 @@ class StremioAddonClient(
         cachedManifest?.let { return it }
         return manifestMutex.withLock {
             cachedManifest
-                ?: addonManifestFromJson(getJson("$baseUrl/manifest.json")).also { cachedManifest = it }
+                ?: offMain { addonManifestFromJson(getJson("$baseUrl/manifest.json")) }.also { cachedManifest = it }
         }
     }
 
@@ -76,10 +78,12 @@ class StremioAddonClient(
         extra: Map<String, String>? = null,
     ): List<MetaPreview> {
         val json = getJson(catalogUrl(type, id, extra))
-        return json["metas"]
-            .arrOrNull()
-            ?.mapNotNull { it.objOrNull()?.let(::metaPreviewFromJson) }
-            ?: emptyList()
+        return offMain {
+            json["metas"]
+                .arrOrNull()
+                ?.mapNotNull { it.objOrNull()?.let(::metaPreviewFromJson) }
+                ?: emptyList()
+        }
     }
 
     /**
@@ -93,10 +97,12 @@ class StremioAddonClient(
         extra: Map<String, String>? = null,
     ): List<MetaDetail> {
         val json = getJson(catalogUrl(type, id, extra))
-        return json["metasDetailed"]
-            .arrOrNull()
-            ?.mapNotNull { it.objOrNull()?.let(::metaDetailFromJson) }
-            ?: emptyList()
+        return offMain {
+            json["metasDetailed"]
+                .arrOrNull()
+                ?.mapNotNull { it.objOrNull()?.let(::metaDetailFromJson) }
+                ?: emptyList()
+        }
     }
 
     /** Fetches the full metadata for [id], or `null` if the addon has none. */
@@ -105,7 +111,7 @@ class StremioAddonClient(
         id: String,
     ): MetaDetail? {
         val json = getJson("$baseUrl/meta/$type/$id.json")
-        return json["meta"].objOrNull()?.let(::metaDetailFromJson)
+        return offMain { json["meta"].objOrNull()?.let(::metaDetailFromJson) }
     }
 
     /** Fetches the available streams for [id]. */
@@ -114,10 +120,12 @@ class StremioAddonClient(
         id: String,
     ): List<Stream> {
         val json = getJson("$baseUrl/stream/$type/$id.json")
-        return json["streams"]
-            .arrOrNull()
-            ?.mapNotNull { it.objOrNull()?.let(::streamFromJson) }
-            ?: emptyList()
+        return offMain {
+            json["streams"]
+                .arrOrNull()
+                ?.mapNotNull { it.objOrNull()?.let(::streamFromJson) }
+                ?: emptyList()
+        }
     }
 
     /** Fetches the available subtitles for [id]. */
@@ -126,11 +134,23 @@ class StremioAddonClient(
         id: String,
     ): List<Subtitle> {
         val json = getJson("$baseUrl/subtitles/$type/$id.json")
-        return json["subtitles"]
-            .arrOrNull()
-            ?.mapNotNull { it.objOrNull()?.let(::subtitleFromJson) }
-            ?: emptyList()
+        return offMain {
+            json["subtitles"]
+                .arrOrNull()
+                ?.mapNotNull { it.objOrNull()?.let(::subtitleFromJson) }
+                ?: emptyList()
+        }
     }
+
+    /**
+     * Runs CPU work off the caller's thread.
+     *
+     * Callers are ViewModels on the main dispatcher: parsing a catalog of ~100
+     * metas (plus gunzipping it) on the UI thread stalls the spinner and the
+     * first frame. The requests themselves are already suspended Ktor calls, so
+     * only this work has to move.
+     */
+    private suspend fun <T> offMain(block: suspend () -> T): T = withContext(Dispatchers.Default) { block() }
 
     private fun catalogUrl(
         type: String,
@@ -197,21 +217,25 @@ class StremioAddonClient(
                 "Request to $url failed with HTTP ${response.status.value}",
             )
         }
-        val text =
-            try {
-                // Decode as UTF-8 explicitly: addons may not declare a charset.
-                response.bodyBytes().decodeToString()
-            } catch (error: Exception) {
-                throw StremioAddonException("Could not read the response from $url", error)
-            }
-        val decoded =
-            try {
-                appJson.parseToJsonElement(text)
-            } catch (error: Exception) {
-                throw StremioAddonException("Invalid JSON from $url", error)
-            }
-        return decoded.objOrNull()
-            ?: throw StremioAddonException("Expected a JSON object from $url")
+        // Reading, gunzipping and parsing a catalog page is the CPU-heavy part of
+        // a load, so it happens off the caller's (main) thread.
+        return offMain {
+            val text =
+                try {
+                    // Decode as UTF-8 explicitly: addons may not declare a charset.
+                    response.bodyBytes().decodeToString()
+                } catch (error: Exception) {
+                    throw StremioAddonException("Could not read the response from $url", error)
+                }
+            val decoded =
+                try {
+                    appJson.parseToJsonElement(text)
+                } catch (error: Exception) {
+                    throw StremioAddonException("Invalid JSON from $url", error)
+                }
+            decoded.objOrNull()
+                ?: throw StremioAddonException("Expected a JSON object from $url")
+        }
     }
 
     /** Response body as raw bytes, gunzipped when the addon answered compressed. */
