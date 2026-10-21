@@ -23,12 +23,6 @@ interface WatchedSeriesCache {
         seriesId: String,
     ): CachedSeriesState?
 
-    suspend fun write(
-        profileKey: String,
-        seriesId: String,
-        state: CachedSeriesState,
-    )
-
     /** Stores several series at once, so a resolve can persist in one write. */
     suspend fun writeAll(
         profileKey: String,
@@ -45,12 +39,6 @@ class NoopWatchedSeriesCache : WatchedSeriesCache {
         profileKey: String,
         seriesId: String,
     ): CachedSeriesState? = null
-
-    override suspend fun write(
-        profileKey: String,
-        seriesId: String,
-        state: CachedSeriesState,
-    ) = Unit
 
     override suspend fun writeAll(
         profileKey: String,

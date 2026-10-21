@@ -7,15 +7,11 @@ import com.misgus.pengu.core.repository.AddonRepository
 import com.misgus.pengu.core.repository.CatalogRepository
 import com.misgus.pengu.core.repository.LibraryRepository
 import com.misgus.pengu.core.repository.MetadataRepository
-import com.misgus.pengu.core.repository.NoSubtitleRepository
-import com.misgus.pengu.core.repository.NoTmdbRepository
-import com.misgus.pengu.core.repository.NoopAddonRepository
 import com.misgus.pengu.core.repository.ProgressRepository
 import com.misgus.pengu.core.repository.SettingsRepository
 import com.misgus.pengu.core.repository.StreamRepository
 import com.misgus.pengu.core.repository.SubtitleRepository
 import com.misgus.pengu.core.repository.TmdbRepository
-import com.misgus.pengu.core.watched.NoopWatchedSeriesCache
 import com.misgus.pengu.core.watched.WatchedBadgeResolver
 import com.misgus.pengu.core.watched.WatchedSeriesCache
 import com.misgus.pengu.ui.shell.AppChrome
@@ -53,18 +49,18 @@ class AppServices(
     /** Native window control. */
     val window: WindowController,
     /** Subtitle tracks exposed by Stremio addons. */
-    val subtitles: SubtitleRepository = NoSubtitleRepository(),
+    val subtitles: SubtitleRepository,
     /**
      * Optional TMDB enrichment (artwork, text, cast) used by the detail screen
      * and the home billboard. A no-op unless an API key is set in Settings.
      */
-    val tmdb: TmdbRepository = NoTmdbRepository(),
+    val tmdb: TmdbRepository,
     /** Remembered per-series "fully watched" results. */
-    val watchedCache: WatchedSeriesCache = NoopWatchedSeriesCache(),
+    val watchedCache: WatchedSeriesCache,
     /** Immersive-mode state, shared with the player. */
     val chrome: AppChrome = AppChrome(),
     /** Addons installed in the account; used by the addon repository layer. */
-    val addons: AddonRepository = NoopAddonRepository(),
+    val addons: AddonRepository,
     /** Playback session signals, read by the screens that show progress. */
     val playbackUpdates: PlaybackUpdates = PlaybackUpdates(),
     /**

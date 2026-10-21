@@ -14,11 +14,3 @@ interface SubtitleRepository {
         id: String,
     ): List<Subtitle>
 }
-
-/** Repository that offers no subtitles (used when there is no addon layer). */
-class NoSubtitleRepository : SubtitleRepository {
-    override suspend fun all(
-        type: ContentType,
-        id: String,
-    ): List<Subtitle> = emptyList()
-}

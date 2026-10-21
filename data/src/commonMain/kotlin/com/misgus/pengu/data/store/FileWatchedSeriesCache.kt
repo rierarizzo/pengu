@@ -48,12 +48,6 @@ class FileWatchedSeriesCache(
             CachedSeriesState(signature, watched)
         }
 
-    override suspend fun write(
-        profileKey: String,
-        seriesId: String,
-        state: CachedSeriesState,
-    ) = writeAll(profileKey, mapOf(seriesId to state))
-
     override suspend fun writeAll(
         profileKey: String,
         states: Map<String, CachedSeriesState>,
