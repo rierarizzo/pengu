@@ -9,7 +9,6 @@ import com.misgus.pengu.core.repository.AddonRepository
 import com.misgus.pengu.core.repository.CatalogRef
 import com.misgus.pengu.core.repository.CatalogRepository
 import com.misgus.pengu.core.util.runCatchingCancellable
-import io.ktor.client.HttpClient
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -24,8 +23,6 @@ class StremioCatalogRepository internal constructor(
     private val addons: AddonRepository,
     private val clients: AddonClientPool,
 ) : CatalogRepository {
-    constructor(addons: AddonRepository, client: HttpClient) : this(addons, AddonClientPool(client))
-
     override suspend fun catalogs(): List<CatalogRef> {
         val installed: List<Addon> = runCatchingCancellable { addons.all() }.getOrDefault(emptyList())
         // Resolve the clients up front (single-threaded) so the manifest fetches

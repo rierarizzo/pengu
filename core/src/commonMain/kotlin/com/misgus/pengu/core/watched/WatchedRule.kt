@@ -21,13 +21,6 @@ data class WatchedKey(
     val episode: Episode? = null,
 )
 
-/** Builds a [WatchedKey]. */
-fun watchedKey(
-    contentId: String,
-    season: Season? = null,
-    episode: Episode? = null,
-) = WatchedKey(contentId, season, episode)
-
 /**
  * Whether every released main-season episode of [meta] is watched or completed.
  *
@@ -46,7 +39,7 @@ fun hasWatchedAllMainSeasonEpisodes(
     val episodes = meta.videos.filter { (it.season?.number ?: 0) > 0 && isEpisodeAired(it.released, today) }
     if (episodes.isEmpty()) return false
     return episodes.all { video ->
-        val key = watchedKey(meta.id, video.season, video.episode)
+        val key = WatchedKey(meta.id, video.season, video.episode)
         key in watched || key in completed
     }
 }

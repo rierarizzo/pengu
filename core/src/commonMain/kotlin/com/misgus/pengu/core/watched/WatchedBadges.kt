@@ -66,12 +66,12 @@ class WatchedBadgeResolver(
 
         val watchedKeys =
             entries.mapTo(mutableSetOf()) {
-                watchedKey(it.contentId, it.season, it.episode)
+                WatchedKey(it.contentId, it.season, it.episode)
             }
         val completedKeys =
             allProgress.mapNotNullTo(mutableSetOf()) {
                 if ((it.fraction ?: 0.0) >= ProgressThresholds.COMPLETION) {
-                    watchedKey(it.contentId, it.season, it.episode)
+                    WatchedKey(it.contentId, it.season, it.episode)
                 } else {
                     null
                 }
@@ -81,11 +81,11 @@ class WatchedBadgeResolver(
         val series = mutableListOf<WatchedCandidate>()
         for (candidate in candidates) {
             if (!ContentTypes.isSeries(candidate.type)) {
-                if (watchedKey(candidate.id) in watchedKeys) watched.add(candidate.id)
+                if (WatchedKey(candidate.id) in watchedKeys) watched.add(candidate.id)
                 continue
             }
             // A manual "mark as watched" writes a title-level marker for any type.
-            if (watchedKey(candidate.id) in watchedKeys) {
+            if (WatchedKey(candidate.id) in watchedKeys) {
                 watched.add(candidate.id)
                 continue
             }

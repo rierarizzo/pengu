@@ -398,8 +398,8 @@ leer/escribir/borrar vive una sola vez.
   otro formulario. El atajo de desktop `NUVIO_EMAIL` / `NUVIO_PASSWORD` se pasa
   como petición `autoSignIn`, aplicada solo cuando no hay sesión almacenada.
 - **Layout adaptable.** `PenguApp` mide la ventana una vez con
-  `BoxWithConstraints` y publica un `WindowSize` (compact / medium / expanded, en
-  los breakpoints de Material de 600 y 840 dp) más el ancho de ventana, a través
+  `BoxWithConstraints` y publica un `WindowSize` (compact / expanded, en
+  el breakpoint de Material de 600 dp) más el ancho de ventana, a través
   de `LocalWindowSize` / `LocalWindowWidth`, para que una superficie elija un
   layout sin medir nada por sí misma. Las ventanas compactas (teléfonos) reciben
   siempre una barra inferior solo-iconos que flota sobre el contenido; las

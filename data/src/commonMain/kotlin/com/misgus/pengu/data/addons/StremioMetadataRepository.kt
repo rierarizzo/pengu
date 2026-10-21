@@ -9,7 +9,6 @@ import com.misgus.pengu.core.model.MetaPreview
 import com.misgus.pengu.core.repository.AddonRepository
 import com.misgus.pengu.core.repository.MetadataRepository
 import com.misgus.pengu.core.util.runCatchingCancellable
-import io.ktor.client.HttpClient
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -24,8 +23,6 @@ class StremioMetadataRepository internal constructor(
     private val addons: AddonRepository,
     private val clients: AddonClientPool,
 ) : MetadataRepository {
-    constructor(addons: AddonRepository, client: HttpClient) : this(addons, AddonClientPool(client))
-
     override suspend fun detail(
         type: ContentType,
         id: String,

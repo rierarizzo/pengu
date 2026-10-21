@@ -22,7 +22,6 @@ import com.misgus.pengu.data.longOrNull
 import com.misgus.pengu.data.objOrNull
 import com.misgus.pengu.data.stringList
 import com.misgus.pengu.data.stringOrNull
-import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -92,31 +91,6 @@ internal fun metaPreviewFromJson(json: JsonObject): MetaPreview =
         imdbRating = json["imdbRating"].doubleOrNull(),
         genres = json["genres"].stringList(),
     )
-
-/**
- * Serializes a [MetaPreview] back into the keys [metaPreviewFromJson] reads.
- *
- * Used by the local stores, so the shape is written and read by one pair of
- * mappers. `textlessPoster` is written on top of the protocol keys: it comes
- * from TMDB enrichment, not from the addon payload, and a snapshot that dropped
- * it would swap the phone billboard's artwork after a cold start.
- */
-internal fun metaPreviewToJson(item: MetaPreview): JsonObject {
-    val map = mutableMapOf<String, JsonElement>()
-    map["id"] = JsonPrimitive(item.id)
-    map["type"] = JsonPrimitive(item.type.value)
-    map["name"] = JsonPrimitive(item.name)
-    item.poster?.let { map["poster"] = JsonPrimitive(it) }
-    item.posterShape?.let { map["posterShape"] = JsonPrimitive(it) }
-    item.background?.let { map["background"] = JsonPrimitive(it) }
-    item.logo?.let { map["logo"] = JsonPrimitive(it) }
-    item.textlessPoster?.let { map["textlessPoster"] = JsonPrimitive(it) }
-    item.description?.let { map["description"] = JsonPrimitive(it) }
-    item.releaseInfo?.let { map["releaseInfo"] = JsonPrimitive(it) }
-    item.imdbRating?.let { map["imdbRating"] = JsonPrimitive(it) }
-    if (item.genres.isNotEmpty()) map["genres"] = JsonArray(item.genres.map(::JsonPrimitive))
-    return JsonObject(map)
-}
 
 internal fun metaDetailFromJson(json: JsonObject): MetaDetail {
     // Credits come from three sources, in priority order:

@@ -6,7 +6,6 @@ import com.misgus.pengu.core.repository.AddonRepository
 import com.misgus.pengu.core.repository.StreamGroup
 import com.misgus.pengu.core.repository.StreamRepository
 import com.misgus.pengu.core.util.runCatchingCancellable
-import io.ktor.client.HttpClient
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -22,8 +21,6 @@ class StremioStreamRepository internal constructor(
     private val addons: AddonRepository,
     private val clients: AddonClientPool,
 ) : StreamRepository {
-    constructor(addons: AddonRepository, client: HttpClient) : this(addons, AddonClientPool(client))
-
     override suspend fun all(
         type: ContentType,
         id: String,

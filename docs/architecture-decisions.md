@@ -374,8 +374,8 @@ so the atomic read/write/delete logic lives once.
   `NUVIO_EMAIL` / `NUVIO_PASSWORD` shortcut is passed in as an `autoSignIn`
   request, applied only when there is no stored session.
 - **Adaptive layout.** `PenguApp` measures the window once with
-  `BoxWithConstraints` and publishes a `WindowSize` (compact / medium /
-  expanded, at Material's 600 and 840 dp breakpoints) plus the window width,
+  `BoxWithConstraints` and publishes a `WindowSize` (compact / expanded, at
+  Material's 600 dp breakpoint) plus the window width,
   through `LocalWindowSize` / `LocalWindowWidth`, so a surface picks a layout
   without measuring anything itself. Compact windows (phones) always get an
   icon-only bottom bar that floats over the content; wider windows always get a

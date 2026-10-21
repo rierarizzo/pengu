@@ -1,7 +1,6 @@
 package com.misgus.pengu.ui.services
 
 import androidx.compose.runtime.staticCompositionLocalOf
-import com.misgus.pengu.core.player.NoopPlayerService
 import com.misgus.pengu.core.player.PlayerService
 import com.misgus.pengu.core.repository.AccountRepository
 import com.misgus.pengu.core.repository.AddonRepository
@@ -85,9 +84,9 @@ class AppServices(
      * Whether [player] can actually play media on this target.
      *
      * The capability is declared by the engine itself, not inferred from its
-     * type, so a target whose composition root installs a [NoopPlayerService]
-     * reads `false` and the UI tells the user instead of opening a player that
-     * only reports an error.
+     * type, so a target that installs a player which cannot play reads `false`
+     * and the UI tells the user instead of opening a player that only reports
+     * an error.
      */
     val playbackSupported: Boolean get() = player.canPlay
 }

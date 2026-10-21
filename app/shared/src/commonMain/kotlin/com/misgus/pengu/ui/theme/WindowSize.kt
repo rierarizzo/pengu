@@ -19,28 +19,18 @@ enum class WindowSize {
     /** Phone portrait, or a narrow window: below 600dp. */
     COMPACT,
 
-    /**
-     * Phone landscape, tablet portrait, or a medium window: 600dp to 839dp.
-     * Shares the expanded layout for now; kept apart for a future tablet one.
-     */
-    MEDIUM,
-
-    /** Tablet landscape, desktop, or TV: 840dp and up. */
+    /** Phone landscape, tablet, desktop or TV: 600dp and up. */
     EXPANDED,
     ;
 
     companion object {
-        /** Breakpoint between [COMPACT] and [MEDIUM]. */
+        /** Breakpoint between [COMPACT] and [EXPANDED]. */
         val CompactMaxWidth: Dp = 600.dp
-
-        /** Breakpoint between [MEDIUM] and [EXPANDED]. */
-        val MediumMaxWidth: Dp = 840.dp
 
         /** Classifies [width]. */
         fun of(width: Dp): WindowSize =
             when {
                 width < CompactMaxWidth -> COMPACT
-                width < MediumMaxWidth -> MEDIUM
                 else -> EXPANDED
             }
     }

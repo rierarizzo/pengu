@@ -28,7 +28,7 @@ class WatchedRuleTest {
                 MetaVideo(id = "tt1:1:1", season = Season(1), episode = Episode(1), released = "2024-01-01"),
                 MetaVideo(id = "tt1:1:2", season = Season(1), episode = Episode(2), released = "2024-01-01"),
             )
-        val watched = setOf(watchedKey("tt1", Season(1), Episode(1)))
+        val watched = setOf(WatchedKey("tt1", Season(1), Episode(1)))
         assertFalse(hasWatchedAllMainSeasonEpisodes(meta, watched, emptySet(), today))
     }
 
@@ -39,8 +39,8 @@ class WatchedRuleTest {
                 MetaVideo(id = "tt1:1:1", season = Season(1), episode = Episode(1), released = "2024-01-01"),
                 MetaVideo(id = "tt1:1:2", season = Season(1), episode = Episode(2), released = "2024-01-01"),
             )
-        val watched = setOf(watchedKey("tt1", Season(1), Episode(1)))
-        val completed = setOf(watchedKey("tt1", Season(1), Episode(2)))
+        val watched = setOf(WatchedKey("tt1", Season(1), Episode(1)))
+        val completed = setOf(WatchedKey("tt1", Season(1), Episode(2)))
         assertTrue(hasWatchedAllMainSeasonEpisodes(meta, watched, completed, today))
     }
 
@@ -52,7 +52,7 @@ class WatchedRuleTest {
                 MetaVideo(id = "tt1:1:2", season = Season(1), episode = Episode(2), released = "2030-01-01"),
                 MetaVideo(id = "tt1:0:1", season = Season(0), episode = Episode(1), released = "2024-01-01"),
             )
-        val watched = setOf(watchedKey("tt1", Season(1), Episode(1)))
+        val watched = setOf(WatchedKey("tt1", Season(1), Episode(1)))
         assertTrue(hasWatchedAllMainSeasonEpisodes(meta, watched, emptySet(), today))
     }
 

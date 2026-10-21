@@ -17,16 +17,15 @@ import io.ktor.client.HttpClient
  */
 class LocalAddonRepository(
     private val addons: List<Addon>,
-    httpClient: HttpClient? = null,
+    httpClient: HttpClient,
 ) : AddonRepository {
-    private val clients = httpClient?.let(::AddonClientPool)
+    private val clients = AddonClientPool(httpClient)
 
     override suspend fun all(): List<Addon> = addons.filter { it.enabled }
 
     override suspend fun installed(): List<Addon> = addons
 
     override suspend fun manifest(url: String): AddonManifest? {
-        val clients = clients ?: return null
         val baseUrl = normalizeAddonBaseUrl(url)
         if (baseUrl.isEmpty()) return null
         return runCatchingCancellable { clients.clientFor(baseUrl).fetchManifest() }.getOrNull()
