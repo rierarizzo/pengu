@@ -57,7 +57,7 @@ usan ambas plataformas (ver §7).
 | Cambiar la lógica/estado de una pantalla | `app/shared/.../ui/<feature>/<Feature>ViewModel.kt` + `<Feature>Screen.kt` |
 | Compartir comportamiento entre secciones | `app/shared/.../ui/common/` (`AccountScopedViewModel`, `WatchedBadgeSync`) |
 | Cambiar colores, espaciado, tipografía, movimiento | `app/shared/.../ui/theme/` (`Tokens.kt`, `AppTheme.kt`, `AppType.kt`, `Motion.kt`, `WindowSize.kt`, `PosterSize.kt`) |
-| Añadir un tema | `AppTheme` / `AppSettings.theme` en `core/.../repository/SettingsRepository.kt`, `AppThemes` en `ui/theme/Tokens.kt`, selector en `SettingsScreen.kt` |
+| Cambiar la paleta | `CoffeePalette` en `ui/theme/Tokens.kt`; `PenguTheme` en `AppTheme.kt` la mapea al esquema de Material |
 | Cambiar la tipografía | `AppTypeface` / `AppSettings.typeface` en `core/.../repository/SettingsRepository.kt`, `appFontFamily` en `ui/theme/AppTheme.kt`, selector en `SettingsScreen.kt`, los TTFs en `app/shared/.../composeResources/font/` |
 | Reutilizar un widget (botones, pósters, campo de búsqueda) | `app/shared/.../ui/components/` |
 | Cambiar o añadir un modelo de dominio | `core/.../core/model/` |
@@ -131,10 +131,10 @@ Existen para no reimplementar la misma preocupación en cada pantalla:
   y dibuja el vídeo como contenido Compose, sea cual sea el motor cableado.
 - **`ContentTypes` / `CatalogExtras` / `ProgressThresholds` / `releaseYear()`**
   (`core/model`) — el vocabulario del protocolo y los umbrales, definidos una vez.
-- **Tokens de diseño** (`theme/Tokens.kt`) — las paletas de tema (`BrandPalette`
-  dentro de `AppThemes`), espaciado, tamaños (incluidos
+- **Tokens de diseño** (`theme/Tokens.kt`) — la paleta (`BrandPalette` como
+  `CoffeePalette`), espaciado, tamaños (incluidos
   los anchos máximos de contenido/formulario/mensaje), alphas y scrims.
-  `PenguTheme(theme)` proporciona la paleta elegida por `LocalBrandPalette`;
+  `PenguTheme` proporciona la paleta por `LocalBrandPalette`;
   `Modifier.focusRing` (`components/Interaction.kt`) dibuja el anillo de foco
   compartido.
 - **`runCatchingCancellable`** (`core/util`) — `runCatching` que nunca se traga la
@@ -288,15 +288,13 @@ existe, y contrólalo con `StandardTestDispatcher` + `advanceUntilIdle()` (ver
    corto de opciones y `SettingsSelectRow` para uno largo. El fichero JSON sigue
    siendo editable a mano.
 
-**Añadir un tema**
-1. Añade un valor a `AppTheme`, una paleta a `AppThemes` (`ui/theme/Tokens.kt`),
-   una etiqueta al mapa `themeLabels` de `ThemeSection` en `SettingsScreen` y la
-   cadena en `strings.xml`. El selector itera `AppTheme.entries`, así que la nueva
-   opción aparece sola; cualquier otra superficie lee `LocalBrandPalette` o un rol
-   del esquema y no necesita cambios.
-2. Si el tema cambia roles de Material que la paleta no lleva (los contenedores
-   de error, la familia secondary), súbelos antes a `BrandPalette`, para que el
-   esquema siga siendo el único mapeo.
+**Cambiar la paleta**
+1. Edita `CoffeePalette` (`ui/theme/Tokens.kt`). Cualquier otra superficie lee
+   `LocalBrandPalette` o un rol del esquema, así que se repinta sin tocar la UI.
+   No hay ajuste de tema: la app trae una sola paleta.
+2. Si el cambio necesita roles de Material que la paleta no lleva (los
+   contenedores de error, la familia secondary), súbelos antes a `BrandPalette`,
+   para que el esquema siga siendo el único mapeo.
 
 **Añadir una sección de datos**
 1. Crea `ui/<feature>/<Feature>ViewModel.kt`, extendiendo `AccountScopedViewModel`.

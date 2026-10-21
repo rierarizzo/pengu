@@ -11,7 +11,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.misgus.pengu.core.repository.AppTheme
 
 /**
  * Raw brand palette of one theme.
@@ -19,8 +18,8 @@ import com.misgus.pengu.core.repository.AppTheme
  * It is internal on purpose: it feeds the Material colour scheme and the scrims
  * only, while the UI reads every semantic colour from `MaterialTheme.colorScheme`
  * roles. That keeps stock Material3 components and custom surfaces on the same
- * colours. Themes are data ([AppThemes]); the composition reads the selected one
- * through [LocalBrandPalette], so switching themes repaints every surface.
+ * colours. The palette ships as data ([CoffeePalette]); the composition reads it
+ * through [LocalBrandPalette].
  */
 internal data class BrandPalette(
     /**
@@ -72,42 +71,28 @@ internal data class BrandPalette(
 )
 
 /**
- * Registry of the brand palettes, keyed by the persisted [AppTheme].
- *
- * A new theme is one value plus a `when` branch; nothing else in the UI changes,
- * because every call site reads [LocalBrandPalette] or a scheme role.
+ * Warm coffee/amber palette: dark near-black background, amber accent, burnt
+ * orange container and cream text. The app's only palette.
  */
-internal object AppThemes {
-    /**
-     * Warm coffee/amber palette: dark near-black background, amber accent, burnt
-     * orange container and cream text. The app default.
-     */
-    val Coffee =
-        BrandPalette(
-            background = Color(0xFF0B0803),
-            surface = Color(0xFF151518),
-            surfaceHigh = Color(0xFF1F1F24),
-            surfaceCard = Color(0xFF191610),
-            surfaceSelected = Color(0xFF1A1814),
-            accent = Color(0xFFF4AE52),
-            onAccent = Color(0xFF2A1A0E),
-            accentContainer = Color(0xFFD4621A),
-            onAccentContainer = Color(0xFF2A1A0E),
-            inverseSurface = Color(0xFFFEF3E2),
-            inverseOnSurface = Color(0xFF2A1A0E),
-            textPrimary = Color(0xFFFEF3E2),
-            textSecondary = Color(0xFFFEF3E2).copy(alpha = 0.70f),
-            posterYear = Color(0xFFFEF3E2).copy(alpha = 0.60f),
-            indicator = Color(0xFF9E9E9E),
-            divider = Color(0xFF26262B),
-        )
-
-    /** The palette for [theme]. */
-    fun of(theme: AppTheme): BrandPalette =
-        when (theme) {
-            AppTheme.COFFEE -> Coffee
-        }
-}
+internal val CoffeePalette =
+    BrandPalette(
+        background = Color(0xFF0B0803),
+        surface = Color(0xFF151518),
+        surfaceHigh = Color(0xFF1F1F24),
+        surfaceCard = Color(0xFF191610),
+        surfaceSelected = Color(0xFF1A1814),
+        accent = Color(0xFFF4AE52),
+        onAccent = Color(0xFF2A1A0E),
+        accentContainer = Color(0xFFD4621A),
+        onAccentContainer = Color(0xFF2A1A0E),
+        inverseSurface = Color(0xFFFEF3E2),
+        inverseOnSurface = Color(0xFF2A1A0E),
+        textPrimary = Color(0xFFFEF3E2),
+        textSecondary = Color(0xFFFEF3E2).copy(alpha = 0.70f),
+        posterYear = Color(0xFFFEF3E2).copy(alpha = 0.60f),
+        indicator = Color(0xFF9E9E9E),
+        divider = Color(0xFF26262B),
+    )
 
 /**
  * The palette of the theme being composed.
@@ -116,7 +101,7 @@ internal object AppThemes {
  * few overlay colours the `colorScheme` has no role for. It has a default so a
  * preview or a test can compose without wrapping the content in the theme.
  */
-internal val LocalBrandPalette = staticCompositionLocalOf { AppThemes.Coffee }
+internal val LocalBrandPalette = staticCompositionLocalOf { CoffeePalette }
 
 /**
  * Overlay colours that the Material colour scheme has no role for.

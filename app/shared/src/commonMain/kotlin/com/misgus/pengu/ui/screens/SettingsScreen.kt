@@ -99,8 +99,6 @@ import com.misgus.pengu.app.shared.generated.resources.settings_sign_in_other_me
 import com.misgus.pengu.app.shared.generated.resources.settings_sign_in_to_load
 import com.misgus.pengu.app.shared.generated.resources.settings_signed_in_account
 import com.misgus.pengu.app.shared.generated.resources.settings_signed_in_as
-import com.misgus.pengu.app.shared.generated.resources.settings_theme
-import com.misgus.pengu.app.shared.generated.resources.settings_theme_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_title
 import com.misgus.pengu.app.shared.generated.resources.settings_tmdb_api_key
 import com.misgus.pengu.app.shared.generated.resources.settings_tmdb_api_key_hide
@@ -127,10 +125,8 @@ import com.misgus.pengu.app.shared.generated.resources.settings_typeface_ibm_ple
 import com.misgus.pengu.app.shared.generated.resources.settings_typeface_inter
 import com.misgus.pengu.app.shared.generated.resources.settings_typeface_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_video_url
-import com.misgus.pengu.app.shared.generated.resources.theme_coffee
 import com.misgus.pengu.core.player.PlaybackTarget
 import com.misgus.pengu.core.repository.AppSettings
-import com.misgus.pengu.core.repository.AppTheme
 import com.misgus.pengu.core.repository.AppTypeface
 import com.misgus.pengu.core.repository.CatalogRef
 import com.misgus.pengu.core.repository.HeroSource
@@ -431,22 +427,12 @@ private fun AppearanceSection(
     settings: SettingsRepository,
     save: Save,
 ) {
-    val themeLabels = mapOf(AppTheme.COFFEE to stringResource(Res.string.theme_coffee))
     val typefaceLabels =
         mapOf(
             AppTypeface.IBM_PLEX_SANS to stringResource(Res.string.settings_typeface_ibm_plex),
             AppTypeface.INTER to stringResource(Res.string.settings_typeface_inter),
         )
     SettingsPanel {
-        SettingsSelectRow(
-            title = stringResource(Res.string.settings_theme),
-            description = stringResource(Res.string.settings_theme_subtitle),
-            options = AppTheme.entries,
-            selected = state.theme,
-            label = { themeLabels.getValue(it) },
-            onSelect = { value -> save { settings.setTheme(value) } },
-        )
-        SettingsDivider()
         SettingsChipRow(
             title = stringResource(Res.string.settings_typeface),
             description = stringResource(Res.string.settings_typeface_subtitle),

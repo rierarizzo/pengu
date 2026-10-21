@@ -116,8 +116,7 @@ leer/escribir/borrar vive una sola vez.
   restringe al usuario actual donde el SO lo permite; es endurecimiento
   best-effort, no un keychain.
 - **Los ajustes** viven en `settings.json` como un objeto JSON plano con claves
-  punteadas, como el `settings.json` de VS Code (`appearance.theme`,
-  `appearance.typeface`, `animations.enabled`,
+  punteadas, como el `settings.json` de VS Code (`appearance.typeface`, `animations.enabled`,
   `player.resumePlayback`, `player.autoPlayNext`, `poster.size`,
   `labels.hidden`, `catalog.showType`, `metadata.tmdbApiKey`,
   `metadata.tmdbLanguage`).
@@ -127,13 +126,12 @@ leer/escribir/borrar vive una sola vez.
   en categorías (`SettingsCategory`, en `ui/screens`), edita el mismo fichero,
   muestra su ruta y puede abrirlo en el editor del SO. Las páginas se agrupan en
   cuatro bloques, como una app de ajustes de escritorio: **Cuenta**, **General**,
-  **Acerca de** y **Avanzado**. General contiene Playback, Apariencia (tema,
-  tipografía, movimiento), Home (billboard, tamaño de póster, etiquetas de fila),
+  **Acerca de** y **Avanzado**. General contiene Playback, Apariencia (tipografía,
+  movimiento), Home (billboard, tamaño de póster, etiquetas de fila),
   Addons y Metadata; Acerca de contiene la página de producto, licencia y
   créditos; Avanzado contiene el fichero de configuración y la prueba de
   reproducción. Una página nunca mezcla dos asuntos sin relación, y los ajustes de
-  aspecto que antes vivían en "Interface" y "Theme" comparten la página
-  Apariencia. Una ventana ancha pinta los grupos en una barra lateral junto a la
+  aspecto comparten la página Apariencia. Una ventana ancha pinta los grupos en una barra lateral junto a la
   página seleccionada; una ventana compacta pinta los mismos grupos como índice y
   apila cada página como `ContentRoute.SettingsPage`, así que un móvil entra en una
   categoría cada vez mientras cada ajuste se define una sola vez.
@@ -347,7 +345,7 @@ leer/escribir/borrar vive una sola vez.
   superclase antes de que existiera el estado de la subclase. Forzar un dispatch
   hace que la primera emisión espere a que termine la construcción.
 - **Los tokens de diseño son datos, no código.** `theme/Tokens.kt` contiene las
-  paletas (`BrandPalette` / `AppThemes`), el espaciado, los tamaños, los alphas y
+  paletas (`BrandPalette` / `CoffeePalette`), el espaciado, los tamaños, los alphas y
   los scrims; `theme/AppTheme.kt`
   contiene solo el esquema de color de Material, la tipografía y las formas.
   `AppSizes` posee los anchos de contenido/formulario/mensaje y los tamaños de
@@ -608,7 +606,7 @@ leer/escribir/borrar vive una sola vez.
   `:app:shared`: **IBM Plex Sans** (la de por defecto) e Inter. Ambas traen los
   mismos cuatro pesos (Regular, Medium, SemiBold, Bold) y pasan por el mismo mapa
   de pesos, así que `appearance.typeface` cambia las formas sin tocar la escala:
-  `PenguTheme(typeface)` resuelve la familia una vez por tema y toda la UI la lee
+  `PenguTheme(typeface)` resuelve la familia una vez por composición y toda la UI la lee
   a través de `MaterialTheme.typography`. La línea de metadata del billboard
   (`AppType.heroMeta`) lleva un
   tracking negativo pequeño, así que la cinta `Series • 2026 • Drama` queda en
@@ -739,23 +737,20 @@ leer/escribir/borrar vive una sola vez.
   las series de la Library, y queda fuera de la navegación hasta que llegue su
   reescritura como agenda; ver la limitación más abajo.
 - **El tema** sigue Material 3 y es dato, no código. `BrandPalette`
-  (`theme/Tokens.kt`) es una data class con los colores crudos de un tema,
-  `AppThemes` mapea el `AppTheme` persistido a una paleta, y `PenguTheme(theme)`
-  la elige y la proporciona por `LocalBrandPalette`, y luego construye el
-  `darkColorScheme` completo a partir de ella (niveles surface-container,
-  `outline`/`outlineVariant`, `inverse*` y los contenedores de error). La paleta
-  es interna y solo rellena el esquema, así que los componentes de serie de
-  Material3 y las superficies custom quedan en los mismos colores; `tertiary`
-  refleja el acento, así que ningún tono frío se cuela en un tema cálido. Los
-  scrims y el chrome nativo de la ventana también leen `LocalBrandPalette`, así
-  que un cambio de tema repinta los degradados del hero y la barra de título en
-  el mismo frame. `AppThemes.Coffee` es el tema por defecto y único por ahora: una
-  paleta cálida crema/ámbar/naranja quemado, elegida en Ajustes → Apariencia →
-  Tema y persistida como `appearance.theme` en `settings.json`. La tipografía
+  (`theme/Tokens.kt`) es una data class con los colores crudos de la app,
+  publicada como la única `CoffeePalette`; `PenguTheme` la proporciona por
+  `LocalBrandPalette` y luego construye el `darkColorScheme` completo a partir de
+  ella (niveles surface-container, `outline`/`outlineVariant`, `inverse*` y los
+  contenedores de error). La paleta es interna y solo rellena el esquema, así que
+  los componentes de serie de Material3 y las superficies custom quedan en los
+  mismos colores; `tertiary` refleja el acento, así que ningún tono frío se cuela
+  en la paleta cálida. Los scrims y el chrome nativo de la ventana también leen
+  `LocalBrandPalette`. No hay ajuste de tema: la paleta es fija hasta que
+  merezca la pena añadir una segunda. La tipografía
   cargada desde Compose Resources (IBM Plex Sans por defecto, Inter como
   alternativa, elegida en Ajustes → Apariencia) y la escala de formas pequeña y tirando a
   cuadrada (`AppCorner` alimenta `MaterialTheme.shapes`: 1/2/3/4/6dp; la app se
-  lee cuadrada, no redondeada) no dependen del tema. Los diálogos y las bottom
+  lee cuadrada, no redondeada) no dependen de la paleta. Los diálogos y las bottom
   sheets usan la misma escala (`shapes.extraLarge` y `AppBottomSheetShape`) en
   vez del default de 28dp de Material. La UI lee colores semánticos
   de `MaterialTheme.colorScheme`; `AppColors` guarda los overlays de media para
@@ -807,9 +802,9 @@ leer/escribir/borrar vive una sola vez.
   foco. El fondo de
   página casi negro (`#0B0803`) es la única fuente de verdad: el esquema, el
   fondo nativo de la ventana y cada degradado de fundido de página terminan en
-  él. La app es deliberadamente **solo oscura** — cada `AppTheme` es una paleta
-  oscura, y no hay esquema claro ni color dinámico — porque la UI está construida
-  alrededor de artwork oscuro y scrims;
+  él. La app es deliberadamente **solo oscura** — la paleta es oscura, y no hay
+  esquema claro ni color dinámico — porque la UI está construida alrededor de
+  artwork oscuro y scrims;
   el reproductor mantiene una paleta fija de controles blanco-sobre-negro sobre
   el vídeo, con el progreso de la barra y del volumen como única excepción que
   lee el acento del tema. La `visualDensity` de Material3 queda en el default de

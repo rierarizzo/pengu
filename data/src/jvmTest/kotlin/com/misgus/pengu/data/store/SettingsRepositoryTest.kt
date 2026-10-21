@@ -1,6 +1,5 @@
 package com.misgus.pengu.data.store
 
-import com.misgus.pengu.core.repository.AppTheme
 import com.misgus.pengu.core.repository.AppTypeface
 import com.misgus.pengu.core.repository.HeroSource
 import com.misgus.pengu.core.repository.PosterSize
@@ -37,7 +36,6 @@ class SettingsRepositoryTest {
             assertFalse(settings.state.value.hideLabels)
             assertTrue(settings.state.value.showCatalogType)
             val loaded = settings.state.value
-            assertEquals(AppTheme.COFFEE, loaded.theme)
             assertEquals(AppTypeface.IBM_PLEX_SANS, loaded.typeface)
             assertEquals(HeroSource.SMART, loaded.heroSource)
             assertTrue(loaded.heroCatalogKeys.isEmpty())
@@ -143,7 +141,6 @@ class SettingsRepositoryTest {
             settings.load()
             settings.setAnimationsEnabled(false)
             settings.setAutoPlayNext(false)
-            settings.setTheme(AppTheme.COFFEE)
             settings.setPosterSize(PosterSize.LARGE)
             settings.setHideLabels(true)
             settings.setShowCatalogType(false)
@@ -152,7 +149,6 @@ class SettingsRepositoryTest {
             reloaded.load()
             assertFalse(reloaded.state.value.animationsEnabled)
             assertFalse(reloaded.state.value.autoPlayNext)
-            assertEquals(AppTheme.COFFEE, reloaded.state.value.theme)
             assertEquals(PosterSize.LARGE, reloaded.state.value.posterSize)
             assertTrue(reloaded.state.value.hideLabels)
             assertFalse(reloaded.state.value.showCatalogType)

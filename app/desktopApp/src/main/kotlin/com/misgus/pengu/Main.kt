@@ -104,7 +104,6 @@ fun main(args: Array<String>) {
                 )
             }
 
-        val appSettings by services.settings.state.collectAsState()
         val isFullScreen by windowController.isFullScreen.collectAsState()
         val closeApp: () -> Unit = {
             addonHttpClient.close()
@@ -113,7 +112,7 @@ fun main(args: Array<String>) {
             exitApplication()
         }
 
-        PenguTheme(appSettings.theme) {
+        PenguTheme {
             Window(
                 onCloseRequest = closeApp,
                 state = windowState,

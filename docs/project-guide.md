@@ -57,7 +57,7 @@ inject in-memory fakes.
 | Change a screen's logic/state | `app/shared/.../ui/<feature>/<Feature>ViewModel.kt` + `<Feature>Screen.kt` |
 | Share behavior across data sections | `app/shared/.../ui/common/` (`AccountScopedViewModel`, `WatchedBadgeSync`) |
 | Change colors, spacing, type, motion | `app/shared/.../ui/theme/` (`Tokens.kt`, `AppTheme.kt`, `AppType.kt`, `Motion.kt`, `WindowSize.kt`, `PosterSize.kt`) |
-| Add a theme | `AppTheme` / `AppSettings.theme` in `core/.../repository/SettingsRepository.kt`, `AppThemes` in `ui/theme/Tokens.kt`, picker in `SettingsScreen.kt` |
+| Change the palette | `CoffeePalette` in `ui/theme/Tokens.kt`; `PenguTheme` in `AppTheme.kt` maps it to the Material scheme |
 | Change the typeface | `AppTypeface` / `AppSettings.typeface` in `core/.../repository/SettingsRepository.kt`, `appFontFamily` in `ui/theme/AppTheme.kt`, picker in `SettingsScreen.kt`, the TTFs in `app/shared/.../composeResources/font/` |
 | Reuse a widget (buttons, posters, search field) | `app/shared/.../ui/components/` |
 | Change a domain model or add one | `core/.../core/model/` |
@@ -129,10 +129,10 @@ These exist so the same concern is not re-implemented per screen:
   as Compose content, whichever engine is wired in.
 - **`ContentTypes` / `CatalogExtras` / `ProgressThresholds` / `releaseYear()`**
   (`core/model`) — the protocol vocabulary and thresholds, defined once.
-- **Design tokens** (`theme/Tokens.kt`) — the theme palettes (`BrandPalette`
-  values in `AppThemes`), spacing, sizes (including the content/form/message max
-  widths), alphas and scrims. `PenguTheme(theme)` provides the selected
-  palette through `LocalBrandPalette`; `Modifier.focusRing`
+- **Design tokens** (`theme/Tokens.kt`) — the palette (`BrandPalette` as
+  `CoffeePalette`), spacing, sizes (including the content/form/message max
+  widths), alphas and scrims. `PenguTheme` provides the palette through
+  `LocalBrandPalette`; `Modifier.focusRing`
   (`components/Interaction.kt`) draws the shared keyboard focus ring.
 - **`runCatchingCancellable`** (`core/util`) — `runCatching` that never swallows
   coroutine cancellation.
@@ -282,13 +282,11 @@ not exist, and drive it with `StandardTestDispatcher` + `advanceUntilIdle()`
    picks the page. Use `SettingsChipRow` for a short option set and
    `SettingsSelectRow` for a longer one. The JSON file stays hand-editable.
 
-**Add a theme**
-1. Add a value to `AppTheme`, a palette to `AppThemes` (`ui/theme/Tokens.kt`) and
-   a label to the `themeLabels` map in `SettingsScreen`'s `ThemeSection`, plus
-   the string in `strings.xml`. The picker iterates `AppTheme.entries`, so the
-   new option appears on its own; every other surface reads `LocalBrandPalette`
-   or a scheme role and needs no change.
-2. If the theme changes the Material roles a palette does not carry (the error
+**Change the palette**
+1. Edit `CoffeePalette` (`ui/theme/Tokens.kt`). Every other surface reads
+   `LocalBrandPalette` or a scheme role, so it repaints without touching the UI.
+   There is no theme setting: the app ships one palette.
+2. If the change needs Material roles a palette does not carry (the error
    containers, the secondary family), promote them to `BrandPalette` first, so
    the scheme stays the single mapping.
 

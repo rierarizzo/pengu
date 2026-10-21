@@ -110,7 +110,7 @@ so the atomic read/write/delete logic lives once.
   serialized with a `Mutex`. The session file is restricted to the current user
   where the OS allows it; that is best-effort hardening, not a keychain.
 - **Settings** live in `settings.json` as a flat JSON object with dotted keys,
-  like VS Code's `settings.json` (`appearance.theme`, `appearance.typeface`,
+  like VS Code's `settings.json` (`appearance.typeface`,
   `animations.enabled`, `player.resumePlayback`,
   `player.autoPlayNext`, `poster.size`, `labels.hidden`, `catalog.showType`,
   `metadata.tmdbApiKey`, `metadata.tmdbLanguage`).
@@ -119,11 +119,11 @@ so the atomic read/write/delete logic lives once.
   categories (`SettingsCategory`, in `ui/screens`), edits the same file, shows
   its path and can open it in the OS editor. The pages sit in four groups, like a
   desktop settings app: **Account**, **General**, **About** and **Advanced**.
-  General holds Playback, Appearance (theme, typeface, motion), Home (billboard,
+  General holds Playback, Appearance (typeface, motion), Home (billboard,
   poster size, row labels), Addons and Metadata; About holds the product, license
   and credits page; Advanced holds the configuration file and the playback test.
-  A page never mixes two unrelated concerns, and the look-and-feel settings that
-  used to live under "Interface" and "Theme" share the Appearance page. A wide
+  A page never mixes two unrelated concerns, and the look-and-feel settings
+  share the Appearance page. A wide
   window renders the groups in a sidebar beside the selected page; a compact
   window renders the same groups as an index and pushes each page as a
   `ContentRoute.SettingsPage`, so a phone walks into one category at a time while
@@ -326,7 +326,7 @@ so the atomic read/write/delete logic lives once.
   constructor before the subclass state existed. Forcing a dispatch makes the
   first emission wait until construction has finished.
 - **Design tokens are data, not code.** `theme/Tokens.kt` holds the palettes
-  (`BrandPalette` / `AppThemes`), spacing, sizes, alphas and scrims;
+  (`BrandPalette` / `CoffeePalette`), spacing, sizes, alphas and scrims;
   `theme/AppTheme.kt` holds only the Material
   colour scheme, typography and shapes. `AppSizes` owns the content/form/message
   widths and the border/progress sizes, `AppAlpha` owns every overlay opacity,
@@ -572,7 +572,7 @@ so the atomic read/write/delete logic lives once.
   `:app:shared`: **IBM Plex Sans** (the default) and Inter. Both ship the same
   four weights (Regular, Medium, SemiBold, Bold) and go through the same weight
   map, so `appearance.typeface` swaps the letterforms without touching the scale:
-  `PenguTheme(typeface)` resolves the family once per theme and the whole UI reads
+  `PenguTheme(typeface)` resolves the family once per composition and the whole UI reads
   it through `MaterialTheme.typography`. The billboard metadata line
   (`AppType.heroMeta`) carries a small negative tracking, so the dot-separated
   `Series • 2026 • Drama` ribbon stays on one line. Every
@@ -693,22 +693,20 @@ so the atomic read/write/delete logic lives once.
   episodes of the Library's series, and is kept out of the navigation until its
   agenda rewrite lands; see the limitation below.
 - **Theme** follows Material 3 and is data, not code. `BrandPalette`
-  (`theme/Tokens.kt`) is a data class holding one theme's raw colours, `AppThemes`
-  maps the persisted `AppTheme` to a palette, and `PenguTheme(theme)` picks it
-  and provides it through `LocalBrandPalette`, then builds the full
-  `darkColorScheme` from it (surface-container tiers, `outline`/`outlineVariant`,
-  `inverse*` and the error containers). The palette is internal and only fills
-  the scheme, so stock Material3 components and custom surfaces stay on the same
-  colours; `tertiary` mirrors the accent, so no cold hue sneaks into a warm
-  theme. The scrims and the native window chrome read `LocalBrandPalette` too, so
-  a theme change repaints the hero gradients and the title bar in the same frame.
-  `AppThemes.Coffee` is the default and only theme for now: a warm
-  cream/amber/burnt-orange palette, selected in Settings → Appearance → Theme and
-  persisted as `appearance.theme` in `settings.json`. The typeface loaded from
+  (`theme/Tokens.kt`) is a data class holding the app's raw colours, shipped as
+  the single `CoffeePalette`; `PenguTheme` provides it through
+  `LocalBrandPalette`, then builds the full `darkColorScheme` from it
+  (surface-container tiers, `outline`/`outlineVariant`, `inverse*` and the error
+  containers). The palette is internal and only fills the scheme, so stock
+  Material3 components and custom surfaces stay on the same colours; `tertiary`
+  mirrors the accent, so no cold hue sneaks into the warm palette. The scrims
+  and the native window chrome read `LocalBrandPalette` too. There is no theme
+  setting: the palette is fixed until a second one is worth adding. The typeface
+  loaded from
   Compose Resources (IBM Plex Sans by default, Inter as the alternative, picked in
   Settings → Appearance) and the small, square-ish shape scale (`AppCorner` feeds
   `MaterialTheme.shapes`: 1/2/3/4/6dp; the app reads square, not rounded) stay
-  theme-independent. Dialogs and bottom sheets take the same scale
+  palette-independent. Dialogs and bottom sheets take the same scale
   (`shapes.extraLarge` and `AppBottomSheetShape`) instead of Material's 28dp
   default. The UI reads semantic colours from
   `MaterialTheme.colorScheme`; `AppColors` keeps the media overlays the scheme
@@ -754,7 +752,7 @@ so the atomic read/write/delete logic lives once.
   brighten their glyph on hover or focus. The near-black page background (`#0B0803`) is the single source of
   truth: the scheme, the native window background and every page-fade gradient
   end on it. The
-  app is deliberately **dark-only** — every `AppTheme` is a dark palette, and
+  app is deliberately **dark-only** — the palette is dark, and
   there is no light scheme and no dynamic colour — because the UI is built
   around dark artwork and scrims; the player keeps a fixed white-on-black control
   palette over video, with the seek and volume progress as the only theme-accent

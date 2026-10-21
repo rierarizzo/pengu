@@ -22,7 +22,6 @@ import com.misgus.pengu.app.shared.generated.resources.inter_bold
 import com.misgus.pengu.app.shared.generated.resources.inter_medium
 import com.misgus.pengu.app.shared.generated.resources.inter_regular
 import com.misgus.pengu.app.shared.generated.resources.inter_semibold
-import com.misgus.pengu.core.repository.AppTheme
 import com.misgus.pengu.core.repository.AppTypeface
 import org.jetbrains.compose.resources.Font
 
@@ -45,8 +44,8 @@ val AppBottomSheetShape: Shape =
  *
  * Every role is filled so stock Material3 components (text fields, switches,
  * chips, dialogs, snackbars) render on the same palette as the custom surfaces.
- * The roles a theme does not own keep their Material defaults, so a theme only
- * declares what makes it different.
+ * The roles the palette does not own keep their Material defaults, so a palette
+ * only declares what makes it different.
  */
 private fun BrandPalette.toColorScheme(): ColorScheme =
     darkColorScheme(
@@ -151,37 +150,21 @@ internal fun appFontFamily(typeface: AppTypeface): FontFamily =
     }
 
 /**
- * Provides the palette for [theme] without installing a `MaterialTheme`.
- *
- * `PenguTheme` uses it internally; the desktop composition root wraps the
- * window in it too, because it paints the native title bar — which reads the
- * palette — outside the app's `MaterialTheme`.
- */
-@Composable
-fun PenguThemePalette(
-    theme: AppTheme = AppTheme.COFFEE,
-    content: @Composable () -> Unit,
-) {
-    CompositionLocalProvider(LocalBrandPalette provides AppThemes.of(theme), content = content)
-}
-
-/**
  * The app's dark Material3 theme, with the [typeface] and the MD3 shapes.
  *
- * [theme] selects the [BrandPalette]; it is provided through [LocalBrandPalette]
- * so the scrims and the window chrome repaint together with the scheme.
+ * [CoffeePalette] is provided through [LocalBrandPalette] so the scrims and the
+ * window chrome repaint together with the scheme.
  */
 @Composable
 fun PenguTheme(
-    theme: AppTheme = AppTheme.COFFEE,
     typeface: AppTypeface = AppTypeface.IBM_PLEX_SANS,
     content: @Composable () -> Unit,
 ) {
     val fontFamily = appFontFamily(typeface)
 
-    PenguThemePalette(theme) {
+    CompositionLocalProvider(LocalBrandPalette provides CoffeePalette) {
         MaterialTheme(
-            colorScheme = AppThemes.of(theme).toColorScheme(),
+            colorScheme = CoffeePalette.toColorScheme(),
             typography = appTypography(fontFamily),
             shapes = AppShapes,
             content = content,

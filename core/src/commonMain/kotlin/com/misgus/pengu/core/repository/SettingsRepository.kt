@@ -10,12 +10,6 @@ enum class PosterSize {
     LARGE,
 }
 
-/** Colour palette the whole UI is painted with. */
-enum class AppTheme {
-    /** Warm coffee/amber palette: the app default. */
-    COFFEE,
-}
-
 /** Typeface every screen is set in. */
 enum class AppTypeface {
     /** IBM Plex Sans: humanist and slightly warm, the app default. */
@@ -65,8 +59,6 @@ const val MAX_HERO_CATALOGS = 2
 data class AppSettings(
     /** Play the app's motion (transitions, hover, skeletons). */
     val animationsEnabled: Boolean = true,
-    /** Colour palette for every surface, control and scrim. */
-    val theme: AppTheme = AppTheme.COFFEE,
     /** Typeface every screen is set in. */
     val typeface: AppTypeface = AppTypeface.IBM_PLEX_SANS,
     /** Resume a title from its saved position instead of the start. */
@@ -139,8 +131,6 @@ interface SettingsRepository {
     /** Re-reads the file, picking up manual edits. */
     suspend fun reload()
 
-    suspend fun setTheme(theme: AppTheme)
-
     suspend fun setTypeface(typeface: AppTypeface)
 
     suspend fun setAnimationsEnabled(enabled: Boolean)
@@ -188,8 +178,6 @@ class InMemorySettingsRepository(
     override suspend fun load() = Unit
 
     override suspend fun reload() = Unit
-
-    override suspend fun setTheme(theme: AppTheme) = update { it.copy(theme = theme) }
 
     override suspend fun setTypeface(typeface: AppTypeface) = update { it.copy(typeface = typeface) }
 

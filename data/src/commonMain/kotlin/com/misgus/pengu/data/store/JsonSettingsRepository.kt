@@ -1,7 +1,6 @@
 package com.misgus.pengu.data.store
 
 import com.misgus.pengu.core.repository.AppSettings
-import com.misgus.pengu.core.repository.AppTheme
 import com.misgus.pengu.core.repository.AppTypeface
 import com.misgus.pengu.core.repository.HeroSource
 import com.misgus.pengu.core.repository.MAX_HERO_CATALOGS
@@ -27,7 +26,6 @@ import kotlinx.serialization.json.JsonPrimitive
  *
  * ```json
  * {
- *   "appearance.theme": "coffee",
  *   "appearance.typeface": "ibm_plex_sans",
  *   "animations.enabled": true,
  *   "player.resumePlayback": true,
@@ -61,8 +59,6 @@ class JsonSettingsRepository(
         }
 
     override suspend fun reload() = load()
-
-    override suspend fun setTheme(theme: AppTheme) = update { it.copy(theme = theme) }
 
     override suspend fun setTypeface(typeface: AppTypeface) = update { it.copy(typeface = typeface) }
 
@@ -103,7 +99,6 @@ class JsonSettingsRepository(
 
     private suspend fun write(settings: AppSettings) {
         val data = store.read().toMutableMap()
-        data[KEY_THEME] = JsonPrimitive(settings.theme.name.lowercase())
         data[KEY_TYPEFACE] = JsonPrimitive(settings.typeface.name.lowercase())
         data[KEY_ANIMATIONS] = JsonPrimitive(settings.animationsEnabled)
         data[KEY_RESUME] = JsonPrimitive(settings.resumePlayback)
@@ -123,7 +118,6 @@ class JsonSettingsRepository(
 
     private fun JsonObject.toSettings() =
         AppSettings(
-            theme = this[KEY_THEME].stringOrNull().toAppTheme() ?: AppTheme.COFFEE,
             typeface = this[KEY_TYPEFACE].stringOrNull().toAppTypeface() ?: AppTypeface.IBM_PLEX_SANS,
             animationsEnabled = this[KEY_ANIMATIONS].boolOrNull() ?: true,
             resumePlayback = this[KEY_RESUME].boolOrNull() ?: true,
@@ -151,8 +145,6 @@ class JsonSettingsRepository(
             else -> null
         }
 
-    private fun String?.toAppTheme(): AppTheme? = AppTheme.entries.firstOrNull { it.name.equals(this, ignoreCase = true) }
-
     private fun String?.toAppTypeface(): AppTypeface? =
         when (this?.lowercase()?.replace('-', '_')?.replace(' ', '_')) {
             // The file is hand-editable, so accept the spellings a person writes.
@@ -172,7 +164,6 @@ class JsonSettingsRepository(
         }
 
     companion object {
-        const val KEY_THEME = "appearance.theme"
         const val KEY_TYPEFACE = "appearance.typeface"
         const val KEY_ANIMATIONS = "animations.enabled"
         const val KEY_RESUME = "player.resumePlayback"

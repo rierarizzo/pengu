@@ -207,8 +207,6 @@
     <string name="settings_sign_in_other_method">This account signs in through another method.</string>
     <string name="settings_animations">Animations</string>
     <string name="settings_animations_subtitle">Transitions, hover effects and loading skeletons.</string>
-    <string name="settings_theme">Theme</string>
-    <string name="settings_theme_subtitle">The colour palette for every surface and control.</string>
     <string name="settings_typeface">Typeface</string>
     <string name="settings_typeface_subtitle">The font every screen is set in.</string>
     <string name="settings_typeface_ibm_plex">IBM Plex Sans</string>
@@ -310,5 +308,4 @@
     <string name="poster_size_large">Large</string>
 
     <!-- Themes -->
-    <string name="theme_coffee">Coffee</string>
 </resources>
