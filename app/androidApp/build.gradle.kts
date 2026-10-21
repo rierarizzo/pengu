@@ -23,7 +23,6 @@ dependencies {
     // `AndroidView`, so the Compose controls stack on top of the video.
     implementation(libs.mediamp.all)
 
-    implementation(libs.compose.uiToolingPreview)
     debugImplementation(libs.compose.uiTooling)
 }
 

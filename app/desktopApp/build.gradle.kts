@@ -32,8 +32,6 @@ dependencies {
     runtimeOnly(libs.mediamp.mpv.runtime.windows.x64)
     runtimeOnly(libs.mediamp.ffmpeg.runtime.windows.x64)
 
-    implementation(libs.compose.uiToolingPreview)
-
     testImplementation(libs.kotlin.testJunit)
     testImplementation(libs.junit)
 }

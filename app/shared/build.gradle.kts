@@ -27,14 +27,6 @@ kotlin {
         androidResources {
             enable = true
         }
-        withHostTest {
-            isIncludeAndroidResources = true
-        }
-        withDeviceTestBuilder {
-            sourceSetTreeName = "test"
-        }.configure {
-            instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        }
     }
 
     sourceSets {
@@ -42,7 +34,6 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             // `WindowInsetsControllerCompat`, used by the player's immersive mode.
             implementation(libs.androidx.core.ktx)
-            implementation(libs.compose.uiToolingPreview)
             implementation(libs.compose.uiTooling)
         }
         commonMain.dependencies {
@@ -53,7 +44,6 @@ kotlin {
             implementation(libs.compose.material3)
             implementation(libs.compose.ui)
             implementation(libs.compose.components.resources)
-            implementation(libs.compose.uiToolingPreview)
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor3)
             implementation(libs.androidx.lifecycle.viewmodelCompose)

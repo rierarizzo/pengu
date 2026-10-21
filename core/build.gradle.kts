@@ -25,9 +25,6 @@ kotlin {
         androidResources {
             enable = true
         }
-        withHostTest {
-            isIncludeAndroidResources = true
-        }
     }
 
     sourceSets {
