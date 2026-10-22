@@ -1,4 +1,8 @@
-# Pengu
+<p align="center">
+  <img src="branding/pengu-rounded.png" width="120" alt="Pengu">
+</p>
+
+<h1 align="center">Pengu</h1>
 
 A Compose Multiplatform client for Windows 11, Android (and Linux later) that
 connects to the **Nuvio** backend, is compatible with the **Stremio addon
