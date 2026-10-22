@@ -117,6 +117,7 @@ leer/escribir/borrar vive una sola vez.
   best-effort, no un keychain.
 - **Los ajustes** viven en `settings.json` como un objeto JSON plano con claves
   punteadas, como el `settings.json` de VS Code (`appearance.typeface`, `animations.enabled`,
+  `window.rememberSize`, `window.width`, `window.height`, `window.maximized`,
   `player.resumePlayback`, `player.autoPlayNext`, `player.streamUrlCache`, `poster.size`,
   `labels.hidden`, `catalog.showType`, `metadata.tmdbApiKey`,
   `metadata.tmdbLanguage`).
@@ -127,14 +128,34 @@ leer/escribir/borrar vive una sola vez.
   muestra su ruta y puede abrirlo en el editor del SO. Las páginas se agrupan en
   cuatro bloques, como una app de ajustes de escritorio: **Cuenta**, **General**,
   **Acerca de** y **Avanzado**. General contiene Playback, Apariencia (tipografía,
-  movimiento), Home (billboard, tamaño de póster, etiquetas de fila),
+  movimiento y el tamaño de ventana del escritorio), Home (billboard, tamaño de póster,
+  etiquetas de fila),
   Addons y Metadata; Acerca de contiene la página de producto, licencia y
-  créditos; Avanzado contiene el fichero de configuración y la prueba de
+  créditos; Avanzado contiene el fichero de configuración, las acciones de caché
+  y la prueba de
   reproducción. Una página nunca mezcla dos asuntos sin relación, y los ajustes de
   aspecto comparten la página Apariencia. Una ventana ancha pinta los grupos en una barra lateral junto a la
   página seleccionada; una ventana compacta pinta los mismos grupos como índice y
   apila cada página como `ContentRoute.SettingsPage`, así que un móvil entra en una
   categoría cada vez mientras cada ajuste se define una sola vez.
+- **La ventana de escritorio recuerda su geometría.** `window.width`,
+  `window.height` y `window.maximized` se escriben al cerrar (y solo si
+  `window.rememberSize` está activo) y se leen antes de que arranque la
+  composición, porque la ventana existe antes de que corra la carga de ajustes de
+  la app. El tamaño guardado es el último **flotante**: una ventana maximizada
+  reporta sus límites maximizados, así que des-maximizar tiene que volver al
+  tamaño que eligió el usuario, no al de la pantalla. No se guarda nada hasta que
+  se ha cerrado una ventana, así que una instalación nueva sigue abriendo con el
+  tamaño por defecto de la app.
+- **En Avanzado viven dos acciones de caché.** "Clear image cache" vacía las
+  cachés de memoria y disco de Coil (`clearImageCache`), así que cada póster,
+  fondo y logo se vuelve a pedir en el siguiente pintado. "Clear continue
+  watching cache" borra los resultados de "serie vista" recordados para el perfil
+  activo y marca `PlaybackUpdates.cachesCleared`, lo que hace que Home relea el
+  feed — el progreso nunca se cachea, así que la fila se reconstruye con lo que
+  el backend tiene ahora. Ambas son botones normales: el texto de la subsección
+  dice qué se borra, y un fallo acaba en la línea de error de la página como
+  cualquier otra escritura.
 - **Los controles de ajustes son componentes de la app, no Material de serie.**
   Una fila de toggle es ella misma el target y su switch es el `AppSwitch`
   compacto compartido (40x22, track de acento), no el control de 52x32 de

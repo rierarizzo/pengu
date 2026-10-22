@@ -167,6 +167,13 @@ class HomeViewModel(
                 if (_state.value.hasLoaded && account.state.value.isSignedIn) refreshContinueWatching()
             }
         }
+        // The caches were dropped in Settings: re-read the whole feed, so the row
+        // and the billboard come back with what the backend has now.
+        viewModelScope.launch {
+            playbackUpdates.cachesCleared.drop(1).collect {
+                if (account.state.value.isSignedIn) load(force = true)
+            }
+        }
     }
 
     override fun onAccountReady() {

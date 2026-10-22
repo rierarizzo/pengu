@@ -111,7 +111,8 @@ so the atomic read/write/delete logic lives once.
   where the OS allows it; that is best-effort hardening, not a keychain.
 - **Settings** live in `settings.json` as a flat JSON object with dotted keys,
   like VS Code's `settings.json` (`appearance.typeface`,
-  `animations.enabled`, `player.resumePlayback`,
+  `animations.enabled`, `window.rememberSize`, `window.width`, `window.height`,
+  `window.maximized`, `player.resumePlayback`,
   `player.autoPlayNext`, `player.streamUrlCache`, `poster.size`, `labels.hidden`, `catalog.showType`,
   `metadata.tmdbApiKey`, `metadata.tmdbLanguage`).
   `JsonSettingsRepository` reads it defensively, keeps unknown keys on write and
@@ -119,15 +120,33 @@ so the atomic read/write/delete logic lives once.
   categories (`SettingsCategory`, in `ui/screens`), edits the same file, shows
   its path and can open it in the OS editor. The pages sit in four groups, like a
   desktop settings app: **Account**, **General**, **About** and **Advanced**.
-  General holds Playback, Appearance (typeface, motion), Home (billboard,
+  General holds Playback, Appearance (typeface, motion, and the desktop's window
+  size), Home (billboard,
   poster size, row labels), Addons and Metadata; About holds the product, license
-  and credits page; Advanced holds the configuration file and the playback test.
+  and credits page; Advanced holds the configuration file, the cache actions and
+  the playback test.
   A page never mixes two unrelated concerns, and the look-and-feel settings
   share the Appearance page. A wide
   window renders the groups in a sidebar beside the selected page; a compact
   window renders the same groups as an index and pushes each page as a
   `ContentRoute.SettingsPage`, so a phone walks into one category at a time while
   each setting is defined once.
+- **The desktop window remembers its geometry.** `window.width`,
+  `window.height` and `window.maximized` are written on close (and only when
+  `window.rememberSize` is on), and read before the composition starts, because
+  the window exists before the app's own settings load runs. The size saved is
+  the last *floating* one: a maximized window reports its maximized bounds, so
+  un-maximizing has to come back to the size the user chose, not to the size of
+  the screen. Nothing is stored until a window has been closed, so a fresh
+  install still opens at the app's own default.
+- **Two cache actions live in Advanced.** "Clear image cache" drops Coil's
+  memory and disk caches (`clearImageCache`), so every poster, backdrop and logo
+  is fetched again on the next paint. "Clear continue watching cache" drops the
+  remembered per-series watched results for the active profile and ticks
+  `PlaybackUpdates.cachesCleared`, which makes Home re-read the feed — progress
+  itself is never cached, so the row is rebuilt from what the backend has now.
+  Both are plain buttons: the subsection copy says what is dropped, and a failed
+  clear lands on the page's error line like any other write.
 - **Settings controls are app components, not stock Material.** A toggle row is
   itself the target and its switch is the shared compact `AppSwitch` (40x22,
   accent track), not Material's 52x32 control; it paints its track and thumb in

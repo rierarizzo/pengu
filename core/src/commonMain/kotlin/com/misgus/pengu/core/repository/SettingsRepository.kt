@@ -81,6 +81,16 @@ data class AppSettings(
     val animationsEnabled: Boolean = true,
     /** Typeface every screen is set in. */
     val typeface: AppTypeface = AppTypeface.IBM_PLEX_SANS,
+    /**
+     * Reopen the desktop window at the size and maximized state it was closed
+     * with. Desktop only: a phone window is the screen.
+     */
+    val rememberWindowSize: Boolean = true,
+    /** Window size to reopen at, in dp; `null` until one has been saved. */
+    val windowWidth: Int? = null,
+    val windowHeight: Int? = null,
+    /** Whether the window was maximized when the app was last closed. */
+    val windowMaximized: Boolean = false,
     /** Resume a title from its saved position instead of the start. */
     val resumePlayback: Boolean = true,
     /** Start the next episode automatically when one finishes. */
@@ -160,6 +170,15 @@ interface SettingsRepository {
 
     suspend fun setAnimationsEnabled(enabled: Boolean)
 
+    suspend fun setRememberWindowSize(enabled: Boolean)
+
+    /** Remembers the geometry the desktop window reopens with. */
+    suspend fun setWindowGeometry(
+        width: Int,
+        height: Int,
+        maximized: Boolean,
+    )
+
     suspend fun setResumePlayback(enabled: Boolean)
 
     suspend fun setAutoPlayNext(enabled: Boolean)
@@ -209,6 +228,14 @@ class InMemorySettingsRepository(
     override suspend fun setTypeface(typeface: AppTypeface) = update { it.copy(typeface = typeface) }
 
     override suspend fun setAnimationsEnabled(enabled: Boolean) = update { it.copy(animationsEnabled = enabled) }
+
+    override suspend fun setRememberWindowSize(enabled: Boolean) = update { it.copy(rememberWindowSize = enabled) }
+
+    override suspend fun setWindowGeometry(
+        width: Int,
+        height: Int,
+        maximized: Boolean,
+    ) = update { it.copy(windowWidth = width, windowHeight = height, windowMaximized = maximized) }
 
     override suspend fun setResumePlayback(enabled: Boolean) = update { it.copy(resumePlayback = enabled) }
 

@@ -36,6 +36,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.LocalPlatformContext
 import com.misgus.pengu.app.shared.generated.resources.Res
 import com.misgus.pengu.app.shared.generated.resources.action_back
 import com.misgus.pengu.app.shared.generated.resources.action_open
@@ -61,6 +62,10 @@ import com.misgus.pengu.app.shared.generated.resources.settings_animations
 import com.misgus.pengu.app.shared.generated.resources.settings_animations_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_autoplay
 import com.misgus.pengu.app.shared.generated.resources.settings_autoplay_subtitle
+import com.misgus.pengu.app.shared.generated.resources.settings_cache
+import com.misgus.pengu.app.shared.generated.resources.settings_cache_subtitle
+import com.misgus.pengu.app.shared.generated.resources.settings_clear_image_cache
+import com.misgus.pengu.app.shared.generated.resources.settings_clear_watch_cache
 import com.misgus.pengu.app.shared.generated.resources.settings_config_file
 import com.misgus.pengu.app.shared.generated.resources.settings_config_file_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_deband
@@ -92,6 +97,8 @@ import com.misgus.pengu.app.shared.generated.resources.settings_poster_size_subt
 import com.misgus.pengu.app.shared.generated.resources.settings_posters
 import com.misgus.pengu.app.shared.generated.resources.settings_posters_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_reload
+import com.misgus.pengu.app.shared.generated.resources.settings_remember_window_size
+import com.misgus.pengu.app.shared.generated.resources.settings_remember_window_size_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_resume
 import com.misgus.pengu.app.shared.generated.resources.settings_resume_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_show_catalog_type
@@ -158,6 +165,7 @@ import com.misgus.pengu.ui.components.sectionHeading
 import com.misgus.pengu.ui.components.toUserMessage
 import com.misgus.pengu.ui.icons.MaterialIcons
 import com.misgus.pengu.ui.onboarding.SignInForm
+import com.misgus.pengu.ui.platform.clearImageCache
 import com.misgus.pengu.ui.platform.isDesktop
 import com.misgus.pengu.ui.platform.openInDefaultApp
 import com.misgus.pengu.ui.platform.pickVideoFile
@@ -477,6 +485,17 @@ private fun AppearanceSection(
             checked = state.animationsEnabled,
             onCheckedChange = { value -> save { settings.setAnimationsEnabled(value) } },
         )
+        // A phone window is the screen, so only a desktop window has a size to
+        // remember.
+        if (isDesktop) {
+            SettingsDivider()
+            SettingsToggleRow(
+                title = stringResource(Res.string.settings_remember_window_size),
+                description = stringResource(Res.string.settings_remember_window_size_subtitle),
+                checked = state.rememberWindowSize,
+                onCheckedChange = { value -> save { settings.setRememberWindowSize(value) } },
+            )
+        }
     }
 }
 
@@ -904,6 +923,27 @@ private fun AdvancedSection(
 ) {
     var url by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
+    val services = LocalAppServices.current
+    val context = LocalPlatformContext.current
+
+    SettingsSubsection(
+        title = stringResource(Res.string.settings_cache),
+        subtitle = stringResource(Res.string.settings_cache_subtitle),
+    )
+    SettingsPanel {
+        Column(Modifier.fillMaxWidth().padding(AppSizes.cardPadding), verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+            ActionButton(
+                text = stringResource(Res.string.settings_clear_image_cache),
+                onClick = { save { clearImageCache(context) } },
+                style = ActionButtonStyle.Tonal,
+            )
+            ActionButton(
+                text = stringResource(Res.string.settings_clear_watch_cache),
+                onClick = { save { services.clearWatchCache() } },
+                style = ActionButtonStyle.Tonal,
+            )
+        }
+    }
 
     SettingsSubsection(
         title = stringResource(Res.string.settings_config_file),

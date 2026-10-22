@@ -92,6 +92,24 @@ class AppServices(
      * an error.
      */
     val playbackSupported: Boolean get() = player.canPlay
+
+    /**
+     * Drops what the app remembers about the user's watch history, so
+     * "Continue watching" is rebuilt from the backend.
+     *
+     * The remembered per-series results are the only watch data kept on the
+     * device — progress itself is always read from the account — so clearing
+     * them and ticking [PlaybackUpdates.cachesCleared] is the whole reset.
+     */
+    suspend fun clearWatchCache() {
+        val profileKey =
+            account.state.value.activeProfile
+                ?.profileId
+                ?.toString()
+                .orEmpty()
+        watchedCache.clear(profileKey)
+        playbackUpdates.notifyCachesCleared()
+    }
 }
 
 val LocalAppServices =

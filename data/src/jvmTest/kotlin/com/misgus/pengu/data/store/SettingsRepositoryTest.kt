@@ -181,6 +181,29 @@ class SettingsRepositoryTest {
         }
 
     @Test
+    fun persistsTheWindowGeometry() =
+        runTest {
+            val path = File(tempDir(), "settings.json").path
+            val settings = JsonSettingsRepository(JsonMapStore(path, pretty = true))
+            settings.load()
+            // Nothing is remembered until a window has been closed, so the first
+            // start keeps its own default size.
+            assertTrue(settings.state.value.rememberWindowSize)
+            assertEquals(null, settings.state.value.windowWidth)
+            assertFalse(settings.state.value.windowMaximized)
+
+            settings.setRememberWindowSize(false)
+            settings.setWindowGeometry(width = 1600, height = 900, maximized = true)
+
+            val reloaded = JsonSettingsRepository(JsonMapStore(path, pretty = true))
+            reloaded.load()
+            assertFalse(reloaded.state.value.rememberWindowSize)
+            assertEquals(1600, reloaded.state.value.windowWidth)
+            assertEquals(900, reloaded.state.value.windowHeight)
+            assertTrue(reloaded.state.value.windowMaximized)
+        }
+
+    @Test
     fun readsTheToneMappingSpellingMpvUses() =
         runTest {
             val store = JsonMapStore(File(tempDir(), "settings.json").path, pretty = true)

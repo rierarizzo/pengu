@@ -182,6 +182,8 @@
     <string name="settings_sign_in_other_method">This account signs in through another method.</string>
     <string name="settings_animations">Animations</string>
     <string name="settings_animations_subtitle">Transitions, hover effects and loading skeletons.</string>
+    <string name="settings_remember_window_size">Remember window size</string>
+    <string name="settings_remember_window_size_subtitle">Reopen at the size and maximized state you closed it with.</string>
     <string name="settings_typeface">Typeface</string>
     <string name="settings_typeface_subtitle">The font every screen is set in.</string>
     <string name="settings_typeface_ibm_plex">IBM Plex Sans</string>
@@ -227,6 +229,10 @@
     <string name="settings_video_url">Video URL</string>
     <string name="settings_play_url">Play URL</string>
     <string name="settings_open_local">Open local file</string>
+    <string name="settings_cache">Cache</string>
+    <string name="settings_cache_subtitle">What the app keeps on this device to paint faster. Clearing it only costs a re-download.</string>
+    <string name="settings_clear_image_cache">Clear image cache</string>
+    <string name="settings_clear_watch_cache">Clear continue watching cache</string>
     <string name="settings_metadata">Metadata</string>
     <string name="settings_metadata_subtitle">Fill missing artwork, synopses and cast, and build &quot;You may also like&quot;, from TMDB.</string>
     <string name="settings_tmdb_api_key">TMDB API key</string>

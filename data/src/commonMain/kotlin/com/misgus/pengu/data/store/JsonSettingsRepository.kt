@@ -10,6 +10,7 @@ import com.misgus.pengu.core.repository.StreamUrlCache
 import com.misgus.pengu.core.repository.TmdbLanguage
 import com.misgus.pengu.core.repository.ToneMapping
 import com.misgus.pengu.data.boolOrNull
+import com.misgus.pengu.data.intOrNull
 import com.misgus.pengu.data.stringList
 import com.misgus.pengu.data.stringOrNull
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,6 +30,10 @@ import kotlinx.serialization.json.JsonPrimitive
  * {
  *   "appearance.typeface": "ibm_plex_sans",
  *   "animations.enabled": true,
+ *   "window.rememberSize": true,
+ *   "window.width": 1280,
+ *   "window.height": 720,
+ *   "window.maximized": false,
  *   "player.resumePlayback": true,
  *   "player.autoPlayNext": true,
  *   "labels.hidden": false,
@@ -64,6 +69,14 @@ class JsonSettingsRepository(
     override suspend fun setTypeface(typeface: AppTypeface) = update { it.copy(typeface = typeface) }
 
     override suspend fun setAnimationsEnabled(enabled: Boolean) = update { it.copy(animationsEnabled = enabled) }
+
+    override suspend fun setRememberWindowSize(enabled: Boolean) = update { it.copy(rememberWindowSize = enabled) }
+
+    override suspend fun setWindowGeometry(
+        width: Int,
+        height: Int,
+        maximized: Boolean,
+    ) = update { it.copy(windowWidth = width, windowHeight = height, windowMaximized = maximized) }
 
     override suspend fun setResumePlayback(enabled: Boolean) = update { it.copy(resumePlayback = enabled) }
 
@@ -104,6 +117,12 @@ class JsonSettingsRepository(
         val data = store.read().toMutableMap()
         data[KEY_TYPEFACE] = JsonPrimitive(settings.typeface.name.lowercase())
         data[KEY_ANIMATIONS] = JsonPrimitive(settings.animationsEnabled)
+        data[KEY_REMEMBER_WINDOW] = JsonPrimitive(settings.rememberWindowSize)
+        // Absent until a window has been closed, so the first start keeps the
+        // default size instead of opening at zero.
+        settings.windowWidth?.let { data[KEY_WINDOW_WIDTH] = JsonPrimitive(it) }
+        settings.windowHeight?.let { data[KEY_WINDOW_HEIGHT] = JsonPrimitive(it) }
+        data[KEY_WINDOW_MAXIMIZED] = JsonPrimitive(settings.windowMaximized)
         data[KEY_RESUME] = JsonPrimitive(settings.resumePlayback)
         data[KEY_AUTOPLAY] = JsonPrimitive(settings.autoPlayNext)
         data[KEY_STREAM_CACHE] = JsonPrimitive(settings.streamUrlCache.name.lowercase())
@@ -124,6 +143,10 @@ class JsonSettingsRepository(
         AppSettings(
             typeface = this[KEY_TYPEFACE].stringOrNull().toAppTypeface() ?: AppTypeface.IBM_PLEX_SANS,
             animationsEnabled = this[KEY_ANIMATIONS].boolOrNull() ?: true,
+            rememberWindowSize = this[KEY_REMEMBER_WINDOW].boolOrNull() ?: true,
+            windowWidth = this[KEY_WINDOW_WIDTH].intOrNull()?.takeIf { it > 0 },
+            windowHeight = this[KEY_WINDOW_HEIGHT].intOrNull()?.takeIf { it > 0 },
+            windowMaximized = this[KEY_WINDOW_MAXIMIZED].boolOrNull() ?: false,
             resumePlayback = this[KEY_RESUME].boolOrNull() ?: true,
             autoPlayNext = this[KEY_AUTOPLAY].boolOrNull() ?: true,
             streamUrlCache = this[KEY_STREAM_CACHE].stringOrNull().toStreamUrlCache() ?: StreamUrlCache.SIX_HOURS,
@@ -173,6 +196,10 @@ class JsonSettingsRepository(
     companion object {
         const val KEY_TYPEFACE = "appearance.typeface"
         const val KEY_ANIMATIONS = "animations.enabled"
+        const val KEY_REMEMBER_WINDOW = "window.rememberSize"
+        const val KEY_WINDOW_WIDTH = "window.width"
+        const val KEY_WINDOW_HEIGHT = "window.height"
+        const val KEY_WINDOW_MAXIMIZED = "window.maximized"
         const val KEY_RESUME = "player.resumePlayback"
         const val KEY_AUTOPLAY = "player.autoPlayNext"
         const val KEY_STREAM_CACHE = "player.streamUrlCache"

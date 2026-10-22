@@ -8,18 +8,21 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import com.misgus.pengu.core.model.Addon
+import com.misgus.pengu.core.repository.SettingsRepository
 import com.misgus.pengu.core.repository.SignInRequest
 import com.misgus.pengu.data.BackendKind
 import com.misgus.pengu.data.addons.StremioAddonRepositories
@@ -43,6 +46,7 @@ import com.misgus.pengu.window.WindowsWindowFrameState
 import com.misgus.pengu.window.WindowsWindowTitleBar
 import com.misgus.pengu.window.WindowsWindowUtils
 import com.misgus.pengu.window.isWindowsOs
+import kotlinx.coroutines.runBlocking
 import java.awt.Dimension
 import javax.imageio.ImageIO
 
@@ -75,6 +79,14 @@ fun main(args: Array<String>) {
     val addons = backend.addons
     val stremio = StremioAddonRepositories(addons, addonHttpClient)
     val settings = JsonSettingsRepository(JsonMapStore(AppPaths.settingsFile, pretty = true))
+    // The window is created before the composition's own settings load runs, so
+    // the remembered geometry is read here once; the app then reads the same
+    // file again with the rest of the preferences.
+    val startSettings =
+        runBlocking {
+            settings.load()
+            settings.state.value
+        }
     val watchedCache = FileWatchedSeriesCache()
 
     val initialSource = initialSource(args)
@@ -83,7 +95,18 @@ fun main(args: Array<String>) {
         // Created on the Compose (EDT) thread so mediamp captures that same thread as its
         // main dispatcher; commands are then valid from the UI thread and its coroutines.
         val player = remember { MediampPlayerService(settings) }
-        val windowState = rememberWindowState(width = WINDOW_WIDTH, height = WINDOW_HEIGHT)
+        // The saved geometry is ignored when the user turned the toggle off, so
+        // the window opens at the app's own default size.
+        val remembered = startSettings.takeIf { it.rememberWindowSize }
+        val windowState =
+            rememberWindowState(
+                width = remembered?.windowWidth?.dp ?: WINDOW_WIDTH,
+                height = remembered?.windowHeight?.dp ?: WINDOW_HEIGHT,
+                placement = if (remembered?.windowMaximized == true) WindowPlacement.Maximized else WindowPlacement.Floating,
+            )
+        // A maximized window reports its maximized bounds, so the size worth
+        // remembering is the last one it had while floating.
+        val floatingSize = remember { mutableStateOf(windowState.size) }
         // The custom frame is Windows-only; other targets keep the native decoration.
         val frameState = remember { if (isWindowsOs()) WindowsWindowFrameState() else null }
         val windowController = remember { ComposeWindowController(windowState) }
@@ -109,6 +132,14 @@ fun main(args: Array<String>) {
 
         val isFullScreen by windowController.isFullScreen.collectAsState()
         val closeApp: () -> Unit = {
+            // Saved before the exit, so the next start reopens the same window.
+            if (settings.state.value.rememberWindowSize) {
+                saveWindowGeometry(
+                    settings = settings,
+                    size = floatingSize.value,
+                    maximized = windowState.placement == WindowPlacement.Maximized,
+                )
+            }
             addonHttpClient.close()
             backend.close()
             player.dispose()
@@ -121,14 +152,19 @@ fun main(args: Array<String>) {
                 state = windowState,
                 title = WINDOW_TITLE,
             ) {
+                LaunchedEffect(windowState.size, windowState.placement) {
+                    if (windowState.placement == WindowPlacement.Floating) floatingSize.value = windowState.size
+                }
                 // Hand the shell every icon size instead of one bitmap: Windows picks
                 // the rendition that matches the current DPI, so the taskbar and
                 // Alt+Tab draw a sharp icon instead of rescaling a 256 px one.
                 LaunchedEffect(window) {
-                    window.iconImages = WINDOW_ICON_SIZES.mapNotNull { size ->
-                        ClassLoader.getSystemResourceAsStream("pengu-icon/pengu-$size.png")
-                            ?.use(ImageIO::read)
-                    }
+                    window.iconImages =
+                        WINDOW_ICON_SIZES.mapNotNull { size ->
+                            ClassLoader
+                                .getSystemResourceAsStream("pengu-icon/pengu-$size.png")
+                                ?.use(ImageIO::read)
+                        }
                 }
                 // The OS enforces the minimum: the window can grow or maximise but
                 // never shrink below the size it opens with. Reapplied when the
@@ -173,6 +209,26 @@ fun main(args: Array<String>) {
                 }
             }
         }
+    }
+}
+
+/**
+ * Writes the window geometry the next start reopens with.
+ *
+ * Blocking on purpose: the process exits right after it, so a save in the
+ * background would race the exit. The write is a small file.
+ */
+private fun saveWindowGeometry(
+    settings: SettingsRepository,
+    size: DpSize,
+    maximized: Boolean,
+) = runBlocking {
+    runCatching {
+        settings.setWindowGeometry(
+            width = size.width.value.toInt(),
+            height = size.height.value.toInt(),
+            maximized = maximized,
+        )
     }
 }
 
