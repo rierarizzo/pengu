@@ -20,6 +20,7 @@ dependencies {
     // Image loading: the shared UI renders through Coil, and this is where the
     // desktop ImageLoader is configured (the default decoder aliases).
     implementation(libs.coil.compose)
+    implementation(libs.coil.svg)
 
     // Windows title-bar theming (DWM) goes through JNA.
     implementation(libs.jna)

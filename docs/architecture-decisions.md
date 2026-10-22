@@ -851,11 +851,19 @@ so the atomic read/write/delete logic lives once.
   a series wordmark can be a 50px strip inside an 800x310 PNG, and `Fit` would
   scale that whole canvas. Trimming makes the box measure artwork, not padding,
   and the Home preloader carries the same transformation so both requests share
-  Coil's cache entry. Logos also decode at their own resolution
-  (`Size.ORIGINAL`, capped at `LogoMaxBitmapSize`): deriving the decode size from
-  the box would shrink the content to the canvas's share of the box, so a padded
+  Coil's cache entry. Logos also decode at a fixed box (`LogoMaxBitmapSize`,
+  both the request size and the cap): deriving the decode size from the box
+  would shrink the content to the canvas's share of the box, so a padded
   wordmark was decoded below the size it is drawn at and then upscaled, which
-  read as jagged. The Home
+  read as jagged. It is deliberately not `Size.ORIGINAL`, because many TMDB
+  logos are **SVG** — a 2025 series can ship only an SVG — and an SVG has a
+  viewBox rather than pixels, so `ORIGINAL` would rasterise a 107-unit-wide
+  wordmark at 107px. The app depends on `coil-svg`; on desktop that decoder is
+  registered *before* `MitchellImageDecoder`, which claims every source and
+  cannot rasterise SVG from bytes, so an SVG reaching it never painted. A logo
+  that still fails to load (a dead URL, an addon that dropped the file) falls
+  back to the name, the same headline a title without a logo shows, instead of
+  leaving the billboard without a title. The Home
   hero preloads the next slide's backdrop and logo through the singleton loader,
   sized to the billboard, and re-arms as the page advances, so swiping paints
   from cache instead of starting a network round-trip mid-gesture without the

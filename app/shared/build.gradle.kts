@@ -45,6 +45,8 @@ kotlin {
             implementation(libs.compose.ui)
             implementation(libs.compose.components.resources)
             implementation(libs.coil.compose)
+            // Title logos from TMDB are often SVG, which has no raster to decode.
+            implementation(libs.coil.svg)
             implementation(libs.coil.network.ktor3)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)

@@ -910,11 +910,20 @@ leer/escribir/borrar vive una sola vez.
   franja de 50px dentro de un PNG de 800x310, y `Fit` escalaría todo el lienzo.
   Recortarlos hace que la caja mida artwork, no padding, y el precargador de Home
   lleva la misma transformación para que ambas peticiones compartan la entrada
-  de caché de Coil. Se decodifican además a su propia resolución
-  (`Size.ORIGINAL`, limitada por `LogoMaxBitmapSize`): derivar el tamaño de
+  de caché de Coil. Se decodifican además a una caja fija (`LogoMaxBitmapSize`,
+  a la vez tamaño de la petición y tope): derivar el tamaño de
   decodificación de la caja encogía el contenido a la porción del lienzo, así que
   un wordmark con padding se decodificaba por debajo del tamaño al que se dibuja
-  y luego se escalaba hacia arriba, lo que se veía dentado. El hero de Home
+  y luego se escalaba hacia arriba, lo que se veía dentado. Deliberadamente no es
+  `Size.ORIGINAL`, porque muchos logos de TMDB son **SVG** — una serie de 2025
+  puede traer solo un SVG — y un SVG tiene un viewBox, no píxeles, así que
+  `ORIGINAL` rasterizaría un wordmark de 107 unidades a 107px. La app depende de
+  `coil-svg`; en escritorio ese decodificador se registra *antes* de
+  `MitchellImageDecoder`, que reclama toda fuente y no puede rasterizar SVG desde
+  sus bytes, así que un SVG que llegaba a él nunca se pintaba. Un logo que aun
+  así falla (una URL muerta, un addon que borró el fichero) cae al nombre, el
+  mismo titular que muestra un título sin logo, en vez de dejar el billboard sin
+  título. El hero de Home
   precarga el backdrop y el logo de la
   siguiente diapositiva a
   través del loader singleton, dimensionados al billboard, y se re-arma según

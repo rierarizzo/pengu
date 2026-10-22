@@ -266,7 +266,8 @@ val LogoFilterQuality = FilterQuality.High
  * that changes the image's size also changes the box it asks for (title logos trim
  * their transparent border this way). [decodeSize] pins the decode resolution
  * instead of deriving it from the layout, and [maxBitmapSize] caps it so a huge
- * source is reduced once at decode rather than allocated whole.
+ * source is reduced once at decode rather than allocated whole. [onError] fires
+ * when the image cannot be loaded at all, so a caller with a fallback can show it.
  */
 @Composable
 fun RemoteImage(
@@ -280,6 +281,7 @@ fun RemoteImage(
     maxBitmapSize: Size? = null,
     /** Fade the image in once it has loaded, instead of popping. */
     fadeIn: Boolean = false,
+    onError: () -> Unit = {},
 ) {
     if (url.isNullOrEmpty()) return
     val needsRequest = transformations.isNotEmpty() || decodeSize != null || maxBitmapSize != null
@@ -304,6 +306,7 @@ fun RemoteImage(
             contentDescription = contentDescription,
             contentScale = contentScale,
             filterQuality = filterQuality,
+            onError = { onError() },
             modifier = modifier,
         )
         return
@@ -322,6 +325,7 @@ fun RemoteImage(
         contentScale = contentScale,
         filterQuality = filterQuality,
         onSuccess = { loaded = true },
+        onError = { onError() },
         modifier = modifier.graphicsLayer { this.alpha = alpha },
     )
 }

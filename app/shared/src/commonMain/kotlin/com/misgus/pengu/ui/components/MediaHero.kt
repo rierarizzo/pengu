@@ -60,13 +60,15 @@ internal val LogoTrimTransformation: Transformation = TrimTransparentTransformat
 internal val LogoTransformations: List<Transformation> = listOf(LogoTrimTransformation)
 
 /**
- * Cap on the decoded logo bitmap.
+ * Decode box and cap of a title logo.
  *
- * Logos decode at their own resolution ([Size.ORIGINAL]) instead of the layout's, so
- * the transparent canvas does not shrink the artwork below the size it is drawn at.
- * The cap keeps a very large source from allocating a huge bitmap: it is reduced
- * once at decode (a source under the cap keeps every pixel). Logos are wide and
- * short, so the cap rarely binds.
+ * Logos decode at this fixed box instead of the layout's, so the transparent
+ * canvas and the trim cannot feed back into the requested size. It is not
+ * [Size.ORIGINAL] either: an SVG logo has no pixels, only a viewBox, and TMDB
+ * serves some of them at ~100 units wide, so `ORIGINAL` would rasterise the
+ * wordmark at 100px and the box (up to `AppLogoSize.maxWidth`) would upscale it.
+ * The box keeps a very large source from allocating a huge bitmap: it is reduced
+ * once at decode, and a source under it keeps every pixel.
  */
 internal val LogoMaxBitmapSize: Size = Size(2_048, 2_048)
 
@@ -88,21 +90,25 @@ fun MediaTitle(
     // gap to the metadata the same for every logo: a fixed box would centre a
     // short, wide wordmark and leave a gap that grew with its aspect.
     val height = AppLogoSize.opticalHeight(logoHeight ?: AppLogoSize.detailHeight)
+    // A logo that cannot be loaded (a dead URL, an addon that dropped the file)
+    // falls back to the name instead of leaving the billboard without a title.
+    var failed by remember(logo) { mutableStateOf(false) }
     when {
         loading ->
             // Reserve the space so the title does not jump when it arrives, but
             // draw nothing: a skeleton here reads as a stray block.
             Spacer(Modifier.height(height))
-        !logo.isNullOrEmpty() ->
+        !logo.isNullOrEmpty() && !failed ->
             RemoteImage(
                 url = logo,
                 contentDescription = name,
                 contentScale = ContentScale.Fit,
                 filterQuality = LogoFilterQuality,
                 transformations = LogoTransformations,
-                decodeSize = Size.ORIGINAL,
+                decodeSize = LogoMaxBitmapSize,
                 maxBitmapSize = LogoMaxBitmapSize,
                 fadeIn = true,
+                onError = { failed = true },
                 modifier = Modifier.heightIn(max = height).widthIn(max = AppLogoSize.maxWidthForWindow()),
             )
         else ->

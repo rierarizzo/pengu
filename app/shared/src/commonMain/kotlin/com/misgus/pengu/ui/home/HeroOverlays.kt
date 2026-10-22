@@ -25,7 +25,6 @@ import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.maxBitmapSize
 import coil3.request.transformations
-import coil3.size.Size
 import com.misgus.pengu.core.model.MetaPreview
 import com.misgus.pengu.ui.components.LogoMaxBitmapSize
 import com.misgus.pengu.ui.components.LogoTrimTransformation
@@ -221,7 +220,10 @@ internal fun HeroArtworkPreloader(
                 ImageRequest
                     .Builder(context)
                     .data(url)
-                    .size(Size.ORIGINAL)
+                    // The same request the billboard makes, size included: a
+                    // different size is a different cache entry, and the preload
+                    // would be thrown away.
+                    .size(LogoMaxBitmapSize)
                     .maxBitmapSize(LogoMaxBitmapSize)
                     .transformations(LogoTrimTransformation)
                     .build(),

@@ -12,6 +12,7 @@ import coil3.fetch.SourceFetchResult
 import coil3.request.Options
 import coil3.request.maxBitmapSize
 import coil3.size.Precision
+import coil3.svg.SvgDecoder
 import org.jetbrains.skia.Bitmap
 import org.jetbrains.skia.Canvas
 import org.jetbrains.skia.Image
@@ -54,8 +55,14 @@ fun configureImageLoader() {
     SingletonImageLoader.setSafe { context ->
         ImageLoader
             .Builder(context)
-            .components { add(MitchellImageDecoder.Factory()) }
-            .build()
+            .components {
+                // SVG title logos come first: the raster decoder below claims every
+                // source, and Skia cannot rasterise an SVG from its bytes, so an SVG
+                // that reached it would fail to paint at all. This one answers only
+                // for SVG and lets everything else fall through.
+                add(SvgDecoder.Factory())
+                add(MitchellImageDecoder.Factory())
+            }.build()
     }
 }
 
