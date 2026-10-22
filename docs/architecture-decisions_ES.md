@@ -990,6 +990,30 @@ leer/escribir/borrar vive una sola vez.
   y expone la altura del área de trabajo de la pantalla desde la que se
   dimensiona el billboard de Home.
 
+## Branding
+
+- **El logo vive en `branding/`, no junto al código.** `pengu.svg` es el maestro
+  (3 paths + un pliegue, el volumen sale de gradientes) y `pengu.png` es su
+  render de 512 px para la ficha de Play. Cualquier otra superficie renderiza
+  desde ese mismo archivo en vez de mantener una copia; `branding/README.md`
+  recoge la paleta y las reglas.
+- **El tile oscuro es parte de la marca.** La cara es blanca, así que necesita el
+  fondo oscuro: invertir la paleta o quitar el tile deja solo el pico naranja y
+  el mark deja de leerse como pingüino. Las UI claras reciben el mismo tile, y
+  las superficies que no enmascaran iconos usan `pengu-rounded.*`.
+- **El icono de tienda es cuadrado completo.** Según la spec de iconos de Play el
+  asset no lleva radio de esquina ni sombra (Google aplica ambas), y el arte se
+  coloca en la keyline del 75 % al 63 % del tile.
+- **El launcher de Android deriva de la misma geometría.**
+  `ic_launcher_foreground.xml` es un vector drawable con los mismos path data
+  ajustados a un círculo de 70 dp dentro del lienzo adaptativo de 108 dp,
+  `ic_launcher_background.xml` contiene el gradiente del tile, y los
+  `mipmap-*/ic_launcher[_round].png` heredados son renders de las variantes
+  redondeada y circular. Ahí los tonos son planos a propósito: los gradientes
+  son invisibles a tamaños de launcher. El icono de ventana y barra de tareas del
+  escritorio (`app/desktopApp/src/main/resources/pengu-icon.png`, cargado en
+  `Main.kt`) es un render de 256 px de la variante redondeada.
+
 ## Reproductor
 
 `PlayerService` lo implementan en los composition roots `MediampPlayerService`,

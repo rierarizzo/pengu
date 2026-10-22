@@ -922,6 +922,29 @@ so the atomic read/write/delete logic lives once.
   which the player owns, and it exposes the screen work-area height the Home
   billboard is sized from.
 
+## Branding
+
+- **The logo lives in `branding/`, not next to the code.** `pengu.svg` is the
+  master (3 paths + a fold, volume from gradients) and `pengu.png` is its 512 px
+  render for the Play listing. Any other surface renders from the same file
+  instead of keeping a second copy; `branding/README.md` lists the palette and
+  the rules.
+- **The dark tile is part of the mark.** The face is white, so it needs the dark
+  ground: inverting the palette or dropping the tile leaves only the orange beak
+  and the mark stops reading as a penguin. Light UIs get the same tile, and
+  surfaces that do not mask icons themselves use `pengu-rounded.*`.
+- **The store icon is a full square.** Per the Play icon spec the asset carries
+  no corner radius and no drop shadow (Google applies both), and the art sits on
+  the 75 % keyline at 63 % of the tile.
+- **The Android launcher derives from the same geometry.**
+  `ic_launcher_foreground.xml` is a vector drawable with the same path data
+  fitted to a 70 dp circle inside the 108 dp adaptive canvas, `ic_launcher_background.xml`
+  holds the tile gradient, and the legacy `mipmap-*/ic_launcher[_round].png` are
+  renders of the rounded and circular variants. Flat mid-tones there on purpose:
+  the gradients are invisible at launcher sizes. The desktop window and taskbar
+  icon (`app/desktopApp/src/main/resources/pengu-icon.png`, loaded in `Main.kt`)
+  is a 256 px render of the rounded variant.
+
 ## Player
 
 `PlayerService` is implemented in the composition roots by `MediampPlayerService`,
