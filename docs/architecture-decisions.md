@@ -947,13 +947,14 @@ so the atomic read/write/delete logic lives once.
   from reading smaller: a bigger radius alone retracts the tips.
 - **The mandible tones are the app's accent.** `#F5B02A` and `#D98A0B` are also
   `accent` and `accentContainer` in `Tokens.kt`, so the in-app chrome and the
-  launcher icon are the same two oranges instead of two near-misses. One hard stop
-  where the tips' axis crosses the mouth splits them, so the jaws read as a fold
-  rather than as two stacked shapes, and a 10-wide line of black at 22 % runs along
-  that mouth as the only extra detail — enough to keep the mark from reading flat at
-  48 px without introducing a third colour. The Android foreground keeps both tones
-  (a VectorDrawable cannot gradient a stroke, so each is a clipped copy) and the
-  fold as an `#AARRGGBB` line; the monochrome layer keeps neither.
+  launcher icon are the same two oranges instead of two near-misses. The split is a
+  filled path — shallow from one corner, a rounded knee, steep into the other corner —
+  rather than a gradient, so the fold reads as a bent fold and the knee keeps its own
+  radius while the tones meet the outline exactly. No line or shadow is baked into the
+  artwork. Nothing else is drawn: the Play icon spec has Play apply the corner radius
+  and the drop shadow, so a line inside the artwork is only dirt at 48 px. The Android
+  foreground carries the same two paths with no clip to keep in sync; the monochrome
+  layer keeps only the outline.
 - **The store icon is a full square.** Per the Play icon spec the asset carries no
   corner radius and no drop shadow (Google applies both); `pengu-rounded.*` exists
   for the surfaces that do not mask icons themselves.

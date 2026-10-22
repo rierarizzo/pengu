@@ -1018,14 +1018,15 @@ leer/escribir/borrar vive una sola vez.
   retrae las puntas.
 - **Los tonos de las mandíbulas son el acento de la app.** `#F5B02A` y `#D98A0B` son
   también `accent` y `accentContainer` en `Tokens.kt`, así que el chrome de la app y
-  el icono del launcher son los mismos dos naranjas en vez de dos aproximaciones. Un
-  stop duro donde el eje de los picos cruza la boca los separa, así que las
-  mandíbulas se leen como un pliegue y no como dos formas apiladas, y una línea de
-  10 de negro al 22 % recorre esa boca como único detalle extra: basta para que la
-  marca no se lea plana a 48 px sin introducir un tercer color. El foreground de
-  Android conserva los dos tonos (un VectorDrawable no puede degradar un trazo, así
-  que cada uno es una copia recortada) y el pliegue como línea `#AARRGGBB`; la capa
-  monochrome no lleva ninguno de los dos.
+  el icono del launcher son los mismos dos naranjas en vez de dos aproximaciones. La
+  separación es un path relleno —suave desde una esquina, una rodilla redondeada y una
+  bajada empinada hasta la otra esquina— en vez de un degradado, así que el pliegue se
+  lee como un pliegue quebrado y la rodilla conserva su propio radio mientras los tonos
+  tocan el contorno exacto. No lleva ni línea ni sombra incrustadas. No se dibuja nada
+  más: la spec de iconos de Play hace que Play aplique el radio de esquina y la
+  sombra, así que una línea dentro del artwork solo es suciedad a 48 px. El
+  foreground de Android lleva los mismos dos paths, sin clip que mantener sincronizado;
+  la capa monochrome conserva solo el contorno.
 - **El icono de tienda es cuadrado completo.** Según la spec de iconos de Play el
   asset no lleva radio de esquina ni sombra (Google aplica ambas); `pengu-rounded.*`
   existe para las superficies que no enmascaran iconos.

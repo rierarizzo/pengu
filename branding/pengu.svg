@@ -1,19 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="512" height="512" role="img" aria-labelledby="t">
   <title id="t">Pengu</title>
-  <desc id="d">A play button shaped like a beak, its jaws split by a fold.</desc>
+  <desc id="d">A play button shaped like a beak, its jaws split by a bent fold.</desc>
   <defs>
     <!-- One contour, four corners: the big beak at the north-east, the small one at
          the south-west, and the sides between them shortened so the rhombus is not
          equilateral. A single path means a single outline: the 128-wide round-join
          stroke rounds the four corners instead of leaving a seam. -->
     <path id="beak" d="M698.5 332 L604.9 681.7 L338.5 692 L348.8 425.6 Z" stroke-width="128" stroke-linejoin="round"/>
-    <!-- The fold: the axis runs from the small tip to the big one and the hard stop
-         sits where it crosses the mouth (the line between the two side corners,
-         offset 0.384), so the two jaws are one shape in two tones. -->
-    <linearGradient id="plumage" gradientUnits="userSpaceOnUse" x1="338.5" y1="692" x2="698.5" y2="332">
-      <stop offset="0.384" stop-color="#D98A0B"/>
-      <stop offset="0.384" stop-color="#F5B02A"/>
-    </linearGradient>
+    <!-- The fold, as exact geometry instead of a gradient: it leaves the north-west
+         corner's apex, runs shallow to a knee at (548, 480), turns 48° over a 60-unit
+         fillet and drops steeply to the south-east corner's apex, then closes along
+         the silhouette — the same 64-unit corners the outline has, so the two tones
+         meet the edge without a sliver. stroke-width 0: this edge is not a stroke. -->
+    <path id="jaw" d="M298.8 385.6 L523.2 470.9 A60 60 0 0 1 557.9 505.4 L644.9 731.7 A64 64 0 0 1 607.4 745.6 L341.0 755.9 A64 64 0 0 1 274.6 689.5 L284.9 423.1 A64 64 0 0 1 298.8 385.6 Z" stroke-width="0"/>
   </defs>
 
   <rect width="1024" height="1024" fill="#0B0B0B"/>
@@ -21,11 +20,7 @@
   <!-- The mark at 72 % of the canvas: 1.513 scales the original geometry,
        which sat at 48 %, and translate(502) re-centres it on x. -->
   <g transform="translate(502 512) scale(1.513) translate(-512 -512)">
-    <use href="#beak" fill="url(#plumage)" stroke="url(#plumage)"/>
-    <!-- The shadow along the mouth: 10 units of black at 22 %, kept 76 units clear of
-         each corner so it never touches the outline. Subtle on purpose — it darkens
-         whichever tone it lies on rather than introducing a third colour. -->
-    <path id="seam" d="M402.5 479.3 L551.2 627.9" stroke="#000000" stroke-opacity="0.22"
-          stroke-width="10" stroke-linecap="round"/>
+    <use href="#beak" fill="#F5B02A" stroke="#F5B02A"/>
+    <use href="#jaw" fill="#D98A0B" stroke="#D98A0B"/>
   </g>
 </svg>

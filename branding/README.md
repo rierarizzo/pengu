@@ -22,18 +22,22 @@ mandibles. The store, launcher and window icons all derive from `pengu.svg`.
   Growing the radius on an unfitted path would pull the tips in and shrink the mark.
 - **Two tones and a fold.** The big jaw is `#F5B02A` and the small one `#D98A0B`,
   the app's `accent` and `accentContainer` in `Tokens.kt`, so the chrome and the icon
-  are the same two oranges. The split is one hard stop where the gradient axis (the
-  line between the tips) crosses the mouth (the line between the two side corners,
-  offset 0.384), so it reads as a fold, not a drawn line. A 10-wide black line at
-  22 % follows the mouth, 76 units clear of each corner, and darkens whichever tone
-  it lies on: that is the only extra detail, and it is what keeps the mark from
-  reading flat at 48 px. The Android adaptive foreground keeps both tones (a
-  VectorDrawable cannot gradient a stroke, so each is a clipped copy) and the fold
-  as `#38000000`. Its scale is fitted from the master, so the hull fills 60 % of the
-  72 dp mask — less than the rasters' 72 %, because the launcher crops the 108 dp
-  foreground to that mask and scales it up, so an equal fill reads heavier than the
-  square tile. `ANDROID_MARK_FILL` is the one knob; 60 % measured the same
-  glyph-to-tile ratio as the Play Store icon on a Pixel drawer. A hand-set scale
+  are the same two oranges. The split is `<path id="jaw">`, exact geometry instead of
+  a gradient: it leaves the north-west corner's apex, runs shallow to a knee at
+  (548, 480), turns 48° over a 60-unit fillet and drops steeply to the south-east
+  corner's apex, then closes along the silhouette using the same 64-unit corners as
+  the outline, so the two tones meet the edge with no sliver. Its `stroke-width` of 0
+  says the edge is filled, not stroked — that is what lets the knee have its own
+  radius instead of the outline's 64. Nothing else is drawn inside the artwork: the
+  Play spec has Play apply the corner radius and the drop shadow, so a line of our own
+  is only dirt at 48 px. The Android adaptive foreground carries the same two paths,
+  so there is no clip and no gradient to keep in sync. Its scale is fitted from the
+  master, so
+  the hull fills 60 % of the 72 dp mask — less than the rasters' 72 %, because the
+  launcher crops the 108 dp foreground to that mask and scales it up, so an equal
+  fill reads heavier than the square tile. `ANDROID_MARK_FILL` is the one knob;
+  60 % measured the same glyph-to-tile ratio as the Play Store icon on a Pixel
+  drawer. A hand-set scale
   outlives the artwork it was tuned for.
 - **The tile is `#0B0B0B`.** Light UI, dark UI and the store all get the same tile.
 
@@ -99,9 +103,10 @@ app's `main` source set.
 Rare enough to forget the order. Six steps:
 
 1. **Edit `pengu.svg` only**, and keep the pieces the generator reads: `<path
-   id="beak">` (its `stroke-width` is the corner radius), `<linearGradient
-   id="plumage">` with a duplicated stop pair per hard cut, and the 1024 tile
-   `<rect>`. Do not break them: the generator throws rather than guess.
+   id="beak">` (its `stroke-width` is the corner radius and it decides the hull),
+   `<path id="jaw">` (a tone inside the outline, `stroke-width="0"` because its edge
+   is exact geometry), and the 1024 tile `<rect>`. Do not break them: the generator
+   throws rather than guess.
 2. **Re-fit the hull to 488 units on its largest side, centred on (518.5, 512).**
    That is what puts the mark at 72 % of the tile; a new drawing is almost never
    that size, so rotate, scale and centre it — the shipped path is already that fit.
