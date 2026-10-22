@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="512" height="512">
+  <defs>
+    <path id="beak" d="M335 300 L702 512 L335 724 Z" stroke-width="64" stroke-linejoin="round"/>
+    <clipPath id="upper"><polygon points="0,0 1024,0 1024,426 0,699"/></clipPath>
+    <mask id="beakMask" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024">
+      <path d="M335 300 L702 512 L335 724 Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="64" stroke-linejoin="round"/>
+    </mask>
+  </defs>
+  <g transform="translate(502 512) scale(1.78) translate(-512 -512)">
+    <path d="M335 300 L702 512 L335 724 Z" fill="#0B0B0B" stroke="#0B0B0B" stroke-width="68.5" stroke-linejoin="round"/>
+    <use href="#beak" fill="#D98A0B" stroke="#D98A0B"/>
+    <use href="#beak" fill="#F5B02A" stroke="#F5B02A" clip-path="url(#upper)"/>
+    <line x1="0" y1="699" x2="1024" y2="426" stroke="#0B0B0B" stroke-width="8" mask="url(#beakMask)"/>
+  </g>
+</svg>

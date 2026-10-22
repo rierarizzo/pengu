@@ -31,7 +31,12 @@ app/androidApp   composition root: Activity, ExoPlayer player (mediamp)
 app/shared       Compose UI and ViewModels
 core             pure domain: models, repository contracts, watched rules
 data             Stremio, Nuvio and local implementations
+branding         the mark and every icon derived from it (see branding/README.md)
+docs             the decision record, mirrored in Spanish
 ```
+
+`scripts/` holds the generators (the in-app Material glyphs and the brand icons);
+`branding` is the only copy of the mark — everything else is derived.
 
 The dependency direction is `ui -> domain` and `data -> domain`; only the
 composition roots reference `data`. See

@@ -13,7 +13,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
@@ -45,6 +44,7 @@ import com.misgus.pengu.window.WindowsWindowTitleBar
 import com.misgus.pengu.window.WindowsWindowUtils
 import com.misgus.pengu.window.isWindowsOs
 import java.awt.Dimension
+import javax.imageio.ImageIO
 
 fun main(args: Array<String>) {
     // The desktop Coil decoder aliases when it downsamples; install the cubic
@@ -120,8 +120,16 @@ fun main(args: Array<String>) {
                 onCloseRequest = closeApp,
                 state = windowState,
                 title = WINDOW_TITLE,
-                icon = painterResource("pengu-icon.png"),
             ) {
+                // Hand the shell every icon size instead of one bitmap: Windows picks
+                // the rendition that matches the current DPI, so the taskbar and
+                // Alt+Tab draw a sharp icon instead of rescaling a 256 px one.
+                LaunchedEffect(window) {
+                    window.iconImages = WINDOW_ICON_SIZES.mapNotNull { size ->
+                        ClassLoader.getSystemResourceAsStream("pengu-icon/pengu-$size.png")
+                            ?.use(ImageIO::read)
+                    }
+                }
                 // The OS enforces the minimum: the window can grow or maximise but
                 // never shrink below the size it opens with. Reapplied when the
                 // density changes (e.g. moving to a monitor with another scale).
@@ -224,3 +232,6 @@ private val WINDOW_HEIGHT: Dp = 720.dp
  * the `:app:shared` module.
  */
 private const val WINDOW_TITLE = "Pengu"
+
+/** Sizes the shell may ask for; the icon set ships one PNG per entry. */
+private val WINDOW_ICON_SIZES = listOf(16, 20, 24, 32, 40, 48, 256)

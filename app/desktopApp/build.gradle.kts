@@ -44,6 +44,10 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "com.misgus.pengu"
             packageVersion = "1.0.0"
+
+            windows {
+                iconFile.set(rootProject.file("branding/pengu.ico"))
+            }
         }
     }
 }

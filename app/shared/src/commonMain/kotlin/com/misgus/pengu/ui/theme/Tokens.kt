@@ -73,6 +73,9 @@ internal data class BrandPalette(
 /**
  * Warm coffee/amber palette: dark near-black background, amber accent, burnt
  * orange container and cream text. The app's only palette.
+ *
+ * [accent] and [accentContainer] are the icon's two mandible tones
+ * (`branding/pengu.svg`), so the in-app chrome matches the launcher icon.
  */
 internal val CoffeePalette =
     BrandPalette(
@@ -81,9 +84,9 @@ internal val CoffeePalette =
         surfaceHigh = Color(0xFF1F1F24),
         surfaceCard = Color(0xFF191610),
         surfaceSelected = Color(0xFF1A1814),
-        accent = Color(0xFFF4AE52),
+        accent = Color(0xFFF5B02A),
         onAccent = Color(0xFF2A1A0E),
-        accentContainer = Color(0xFFD4621A),
+        accentContainer = Color(0xFFD98A0B),
         onAccentContainer = Color(0xFF2A1A0E),
         inverseSurface = Color(0xFFFEF3E2),
         inverseOnSurface = Color(0xFF2A1A0E),

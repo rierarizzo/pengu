@@ -1,57 +1,68 @@
 # Branding assets
 
-The Pengu mark: a penguin head in 3/4 profile on a dark tile, with a rim light.
+The Pengu mark: a play button that doubles as a penguin's beak, split into its two
+mandibles. The store, launcher and window icons all derive from `pengu.svg`.
 
 ## Rules
 
-- **The dark tile is part of the mark, not a background.** The face is white, so it
-  needs the dark ground. Never invert the colours and never drop the tile without
-  replacing it: the mark stops reading as a penguin (measured: on a light
-  background without the tile only the orange beak survives).
-- Placing the icon on a light UI is fine as is (`#000` on `#fff` is 21:1). If the
-  platform does not mask icons itself, use `pengu-rounded.*`.
-- Avoid adding shapes. Volume comes from gradients and one fold, so the geometry
-  stays at 3 paths plus the fold.
+- **`pengu.svg` is the only master.** Every other file is derived; do not edit the
+  generated ones by hand (they carry a header saying so).
+- **The mark fills 72 % of the tile** (63.6 % wide), centred — 1.513× the original
+  hand-off, which sat at 48 %. Above that the play triangle crowds the Play
+  keyline; below it the icon reads as a dot in a taskbar drawn at 24–32 px.
+- **The two tones are the mandibles.** `#F5B02A` upper, `#D98A0B` lower, split by
+  an `#0B0B0B` hairline that is masked with the beak's own silhouette so it always
+  reaches the outline at both ends. They are also the app's `accent` and
+  `accentContainer` (`Tokens.kt`), so the UI chrome and the icon agree.
+- **The tile is `#0B0B0B`.** Light UI, dark UI and the store all get the same tile.
 
 ## Files
 
 | file | use |
 |---|---|
-| `pengu.svg` | master, full square, 512×512 intrinsic |
+| `pengu.svg` | master: full square, 1024 viewBox, 512×512 intrinsic |
 | `pengu.png` | Google Play store icon: 512×512, PNG-32, sRGB, full square |
-| `pengu-rounded.svg` / `.png` | same art with a 23 % corner radius, for desktop and in-app use |
+| `pengu-rounded.svg` / `.png` | 22 % corner radius, for surfaces that mask themselves (legacy launchers, in-app) |
+| `pengu-frameless.svg` | the mark alone at 85 %, the source of the desktop rasters |
+| `pengu.ico` | Windows icon for the packaged `.exe`: 14 sizes, BMP at 16–32 px and PNG above |
 
 The store icon follows the [Play icon spec](https://developer.android.com/distribute/google-play/resources/icon-design-specifications):
-full square with no mask and no drop shadow (Google applies a 30 % corner radius
-and its own shadow), art on the 75 % keyline. The current art occupies 63 % of
-the tile.
+full square, no corner radius and no drop shadow (Google applies both).
 
-## Palette
-
-| role | values |
-|---|---|
-| tile | radial gradient `#191E2A` → `#000000` (centre at 36 %, 30 %) |
-| face / cheek | linear `#FFFFFF` → `#E3EAF2` / `#DCE4EE` |
-| beak | linear `#FFC24A` → `#CF7E08` |
-| beak fold | `#B8690A` at 50 % over the beak |
-| rim light | `#2B2E35`, fades to transparent at both ends |
+**The desktop icons are the exception to the tile.** On a taskbar the tile costs
+the mark a fifth of its size, so `pengu-frameless.svg` drops it and draws the mark
+at 85 % with a dark outline one device pixel wide. Without that outline the two
+oranges drop to 1.7:1 against the Windows light taskbar (`#F3F3F3`) and wash out;
+with it they hold 8.6:1 on the dark theme and stay crisp on the light one.
 
 ## Regenerating
 
-`pengu.png` is a 512 px render of `pengu.svg` (any vector tool, or
-`npx sharp-cli -i pengu.svg -o pengu.png resize 512 512`). Keep sRGB and the
-alpha channel.
+Everything except the master is generated. Ask the generator for the text
+artifacts — it reads the geometry from `pengu.svg`, so the paths are never typed
+twice:
 
-The desktop window and taskbar icon is
-`app/desktopApp/src/main/resources/pengu-icon.png`, a 256 px render of
-`pengu-rounded.svg`, loaded by `Main.kt`.
+    node scripts/gen_brand_icons.mjs
 
-The Android launcher icon is derived from the same geometry, not redrawn:
+That rewrites `pengu-rounded.svg`, `pengu-frameless.svg`,
+`app/androidApp/src/main/res/drawable/ic_launcher_background.xml` and
+`app/androidApp/src/main/res/drawable-v24/ic_launcher_foreground.xml`.
 
-- `app/androidApp/src/main/res/drawable/ic_launcher_background.xml` — the tile gradient.
-- `app/androidApp/src/main/res/drawable-v24/ic_launcher_foreground.xml` — the mark,
-  fitted to a 70 dp circumscribed circle inside the 108 dp adaptive canvas
-  (group `scale 0.07188`, `translate 23.68 21.12`), flat mid-tones because the
-  gradients are invisible at launcher sizes.
-- `app/androidApp/src/main/res/mipmap-*/ic_launcher[_round].png` — legacy icons
-  (rounded tile and circle) at 48–192 px.
+The rasters are committed outputs because the builds consume them. Render them
+with any SVG rasteriser (`npx sharp-cli -i in.svg -o out.png resize N N`):
+
+| output | source | sizes |
+|---|---|---|
+| `branding/pengu.png` | `pengu.svg` | 512 |
+| `branding/pengu-rounded.png` | `pengu-rounded.svg` | 512 |
+| `app/androidApp/src/main/res/mipmap-*/ic_launcher.png` | `pengu-rounded.svg` | 48/72/96/144/192 |
+| `app/androidApp/src/main/res/mipmap-*/ic_launcher_round.png` | `pengu-rounded.svg` with `rx="512"` | 48/72/96/144/192 |
+| `app/desktopApp/src/main/resources/pengu-icon/pengu-N.png` | `pengu-frameless.svg`, outline recomputed per size | 16/20/24/32/40/48/256 |
+| `branding/pengu.ico` | the same desktop renders | 14 entries |
+
+`Main.kt` hands the desktop ladder to the window as `iconImages` so Windows picks
+the size that matches the current DPI instead of rescaling one bitmap, and
+`nativeDistributions.windows.iconFile` passes `pengu.ico` to jpackage.
+
+The ladder lives inside the module on purpose: it is a runtime resource. Pointing
+a `srcDir` at `branding/` made the IDE report that folder as part of the desktop
+app's `main` source set.

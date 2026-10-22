@@ -924,27 +924,37 @@ so the atomic read/write/delete logic lives once.
 
 ## Branding
 
-- **The logo lives in `branding/`, not next to the code.** `pengu.svg` is the
-  master (3 paths + a fold, volume from gradients) and `pengu.png` is its 512 px
-  render for the Play listing. Any other surface renders from the same file
-  instead of keeping a second copy; `branding/README.md` lists the palette and
-  the rules.
-- **The dark tile is part of the mark.** The face is white, so it needs the dark
-  ground: inverting the palette or dropping the tile leaves only the orange beak
-  and the mark stops reading as a penguin. Light UIs get the same tile, and
-  surfaces that do not mask icons themselves use `pengu-rounded.*`.
-- **The store icon is a full square.** Per the Play icon spec the asset carries
-  no corner radius and no drop shadow (Google applies both), and the art sits on
-  the 75 % keyline at 63 % of the tile.
-- **The Android launcher derives from the same geometry.**
-  `ic_launcher_foreground.xml` is a vector drawable with the same path data
-  fitted to a 70 dp circle inside the 108 dp adaptive canvas, `ic_launcher_background.xml`
-  holds the tile gradient, and the legacy `mipmap-*/ic_launcher[_round].png` are
-  renders of the rounded and circular variants. Flat mid-tones there on purpose:
-  the gradients are invisible at launcher sizes. The desktop window and taskbar
-  icon (`app/desktopApp/src/main/resources/pengu-icon.png`, loaded in `Main.kt`)
-  is a 256 px render of the rounded variant.
+- **One master, everything else is generated.** `branding/pengu.svg` is the mark —
+  a play button that doubles as a penguin's beak, two mandibles split by a hairline
+  — and `branding/pengu.png` is its 512 px render for the Play listing.
+  `scripts/gen_brand_icons.mjs` derives the rounded and frameless variants and the
+  two Android drawables from that geometry, so no path is ever typed twice;
+  `branding/README.md` lists the palette, the sizes and the rules.
+- **The mark fills 72 % of the tile** (63.6 % wide), centred. Above that the play
+  triangle crowds the Play keyline, below it the icon reads as a dot in a taskbar
+  drawn at 24–32 px.
+- **The mandible tones are the app's accent.** `#F5B02A` and `#D98A0B` are also
+  `accent` and `accentContainer` in `Tokens.kt`, so the in-app chrome and the
+  launcher icon are the same two oranges instead of two near-misses.
+- **The store icon is a full square.** Per the Play icon spec the asset carries no
+  corner radius and no drop shadow (Google applies both); `pengu-rounded.*` exists
+  for the surfaces that do not mask icons themselves.
+- **Every launcher icon derives from that geometry.** The adaptive foreground is a
+  vector drawable with the same paths scaled so its circumscribed circle fits the
+  72 dp mask (the triangle's corners touch the edge but are never cropped),
+  `ic_launcher_background.xml` holds the tile colour, and the legacy
+  `mipmap-*/ic_launcher[_round].png` are renders of the rounded and circular
+  variants.
+- **The desktop icons drop the tile.** `branding/pengu-frameless.svg` puts the mark
+  at 85 % with a dark outline one device pixel wide, because the tile only makes
+  sense as an icon face and on a taskbar it costs the mark a fifth of its size —
+  while the bare oranges fall to 1.7:1 against the Windows light taskbar. The
+  ladder lives in `app/desktopApp/src/main/resources/pengu-icon/` (a runtime
+  resource, so it belongs to the module), goes to the window as `iconImages`, and
+  `branding/pengu.ico` is what jpackage embeds in the packaged `.exe`.
 
+## Player
+## Player
 ## Player
 
 `PlayerService` is implemented in the composition roots by `MediampPlayerService`,

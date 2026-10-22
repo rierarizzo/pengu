@@ -992,28 +992,38 @@ leer/escribir/borrar vive una sola vez.
 
 ## Branding
 
-- **El logo vive en `branding/`, no junto al código.** `pengu.svg` es el maestro
-  (3 paths + un pliegue, el volumen sale de gradientes) y `pengu.png` es su
-  render de 512 px para la ficha de Play. Cualquier otra superficie renderiza
-  desde ese mismo archivo en vez de mantener una copia; `branding/README.md`
-  recoge la paleta y las reglas.
-- **El tile oscuro es parte de la marca.** La cara es blanca, así que necesita el
-  fondo oscuro: invertir la paleta o quitar el tile deja solo el pico naranja y
-  el mark deja de leerse como pingüino. Las UI claras reciben el mismo tile, y
-  las superficies que no enmascaran iconos usan `pengu-rounded.*`.
+- **Un solo maestro; todo lo demás se genera.** `branding/pengu.svg` es la marca —
+  un botón de play que a la vez es el pico de un pingüino, con las dos mandíbulas
+  separadas por una línea — y `branding/pengu.png` es su render de 512 px para la
+  ficha de Play. `scripts/gen_brand_icons.mjs` deriva de esa geometría las variantes
+  redondeada y sin fondo y los dos drawables de Android, así que ningún path se
+  escribe dos veces; `branding/README.md` recoge la paleta, los tamaños y las reglas.
+- **La marca ocupa el 72 % del tile** (63,6 % de ancho), centrada. Por encima de eso
+  el triángulo aprieta la keyline de Play; por debajo, el icono se lee como un punto
+  en una barra de tareas dibujada a 24–32 px.
+- **Los tonos de las mandíbulas son el acento de la app.** `#F5B02A` y `#D98A0B` son
+  también `accent` y `accentContainer` en `Tokens.kt`, así que el chrome de la app y
+  el icono del launcher son los mismos dos naranjas en vez de dos aproximaciones.
 - **El icono de tienda es cuadrado completo.** Según la spec de iconos de Play el
-  asset no lleva radio de esquina ni sombra (Google aplica ambas), y el arte se
-  coloca en la keyline del 75 % al 63 % del tile.
-- **El launcher de Android deriva de la misma geometría.**
-  `ic_launcher_foreground.xml` es un vector drawable con los mismos path data
-  ajustados a un círculo de 70 dp dentro del lienzo adaptativo de 108 dp,
-  `ic_launcher_background.xml` contiene el gradiente del tile, y los
-  `mipmap-*/ic_launcher[_round].png` heredados son renders de las variantes
-  redondeada y circular. Ahí los tonos son planos a propósito: los gradientes
-  son invisibles a tamaños de launcher. El icono de ventana y barra de tareas del
-  escritorio (`app/desktopApp/src/main/resources/pengu-icon.png`, cargado en
-  `Main.kt`) es un render de 256 px de la variante redondeada.
+  asset no lleva radio de esquina ni sombra (Google aplica ambas); `pengu-rounded.*`
+  existe para las superficies que no enmascaran iconos.
+- **Todos los iconos de launcher derivan de esa geometría.** El foreground
+  adaptativo es un vector drawable con los mismos paths escalados para que su
+  círculo circunscrito entre en la máscara de 72 dp (las esquinas del triángulo
+  tocan el borde pero nunca se recortan), `ic_launcher_background.xml` lleva el color
+  del tile, y los `mipmap-*/ic_launcher[_round].png` heredados son renders de las
+  variantes redondeada y circular.
+- **Los iconos de escritorio quitan el tile.** `branding/pengu-frameless.svg` pone la
+  marca al 85 % con un borde oscuro de un píxel de dispositivo, porque el tile solo
+  tiene sentido como cara de icono y en una barra de tareas le cuesta a la marca un
+  quinto de su tamaño — mientras que los naranjas desnudos bajan a 1,7:1 en la barra
+  clara de Windows. La escalera vive en
+  `app/desktopApp/src/main/resources/pengu-icon/` (es un recurso de runtime, así que
+  pertenece al módulo), se entrega a la ventana como `iconImages`, y
+  `branding/pengu.ico` es lo que jpackage incrusta en el `.exe` empaquetado.
 
+## Reproductor
+## Reproductor
 ## Reproductor
 
 `PlayerService` lo implementan en los composition roots `MediampPlayerService`,
