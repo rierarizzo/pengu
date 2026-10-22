@@ -925,26 +925,43 @@ so the atomic read/write/delete logic lives once.
 ## Branding
 
 - **One master, everything else is generated.** `branding/pengu.svg` is the mark —
-  a play button that doubles as a penguin's beak, two mandibles split by a hairline
+  a play button that doubles as a penguin's beak, its mandibles stepped in bands
   — and `branding/pengu.png` is its 512 px render for the Play listing.
   `scripts/gen_brand_icons.mjs` derives the rounded and frameless variants and the
-  two Android drawables from that geometry, so no path is ever typed twice;
-  `branding/README.md` lists the palette, the sizes and the rules.
-- **The mark fills 72 % of the tile** (63.6 % wide), centred. Above that the play
+  three Android drawables from that geometry, and `scripts/gen_brand_rasters.mjs`
+  renders the committed PNGs and the `.ico` from those SVGs, so no path is ever
+  typed twice and no size is guessed; `branding/README.md` lists the palette, the
+  sizes and the rules, including the six-step checklist for changing the mark.
+- **The mark fills 72 % of the tile** (65 % wide), centred. Above that the play
   triangle crowds the Play keyline, below it the icon reads as a dot in a taskbar
   drawn at 24–32 px.
+- **The tips are round.** A 128-wide round-join stroke draws the triangle, so the
+  stroke is the corner radius (64, twice the hand-off's 32); the triangle is scaled
+  0.849 about its centre so the outer hull keeps the hand-off's height. Radius 64
+  reads more solid at taskbar sizes, and the scale is what keeps it from reading
+  smaller: a bigger radius alone retracts the tips.
 - **The mandible tones are the app's accent.** `#F5B02A` and `#D98A0B` are also
   `accent` and `accentContainer` in `Tokens.kt`, so the in-app chrome and the
-  launcher icon are the same two oranges instead of two near-misses.
+  launcher icon are the same two oranges instead of two near-misses. The seam is
+  shaded in three flat bands of that hue, cut along the seam's own diagonal by hard
+  stops, so the split reads as a fold rather than a drawn line. The Android
+  foreground keeps all three: a VectorDrawable cannot gradient the stroke that
+  shapes the beak, so each band is its own clipped copy, cut at the same stop
+  offsets.
 - **The store icon is a full square.** Per the Play icon spec the asset carries no
   corner radius and no drop shadow (Google applies both); `pengu-rounded.*` exists
   for the surfaces that do not mask icons themselves.
 - **Every launcher icon derives from that geometry.** The adaptive foreground is a
-  vector drawable with the same paths scaled so its circumscribed circle fits the
-  72 dp mask (the triangle's corners touch the edge but are never cropped),
-  `ic_launcher_background.xml` holds the tile colour, and the legacy
-  `mipmap-*/ic_launcher[_round].png` are renders of the rounded and circular
-  variants.
+  vector drawable with the same paths, fitted by `gen_brand_icons.mjs` so the hull
+  fills 60 % of the 72 dp mask and its corners land at 27 dp — inside the 66 dp
+  safe circle. The scale is computed from the master's hull, not typed: a hand-set
+  one keeps the artwork it was tuned for and silently shrinks every later one.
+  Android gets less fill than the rasters' 72 % because the launcher crops the
+  108 dp foreground to the mask and scales it up, so an equal fill reads heavier
+  next to other apps' icons; 60 % matches their glyph-to-tile ratio.
+  `ic_launcher_background.xml` holds the tile colour, `ic_launcher_monochrome.xml`
+  the themed-icon silhouette, and the legacy `mipmap-*/ic_launcher[_round].png` are
+  renders of the rounded and circular variants.
 - **The desktop icons drop the tile.** `branding/pengu-frameless.svg` puts the mark
   at 85 % with a dark outline one device pixel wide, because the tile only makes
   sense as an icon face and on a taskbar it costs the mark a fifth of its size —

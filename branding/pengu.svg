@@ -2,23 +2,29 @@
   <title id="t">Pengu</title>
   <desc id="d">A play button with a beak's two mandibles.</desc>
   <defs>
-    <path id="beak" d="M335 300 L702 512 L335 724 Z" stroke-width="64" stroke-linejoin="round"/>
-    <mask id="beakMask" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024">
-      <path d="M335 300 L702 512 L335 724 Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="64" stroke-linejoin="round"/>
-    </mask>
-    <clipPath id="upper"><polygon points="0,0 1024,0 1024,426 0,699"/></clipPath>
+    <path id="beak" d="M362.7 332 L674.3 512 L362.7 692 Z" stroke-width="128" stroke-linejoin="round"/>
+    <!-- The mandible seam, stepped instead of blended: three flat bands of the
+         same orange whose cuts are parallel to the seam (0,699)-(1024,426),
+         because the gradient axis is perpendicular to it and centred on it. The
+         band above .33 clamps to the seam colour, so only the two cuts need a
+         stop pair. -->
+    <linearGradient id="plumage" gradientUnits="userSpaceOnUse"
+                    x1="470.78" y1="407.9" x2="553.22" y2="717.1">
+      <stop offset="0.33" stop-color="#F5B02A"/>
+      <stop offset="0.33" stop-color="#E79D1B"/>
+      <stop offset="0.67" stop-color="#E79D1B"/>
+      <stop offset="0.67" stop-color="#D98A0B"/>
+    </linearGradient>
   </defs>
 
   <rect width="1024" height="1024" fill="#0B0B0B"/>
 
   <!-- The mark at 72 % of the canvas: 1.513 scales the original geometry,
-       which sat at 48 %, and translate(502) re-centres it on x. -->
+       which sat at 48 %, and translate(502) re-centres it on x. The stroke is what
+       rounds the tips (radius 64, twice the hand-off's 32), and the triangle is
+       scaled 0.849 so the outer hull still measures 488 units tall — the tips would
+       otherwise retract and the mark would read smaller. -->
   <g transform="translate(502 512) scale(1.513) translate(-512 -512)">
-    <!-- Lower mandible -->
-    <use href="#beak" fill="#D98A0B" stroke="#D98A0B"/>
-    <!-- Upper mandible -->
-    <use href="#beak" fill="#F5B02A" stroke="#F5B02A" clip-path="url(#upper)"/>
-    <!-- Split between the mandibles -->
-    <line x1="0" y1="699" x2="1024" y2="426" stroke="#0B0B0B" stroke-width="8" mask="url(#beakMask)"/>
+    <use href="#beak" fill="url(#plumage)" stroke="url(#plumage)"/>
   </g>
 </svg>

@@ -993,26 +993,46 @@ leer/escribir/borrar vive una sola vez.
 ## Branding
 
 - **Un solo maestro; todo lo demás se genera.** `branding/pengu.svg` es la marca —
-  un botón de play que a la vez es el pico de un pingüino, con las dos mandíbulas
-  separadas por una línea — y `branding/pengu.png` es su render de 512 px para la
+  un botón de play que a la vez es el pico de un pingüino, con las mandíbulas
+  escalonadas en bandas — y `branding/pengu.png` es su render de 512 px para la
   ficha de Play. `scripts/gen_brand_icons.mjs` deriva de esa geometría las variantes
-  redondeada y sin fondo y los dos drawables de Android, así que ningún path se
-  escribe dos veces; `branding/README.md` recoge la paleta, los tamaños y las reglas.
-- **La marca ocupa el 72 % del tile** (63,6 % de ancho), centrada. Por encima de eso
+  redondeada y sin fondo y los tres drawables de Android, y
+  `scripts/gen_brand_rasters.mjs` renderiza desde esos SVG los PNG y el `.ico`
+  commiteados, así que ningún path se escribe dos veces ni ningún tamaño se adivina;
+  `branding/README.md` recoge la paleta, los tamaños y las reglas, incluida la lista
+  de seis pasos para cambiar la marca.
+- **La marca ocupa el 72 % del tile** (65 % de ancho), centrada. Por encima de eso
   el triángulo aprieta la keyline de Play; por debajo, el icono se lee como un punto
   en una barra de tareas dibujada a 24–32 px.
+- **Las puntas son redondas.** Un trazo de 128 con unión redonda dibuja el triángulo,
+  así que el trazo es el radio de la esquina (64, el doble del 32 del hand-off); el
+  triángulo va escalado 0,849 sobre su centro para que el contorno exterior mantenga
+  la altura del hand-off. El radio 64 se lee más sólido a tamaño de barra de tareas,
+  y es la escala lo que evita que se lea más pequeño: solo subir el radio retrae las
+  puntas.
 - **Los tonos de las mandíbulas son el acento de la app.** `#F5B02A` y `#D98A0B` son
   también `accent` y `accentContainer` en `Tokens.kt`, así que el chrome de la app y
-  el icono del launcher son los mismos dos naranjas en vez de dos aproximaciones.
+  el icono del launcher son los mismos dos naranjas en vez de dos aproximaciones. La
+  costura se sombrea en tres bandas planas de ese tono, cortadas en la diagonal de
+  la propia costura con stops duros, así que la separación se lee como un pliegue y
+  no como una línea dibujada. El foreground de Android las conserva las tres: un
+  VectorDrawable no puede degradar el trazo que da forma al pico, así que cada banda
+  es su propia copia recortada, cortada en los mismos offsets de stop.
 - **El icono de tienda es cuadrado completo.** Según la spec de iconos de Play el
   asset no lleva radio de esquina ni sombra (Google aplica ambas); `pengu-rounded.*`
   existe para las superficies que no enmascaran iconos.
 - **Todos los iconos de launcher derivan de esa geometría.** El foreground
-  adaptativo es un vector drawable con los mismos paths escalados para que su
-  círculo circunscrito entre en la máscara de 72 dp (las esquinas del triángulo
-  tocan el borde pero nunca se recortan), `ic_launcher_background.xml` lleva el color
-  del tile, y los `mipmap-*/ic_launcher[_round].png` heredados son renders de las
-  variantes redondeada y circular.
+  adaptativo es un vector drawable con los mismos paths, ajustado por
+  `gen_brand_icons.mjs` para que el contorno ocupe el 60 % de la máscara de 72 dp y
+  sus esquinas caigan a 27 dp — dentro del círculo seguro de 66 dp. La escala se
+  calcula desde el contorno del maestro, no se escribe a mano: una escala fija
+  conserva el artwork para el que se ajustó y encoge en silencio los siguientes.
+  Android lleva menos relleno que el 72 % de los rasters porque el launcher recorta
+  el foreground de 108 dp a la máscara y lo amplía, así que un relleno igual se lee
+  más pesado al lado de otras apps; el 60 % iguala su relación glifo/tile.
+  `ic_launcher_background.xml` lleva el color del tile, `ic_launcher_monochrome.xml`
+  la silueta para iconos con tema, y los `mipmap-*/ic_launcher[_round].png`
+  heredados son renders de las variantes redondeada y circular.
 - **Los iconos de escritorio quitan el tile.** `branding/pengu-frameless.svg` pone la
   marca al 85 % con un borde oscuro de un píxel de dispositivo, porque el tile solo
   tiene sentido como cara de icono y en una barra de tareas le cuesta a la marca un
