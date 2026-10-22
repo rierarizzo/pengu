@@ -80,6 +80,7 @@ fun AppSwitch(
             modifier
                 .size(AppSizes.minTouchTarget)
                 .then(descriptionModifier)
+                .handCursor(enabled)
                 .toggleable(
                     value = checked,
                     onValueChange = onCheckedChange,

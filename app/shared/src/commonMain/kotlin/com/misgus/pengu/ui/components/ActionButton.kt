@@ -186,6 +186,7 @@ fun ActionButton(
         modifier =
             modifier
                 .focusRing(interaction, color = focusRing)
+                .handCursor(enabled && !loading)
                 .height(AppSizes.controlHeight)
                 .motionLayer(scale = { pressScale }),
     ) {

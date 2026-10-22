@@ -22,6 +22,7 @@ import com.misgus.pengu.core.model.Subtitle
 import com.misgus.pengu.core.player.MediaTrack
 import com.misgus.pengu.ui.components.ActionButton
 import com.misgus.pengu.ui.components.ActionButtonStyle
+import com.misgus.pengu.ui.components.handCursor
 import com.misgus.pengu.ui.theme.AppSpacing
 import com.misgus.pengu.ui.theme.AppType
 import org.jetbrains.compose.resources.stringResource
@@ -62,6 +63,7 @@ internal fun TrackMenu(
                         modifier =
                             Modifier
                                 .fillMaxWidth()
+                                .handCursor()
                                 .selectable(
                                     selected = row.selected,
                                     onClick = {

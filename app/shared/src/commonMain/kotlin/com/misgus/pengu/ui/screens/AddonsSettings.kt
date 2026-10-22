@@ -80,6 +80,7 @@ import com.misgus.pengu.ui.components.AppTextField
 import com.misgus.pengu.ui.components.RemoteImage
 import com.misgus.pengu.ui.components.ReorderableCardColumn
 import com.misgus.pengu.ui.components.ReorderableCardScope
+import com.misgus.pengu.ui.components.handCursor
 import com.misgus.pengu.ui.components.toUserMessage
 import com.misgus.pengu.ui.icons.MaterialIcons
 import com.misgus.pengu.ui.services.LocalAppServices
@@ -676,7 +677,7 @@ private fun AddonDescription(
         text = text,
         modifier =
             modifier.then(
-                if (foldable && truncated) Modifier.clickable { expanded = !expanded } else Modifier,
+                if (foldable && truncated) Modifier.clickable { expanded = !expanded }.handCursor() else Modifier,
             ),
         style = AppType.bodySecondary(),
         color = MaterialTheme.colorScheme.onSurfaceVariant,

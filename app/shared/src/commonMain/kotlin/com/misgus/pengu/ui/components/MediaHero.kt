@@ -220,7 +220,7 @@ fun HeroSynopsis(
         modifier =
             modifier
                 .widthIn(max = AppSynopsis.maxWidth)
-                .then(if (canToggle) Modifier.clickable { expanded = !expanded } else Modifier),
+                .then(if (canToggle) Modifier.clickable { expanded = !expanded }.handCursor() else Modifier),
     )
 }
 

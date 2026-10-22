@@ -190,18 +190,20 @@ private fun <T> ReorderableCard(
     content: @Composable (item: T, index: Int, scope: ReorderableCardScope) -> Unit,
 ) {
     val handleDrag =
-        Modifier.pointerInput(itemKey, index, enabled) {
-            if (!enabled) return@pointerInput
-            detectDragGestures(
-                onDragStart = { onDragStart() },
-                onDrag = { change, amount ->
-                    change.consume()
-                    onDrag(amount.y)
-                },
-                onDragEnd = onDragEnd,
-                onDragCancel = onDragCancel,
-            )
-        }
+        Modifier
+            .handCursor(enabled)
+            .pointerInput(itemKey, index, enabled) {
+                if (!enabled) return@pointerInput
+                detectDragGestures(
+                    onDragStart = { onDragStart() },
+                    onDrag = { change, amount ->
+                        change.consume()
+                        onDrag(amount.y)
+                    },
+                    onDragEnd = onDragEnd,
+                    onDragCancel = onDragCancel,
+                )
+            }
 
     // The outer box measures the settled layout, so a translated card does not
     // feed its own dragged position back into the target calculation.

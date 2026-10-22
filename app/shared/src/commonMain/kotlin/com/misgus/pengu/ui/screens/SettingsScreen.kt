@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
@@ -149,7 +150,10 @@ import com.misgus.pengu.ui.components.ActionButton
 import com.misgus.pengu.ui.components.ActionButtonStyle
 import com.misgus.pengu.ui.components.AppIconButton
 import com.misgus.pengu.ui.components.AppTextField
+import com.misgus.pengu.ui.components.clickableSurface
 import com.misgus.pengu.ui.components.contentTypeLabel
+import com.misgus.pengu.ui.components.focusRing
+import com.misgus.pengu.ui.components.rememberInteraction
 import com.misgus.pengu.ui.components.sectionHeading
 import com.misgus.pengu.ui.components.toUserMessage
 import com.misgus.pengu.ui.icons.MaterialIcons
@@ -631,11 +635,23 @@ private fun HeroCatalogRow(
     onToggle: (Boolean) -> Unit,
 ) {
     val typeLabel = contentTypeLabel(ref.type)
+    val interaction = rememberInteraction()
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = AppSizes.cardPadding, vertical = AppSpacing.sm),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .focusRing(interaction)
+                .clickableSurface(
+                    interaction,
+                    onClick = { onToggle(!selected) },
+                    enabled = enabled,
+                    role = Role.Checkbox,
+                ).padding(horizontal = AppSizes.cardPadding, vertical = AppSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Checkbox(checked = selected, onCheckedChange = onToggle, enabled = enabled)
+        // The row is the target, so the box only carries the state: a second
+        // click handler here would toggle twice.
+        Checkbox(checked = selected, onCheckedChange = null, enabled = enabled)
         Spacer(Modifier.width(AppSpacing.sm))
         Column(Modifier.weight(1f)) {
             Text(

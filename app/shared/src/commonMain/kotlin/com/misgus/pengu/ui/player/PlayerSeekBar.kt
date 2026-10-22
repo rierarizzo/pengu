@@ -36,6 +36,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.setProgress
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.misgus.pengu.ui.components.handCursor
 import com.misgus.pengu.ui.theme.AppAlpha
 import com.misgus.pengu.ui.theme.AppColors
 import com.misgus.pengu.ui.theme.AppCorner
@@ -95,6 +96,7 @@ internal fun PlayerSeekBar(
             modifier
                 .fillMaxWidth()
                 .height(SEEK_BAR_HEIGHT)
+                .handCursor(enabled)
                 .semantics {
                     this.contentDescription = contentDescription
                     if (enabled) {

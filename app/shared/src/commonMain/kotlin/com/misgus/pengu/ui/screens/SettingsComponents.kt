@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import com.misgus.pengu.ui.components.AppSwitch
 import com.misgus.pengu.ui.components.clickableSurface
 import com.misgus.pengu.ui.components.focusRing
+import com.misgus.pengu.ui.components.handCursor
 import com.misgus.pengu.ui.components.interactionHighlight
 import com.misgus.pengu.ui.components.mirrorInRtl
 import com.misgus.pengu.ui.components.rememberInteraction
@@ -514,6 +515,7 @@ fun <T> SettingsSelect(
             ) {
                 options.forEach { option ->
                     DropdownMenuItem(
+                        modifier = Modifier.handCursor(),
                         text = { Text(label(option), style = AppType.body()) },
                         onClick = {
                             onSelect(option)

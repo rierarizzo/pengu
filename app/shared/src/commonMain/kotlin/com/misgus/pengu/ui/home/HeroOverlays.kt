@@ -29,6 +29,7 @@ import coil3.size.Size
 import com.misgus.pengu.core.model.MetaPreview
 import com.misgus.pengu.ui.components.LogoMaxBitmapSize
 import com.misgus.pengu.ui.components.LogoTrimTransformation
+import com.misgus.pengu.ui.components.handCursor
 import com.misgus.pengu.ui.theme.AppColors
 import com.misgus.pengu.ui.theme.motionTween
 import kotlinx.coroutines.CoroutineScope
@@ -124,6 +125,7 @@ internal fun Modifier.heroTap(onOpen: () -> Unit): Modifier {
     // The copy and actions are rebuilt per page, so read the latest handler
     // instead of restarting the gesture detector on every recomposition.
     val open = rememberUpdatedState(onOpen)
+    // Tapping the billboard opens the title, so the whole surface is one target.
     return pointerInput(Unit) {
         awaitEachGesture {
             val down = awaitFirstDown(requireUnconsumed = false)
@@ -140,7 +142,7 @@ internal fun Modifier.heroTap(onOpen: () -> Unit): Modifier {
                 }
             }
         }
-    }
+    }.handCursor()
 }
 
 /** Carousel paginator: an equal dot per page, grey when idle and white when active. */

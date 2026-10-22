@@ -17,8 +17,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.input.pointer.PointerIcon
-import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import com.misgus.pengu.core.model.ProgressThresholds
@@ -75,8 +73,7 @@ fun PosterCard(
         modifier =
             Modifier
                 .then(if (width != null) Modifier.width(width) else Modifier)
-                .clickableSurface(interaction, onTap, indication = null)
-                .pointerHoverIcon(PointerIcon.Hand),
+                .clickableSurface(interaction, onTap, indication = null),
     ) {
         Box(
             modifier =

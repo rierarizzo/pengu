@@ -800,7 +800,14 @@ leer/escribir/borrar vive una sola vez.
   interactivos en el mínimo de 48dp de Material. Las superficies clicables custom
   dibujan la capa de estado ripple de Material (`clickableSurface`), así que el
   feedback de foco y pulsación sigue visible, y llevan rol de botón para que una
-  superficie custom se anuncie correctamente. Los tiles de póster renuncian a esa
+  superficie custom se anuncie correctamente. El puntero sobre una superficie
+  interactiva se vuelve cursor de mano (`handCursor`), algo que ni `clickable`
+  ni ningún control de Material ponen: `clickableSurface` lo aplica una vez para
+  toda superficie custom, y los pocos controles que no pasan por él (el botón,
+  el switch, el ítem del dropdown, la fila seleccionable del menú de pistas, la
+  barra de avance del reproductor, la sinopsis expandible y el asa de arrastre de
+  los addons) lo aplican por su cuenta. Un control deshabilitado conserva la
+  flecha, ya que no se puede clickear. Los tiles de póster renuncian a esa
   capa de estado (`indication = null`) y señalan el hover con la animación de
   escala/borde, para que un póster con hover no se agrisé. Los paneles de ajustes
   usan el `Card` de Material. Una pequeña capa de componentes en `ui/components`

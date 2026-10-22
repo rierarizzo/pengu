@@ -752,7 +752,14 @@ so the atomic read/write/delete logic lives once.
   `minTouchTarget` keep interactive targets at Material's 48dp minimum. Custom
   clickable surfaces draw the Material ripple state layer (`clickableSurface`),
   so focus and press feedback stays visible, and carry a button role so a custom
-  surface is announced correctly. Poster tiles opt out of that state layer
+  surface is announced correctly. A pointer over an interactive surface turns
+  into the hand cursor (`handCursor`), which neither `clickable` nor any
+  Material control sets: `clickableSurface` applies it once for every custom
+  surface, and the few controls that do not go through it (the button, the
+  switch, the dropdown item, the selectable track row, the player seek bar, the
+  expandable synopsis and the addon drag handle) apply it themselves. A disabled
+  control keeps the arrow, since it cannot be clicked.
+  Poster tiles opt out of that state layer
   (`indication = null`) and signal hover with the scale/border animation
   instead, so a hovered poster is not greyed. Settings panels use the Material
   `Card`. A small component layer in `ui/components` keeps the Material defaults

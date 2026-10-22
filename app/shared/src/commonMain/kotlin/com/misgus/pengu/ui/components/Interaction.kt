@@ -18,6 +18,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.InputMode
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
@@ -78,7 +80,16 @@ fun Modifier.clickableSurface(
         role = role,
         onClickLabel = onClickLabel,
         onClick = onClick,
-    )
+    ).handCursor(enabled)
+
+/**
+ * Pointer cursor of an interactive surface.
+ *
+ * Compose has no shared cursor for clickable targets — neither `clickable` nor
+ * any Material control sets one — so the hand is applied explicitly here and
+ * the arrow stays over a disabled surface, which cannot be clicked.
+ */
+fun Modifier.handCursor(enabled: Boolean = true): Modifier = pointerHoverIcon(if (enabled) PointerIcon.Hand else PointerIcon.Default)
 
 /**
  * Content colour of a navigation item, following the rail's language.
