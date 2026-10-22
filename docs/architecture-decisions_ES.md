@@ -1004,24 +1004,28 @@ leer/escribir/borrar vive una sola vez.
 - **La marca ocupa el 72 % del tile** (72 % de ancho: al ir rotada su contorno es
   cuadrado), centrada. Por encima de eso el triángulo aprieta la keyline de Play;
   por debajo, el icono se lee como un punto en una barra de tareas dibujada a 24–32 px.
-- **El pico apunta al noreste.** El triángulo va girado 45° respecto a la derecha del
+- **El pico apunta al noreste.** La marca va girada 45° respecto a la derecha del
   botón de play: apuntar a la derecha es el glifo que usa cualquier otro reproductor,
   y la diagonal mantiene la lectura de play sin dejar de distinguir a Pengu en una
-  cuadrícula de iconos.
-- **Las puntas son redondas.** Un trazo de 128 con unión redonda dibuja el triángulo,
-  así que el trazo es el radio de la esquina (64, el doble del 32 del hand-off); el
-  triángulo va rotado y escalado sobre su centroide para que el contorno exterior
-  mida 488 unidades en su lado mayor. El radio 64 se lee más sólido a tamaño de barra
+  cuadrícula de iconos. Es una cometa, no un triángulo: las otras dos esquinas están
+  en la diagonal opuesta, así que los dos picos van sobre un mismo eje y los lados de
+  la mandíbula chica son el par corto.
+- **Las puntas son redondas.** Un trazo de 128 con unión redonda dibuja la cometa,
+  así que el trazo es el radio de la esquina (64, el doble del 32 del hand-off); la
+  forma va rotada y escalada sobre su centroide para que el contorno exterior mida
+  488 unidades en su lado mayor. El radio 64 se lee más sólido a tamaño de barra
   de tareas, y el ajuste es lo que evita que se lea más pequeño: solo subir el radio
   retrae las puntas.
 - **Los tonos de las mandíbulas son el acento de la app.** `#F5B02A` y `#D98A0B` son
   también `accent` y `accentContainer` en `Tokens.kt`, así que el chrome de la app y
-  el icono del launcher son los mismos dos naranjas en vez de dos aproximaciones. La
-  costura se sombrea en tres bandas planas de ese tono, cortadas en la diagonal de
-  la propia costura con stops duros, así que la separación se lee como un pliegue y
-  no como una línea dibujada. El foreground de Android las conserva las tres: un
-  VectorDrawable no puede degradar el trazo que da forma al pico, así que cada banda
-  es su propia copia recortada, cortada en los mismos offsets de stop.
+  el icono del launcher son los mismos dos naranjas en vez de dos aproximaciones. Un
+  stop duro donde el eje de los picos cruza la boca los separa, así que las
+  mandíbulas se leen como un pliegue y no como dos formas apiladas, y una línea de
+  10 de negro al 22 % recorre esa boca como único detalle extra: basta para que la
+  marca no se lea plana a 48 px sin introducir un tercer color. El foreground de
+  Android conserva los dos tonos (un VectorDrawable no puede degradar un trazo, así
+  que cada uno es una copia recortada) y el pliegue como línea `#AARRGGBB`; la capa
+  monochrome no lleva ninguno de los dos.
 - **El icono de tienda es cuadrado completo.** Según la spec de iconos de Play el
   asset no lleva radio de esquina ni sombra (Google aplica ambas); `pengu-rounded.*`
   existe para las superficies que no enmascaran iconos.

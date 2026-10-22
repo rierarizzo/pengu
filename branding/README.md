@@ -13,21 +13,23 @@ mandibles. The store, launcher and window icons all derive from `pengu.svg`.
   taskbar drawn at 24–32 px.
 - **The beak points north-east, 45° off the play-button right.** A triangle pointing
   right is the glyph every other player uses; the diagonal keeps the play read and
-  still tells Pengu apart in a grid.
+  still tells Pengu apart in a grid. The other two corners sit on the opposite
+  diagonal so the mark is a kite, not a triangle: both tips on one axis, and the
+  small jaw's sides (267) shorter than the big one's (362).
 - **The tips are round, radius 64.** A 128-wide round-join stroke draws the
-  triangle, so the radius is the stroke; the triangle itself is rotated and scaled
-  about its centroid so the outer hull measures 488 units on its largest side
-  (square, at 45°). Growing the radius on an unfitted path would pull the tips in
-  and shrink the mark.
-- **The mandible tones are stepped shading.** `#F5B02A` upper, `#E79D1B` across the
-  seam, `#D98A0B` lower, as three flat bands cut along the seam's own diagonal: the
-  gradient axis is perpendicular to that seam and centred on it, and each cut is a
-  duplicated hard stop, so nothing is blurred. `#F5B02A` and `#D98A0B` are also the
-  app's `accent` and `accentContainer` (`Tokens.kt`), so the UI chrome and the icon
-  agree. The Android adaptive foreground carries all three bands too: a
-  VectorDrawable cannot gradient a stroke, so each band is its own copy of the beak
-  clipped to its own slice of the axis, cut at the master's stop offsets and painted
-  dark to light. Its scale is fitted from the master, so the hull fills 60 % of the
+  kite, so the radius is the stroke; the kite itself is rotated and scaled about its
+  centroid so the outer hull measures 488 units on its largest side (square, at 45°).
+  Growing the radius on an unfitted path would pull the tips in and shrink the mark.
+- **Two tones and a fold.** The big jaw is `#F5B02A` and the small one `#D98A0B`,
+  the app's `accent` and `accentContainer` in `Tokens.kt`, so the chrome and the icon
+  are the same two oranges. The split is one hard stop where the gradient axis (the
+  line between the tips) crosses the mouth (the line between the two side corners,
+  offset 0.384), so it reads as a fold, not a drawn line. A 10-wide black line at
+  22 % follows the mouth, 76 units clear of each corner, and darkens whichever tone
+  it lies on: that is the only extra detail, and it is what keeps the mark from
+  reading flat at 48 px. The Android adaptive foreground keeps both tones (a
+  VectorDrawable cannot gradient a stroke, so each is a clipped copy) and the fold
+  as `#38000000`. Its scale is fitted from the master, so the hull fills 60 % of the
   72 dp mask — less than the rasters' 72 %, because the launcher crops the 108 dp
   foreground to that mask and scales it up, so an equal fill reads heavier than the
   square tile. `ANDROID_MARK_FILL` is the one knob; 60 % measured the same

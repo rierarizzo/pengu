@@ -1,30 +1,31 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="512" height="512" role="img" aria-labelledby="t">
   <title id="t">Pengu</title>
-  <desc id="d">A play button with a beak's two mandibles.</desc>
+  <desc id="d">A play button shaped like a beak, its jaws split by a fold.</desc>
   <defs>
-    <path id="beak" d="M338.5 428.4 L698.5 332 L602.1 692 Z" stroke-width="128" stroke-linejoin="round"/>
-    <!-- The mandible seam, stepped instead of blended: three flat bands of the
-         same orange whose cuts are parallel to the seam (0,699)-(1024,426),
-         because the gradient axis is perpendicular to it and centred on it. The
-         band above .33 clamps to the seam colour, so only the two cuts need a
-         stop pair. -->
-    <linearGradient id="plumage" gradientUnits="userSpaceOnUse"
-                    x1="473.23" y1="404.81" x2="760.03" y2="570.86">
-      <stop offset="0.33" stop-color="#F5B02A"/>
-      <stop offset="0.33" stop-color="#E79D1B"/>
-      <stop offset="0.67" stop-color="#E79D1B"/>
-      <stop offset="0.67" stop-color="#D98A0B"/>
+    <!-- One contour, four corners: the big beak at the north-east, the small one at
+         the south-west, and the sides between them shortened so the rhombus is not
+         equilateral. A single path means a single outline: the 128-wide round-join
+         stroke rounds the four corners instead of leaving a seam. -->
+    <path id="beak" d="M698.5 332 L604.9 681.7 L338.5 692 L348.8 425.6 Z" stroke-width="128" stroke-linejoin="round"/>
+    <!-- The fold: the axis runs from the small tip to the big one and the hard stop
+         sits where it crosses the mouth (the line between the two side corners,
+         offset 0.384), so the two jaws are one shape in two tones. -->
+    <linearGradient id="plumage" gradientUnits="userSpaceOnUse" x1="338.5" y1="692" x2="698.5" y2="332">
+      <stop offset="0.384" stop-color="#D98A0B"/>
+      <stop offset="0.384" stop-color="#F5B02A"/>
     </linearGradient>
   </defs>
 
   <rect width="1024" height="1024" fill="#0B0B0B"/>
 
   <!-- The mark at 72 % of the canvas: 1.513 scales the original geometry,
-       which sat at 48 %, and translate(502) re-centres it on x. The stroke is what
-       rounds the tips (radius 64, twice the hand-off's 32), and the triangle is
-       scaled 0.849 so the outer hull still measures 488 units tall — the tips would
-       otherwise retract and the mark would read smaller. -->
+       which sat at 48 %, and translate(502) re-centres it on x. -->
   <g transform="translate(502 512) scale(1.513) translate(-512 -512)">
     <use href="#beak" fill="url(#plumage)" stroke="url(#plumage)"/>
+    <!-- The shadow along the mouth: 10 units of black at 22 %, kept 76 units clear of
+         each corner so it never touches the outline. Subtle on purpose — it darkens
+         whichever tone it lies on rather than introducing a third colour. -->
+    <path id="seam" d="M402.5 479.3 L551.2 627.9" stroke="#000000" stroke-opacity="0.22"
+          stroke-width="10" stroke-linecap="round"/>
   </g>
 </svg>

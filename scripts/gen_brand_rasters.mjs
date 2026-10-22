@@ -51,24 +51,28 @@ const write = (file, buf) => {
 };
 
 // ---- the mark's footprint, so a rescale cannot slip through silently -----------
-const bboxHeight = async (buf) => {
+// The rule is 72 % of the tile on the mark's largest side (the hull is square when
+// the mark sits at 45°), so measure both dimensions.
+const bbox = async (buf) => {
   const { data, info } = await sharp(buf).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const [r, g, b] = [data[0], data[1], data[2]]; // the tile corner
-  let top = info.height, bottom = -1;
+  let top = info.height, bottom = -1, left = info.width, right = -1;
   for (let y = 0; y < info.height; y++)
     for (let x = 0; x < info.width; x++) {
       const o = (y * info.width + x) * 4;
       if (Math.abs(data[o] - r) + Math.abs(data[o + 1] - g) + Math.abs(data[o + 2] - b) > 12) {
         if (y < top) top = y;
         if (y > bottom) bottom = y;
+        if (x < left) left = x;
+        if (x > right) right = x;
       }
     }
-  return (bottom - top + 1) / info.height;
+  return Math.max(bottom - top + 1, right - left + 1) / info.width;
 };
 
 // ---- store --------------------------------------------------------------------
 const store = await render(master, STORE);
-const fill = await bboxHeight(store);
+const fill = await bbox(store);
 if (Math.abs(fill - MARK_FILL) > 0.02)
   throw new Error(
     `pengu.png: the mark fills ${(fill * 100).toFixed(1)} % of the tile, expected ~${MARK_FILL * 100} % — ` +

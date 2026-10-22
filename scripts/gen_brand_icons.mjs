@@ -1,12 +1,11 @@
-// Regenerates every TEXT artifact derived from branding/pengu.svg: the rounded
-// and frameless SVG variants and the Android adaptive-icon XML. The geometry is
-// read from the master, so the paths are never typed twice.
+// Regenerates every TEXT artifact derived from branding/pengu.svg: the rounded and
+// frameless SVG variants and the Android adaptive-icon XML. The geometry is read
+// from the master, so the paths are never typed twice.
 //
 //   node scripts/gen_brand_icons.mjs
 //
-// Edit `branding/pengu.svg` and re-run this; never edit the generated files.
-// The rasters (store PNG, launcher mipmaps, desktop ladder, .ico) are committed
-// outputs — the commands to rebuild them are printed at the end.
+// Edit `branding/pengu.svg` and re-run this; never edit the generated files. The
+// rasters are committed outputs: rebuild them with scripts/gen_brand_rasters.mjs.
 
 import { readFileSync, writeFileSync } from "node:fs";
 
@@ -22,51 +21,80 @@ const grab = (re, what) => {
 };
 
 // ---- geometry: one source ----------------------------------------------------
-const [, beakD, beakStroke] = grab(
-  /<path id="beak" d="([^"]+)"[^>]*stroke-width="([^"]+)"/,
-  '<path id="beak">',
+// Every `<path id="beak…">` is a mandible, each with the stroke that rounds it. The
+// stroke is also the corner radius, so the shapes carry their own weight.
+const shapes = [...master.matchAll(/<path id="(beak[A-Za-z]*)" d="([^"]+)" stroke-width="([^"]+)"/g)].map(
+  ([, id, d, stroke]) => ({
+    id,
+    d,
+    stroke: Number(stroke),
+    pts: [...d.matchAll(/(-?[\d.]+)[ ,](-?[\d.]+)/g)].map((m) => [Number(m[1]), Number(m[2])]),
+  }),
 );
-const upperGradient = grab(
-  /<linearGradient id="plumage"[\s\S]*?<\/linearGradient>/,
-  "plumage gradient",
-)[0].replace(/\n {4}/g, "\n");
-const [, gradX1, gradY1, gradX2, gradY2] = grab(
-  /<linearGradient[^>]*x1="([^"]+)" y1="([^"]+)" x2="([^"]+)" y2="([^"]+)"/,
-  "gradient axis",
-);
-const tile = grab(/<rect width="1024" height="1024" fill="(#[0-9A-Fa-f]+)"\/>/, "tile rect")[1];
-const stops = [...upperGradient.matchAll(/offset="([\d.]+)" stop-color="(#[0-9A-Fa-f]+)"/g)].map((m) => ({
-  at: Number(m[1]),
-  color: m[2],
-}));
-if (stops.length < 2) throw new Error(`${MASTER}: expected at least two gradient stops`);
+if (!shapes.length) throw new Error(`${MASTER}: no <path id="beak…"> found`);
 
-// Bands for the Android vector: a VectorDrawable cannot gradient a stroke, so each
-// band is its own copy of the beak, clipped to its own slice of the gradient axis.
-// The cuts are the master's stop offsets, so the icon cannot drift from the mark.
-const bands = [];
-for (const s of stops) {
-  if (bands.at(-1)?.color === s.color) continue; // second stop of a hard cut
-  bands.push({ color: s.color, to: null });
-  if (bands.length > 1) bands.at(-2).to = s.at;
-}
-// slice of the plane before a cut: rect clipped by the half-plane (p - A) · d <= o|d|²
-const AX = Number(gradX2) - Number(gradX1);
-const AY = Number(gradY2) - Number(gradY1);
-const along = (p) => (p[0] - Number(gradX1)) * AX + (p[1] - Number(gradY1)) * AY;
-const sliceBefore = (o) => {
-  const limit = o * (AX * AX + AY * AY);
-  let poly = [[-4096, -4096], [4096, -4096], [4096, 4096], [-4096, 4096]];
-  const keep = (p) => along(p) <= limit;
-  poly = poly.flatMap((p, i) => {
-    const q = poly[(i + 1) % poly.length];
-    if (keep(p) === keep(q)) return keep(p) ? [q] : [];
-    const t = (limit - along(p)) / (along(q) - along(p));
-    const cut = [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t];
-    return keep(p) ? [cut] : [cut, q];
+const tile = grab(/<rect width="1024" height="1024" fill="(#[0-9A-Fa-f]+)"\/>/, "tile rect")[1];
+const flatTone = /<use href="#beak" fill="(#[0-9A-Fa-f]{6})"/.exec(master)?.[1] ?? null;
+
+// Optional: a gradient across the shapes, drawn as hard-stop bands. The master is a
+// flat tone today; the bands are what the earlier two-tone mark used, and a stroke
+// cannot take a gradient in a VectorDrawable, so each band is a clipped copy.
+const gradient = /<linearGradient id="plumage"[\s\S]*?<\/linearGradient>/.exec(master)?.[0].replace(/\n {4}/g, "\n") ?? null;
+const bands = [{ color: flatTone, to: null }];
+if (gradient) {
+  const [, gradX1, gradY1, gradX2, gradY2] = grab(
+    /<linearGradient[^>]*x1="([^"]+)" y1="([^"]+)" x2="([^"]+)" y2="([^"]+)"/,
+    "gradient axis",
+  );
+  const stops = [...gradient.matchAll(/offset="([\d.]+)" stop-color="(#[0-9A-Fa-f]+)"/g)].map((m) => ({
+    at: Number(m[1]),
+    color: m[2],
+  }));
+  if (stops.length < 2) throw new Error(`${MASTER}: expected at least two gradient stops`);
+  bands.length = 0;
+  for (const s of stops) {
+    if (bands.at(-1)?.color === s.color) continue; // second stop of a hard cut
+    bands.push({ color: s.color, to: null });
+    if (bands.length > 1) bands.at(-2).to = s.at;
+  }
+  // slice of the plane before a cut: rect clipped by the half-plane (p - A) · d <= o|d|²
+  const AX = Number(gradX2) - Number(gradX1);
+  const AY = Number(gradY2) - Number(gradY1);
+  const along = (p) => (p[0] - Number(gradX1)) * AX + (p[1] - Number(gradY1)) * AY;
+  bands.forEach((band, i) => {
+    if (band.to === null) return;
+    const limit = band.to * (AX * AX + AY * AY);
+    const keep = (p) => along(p) <= limit;
+    let poly = [[-4096, -4096], [4096, -4096], [4096, 4096], [-4096, 4096]];
+    poly = poly.flatMap((p, j) => {
+      const q = poly[(j + 1) % poly.length];
+      if (keep(p) === keep(q)) return keep(p) ? [q] : [];
+      const t = (limit - along(p)) / (along(q) - along(p));
+      const cut = [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t];
+      return keep(p) ? [cut] : [cut, q];
+    });
+    bands[i].clip = `M${poly.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" L")} Z`;
   });
-  return `M${poly.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" L")} Z`;
-};
+}
+if (!bands[0].color) throw new Error(`${MASTER}: no mark colour found (fill or gradient)`);
+const markFill = gradient ? "url(#plumage)" : flatTone;
+
+// The fold: an outline-free line along the mouth, drawn over the tones. Its colour
+// is a 6-digit hex plus stroke-opacity, so both targets can read one source: SVG
+// takes the opacity, a VectorDrawable needs it folded into #AARRGGBB.
+const seamTag = /<path id="seam"[^>]*>/.exec(master)?.[0] ?? null;
+const seam = seamTag
+  ? {
+      d: /\sd="([^"]+)"/.exec(seamTag)[1],
+      width: Number(/stroke-width="([^"]+)"/.exec(seamTag)[1]),
+      color: /stroke="(#[0-9A-Fa-f]{6})"/.exec(seamTag)[1],
+      opacity: Number(/stroke-opacity="([^"]+)"/.exec(seamTag)?.[1] ?? 1),
+    }
+  : null;
+if (seam) {
+  const alpha = Math.round(seam.opacity * 255).toString(16).padStart(2, "0").toUpperCase();
+  seam.androidColor = `#${alpha}${seam.color.slice(1).toUpperCase()}`;
+}
 
 const header = (what) =>
   `<!-- Generated by scripts/gen_brand_icons.mjs from ${MASTER} — ${what}.\n` +
@@ -82,23 +110,25 @@ writeFileSync(
 
 // ---- 2. frameless: no tile, bigger mark, one-device-pixel outline -----------
 const frameless = (size) => {
-  const w = (1024 / size / SCALE).toFixed(1);
+  const w = 1024 / size / SCALE; // one device pixel, in user units
   return `${header(`the frameless variant, outline of one device pixel at ${size} px`)}
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="512" height="512" role="img" aria-labelledby="t">
   <title id="t">Pengu</title>
   <desc id="d">A play button with a beak's two mandibles.</desc>
   <defs>
-    <path id="beak" d="${beakD}" stroke-width="${beakStroke}" stroke-linejoin="round"/>
-${upperGradient
-      .split("\n")
-      .map((l) => `    ${l}`)
-      .join("\n")}
+${shapes.map((s) => `    <path id="${s.id}" d="${s.d}" stroke-width="${s.stroke}" stroke-linejoin="round"/>`).join("\n")}
+${gradient ? gradient.split("\n").map((l) => `    ${l}`).join("\n") : ""}
   </defs>
 
   <g transform="translate(502 512) scale(${SCALE}) translate(-512 -512)">
-    <path d="${beakD}" fill="${tile}" stroke="${tile}" stroke-width="${Number(beakStroke) + 2 * Number(w)}"
-          stroke-linejoin="round"/>
-    <use href="#beak" fill="url(#plumage)" stroke="url(#plumage)"/>
+${shapes
+  .map(
+    (s) => `    <path d="${s.d}" fill="${tile}" stroke="${tile}" stroke-width="${(s.stroke + 2 * w).toFixed(1)}"
+          stroke-linejoin="round"/>`,
+  )
+  .join("\n")}
+${shapes.map((s) => `    <use href="#${s.id}" fill="${markFill}" stroke="${markFill}"/>`).join("\n")}
+${seam ? `    <path d="${seam.d}" stroke="${seam.color}" stroke-opacity="${seam.opacity}" stroke-width="${seam.width}" stroke-linecap="round"/>` : ""}
   </g>
 </svg>
 `;
@@ -112,38 +142,51 @@ writeFileSync("branding/pengu-frameless.svg", frameless(256));
 // (see ANDROID_MARK_FILL) instead of whatever the artwork implies, and the fit is
 // checked against the 66 dp safe circle.
 const MAX_SAFE_RADIUS_DP = 33;
-const verts = [...beakD.matchAll(/(-?[\d.]+)[ ,](-?[\d.]+)/g)].map((m) => [Number(m[1]), Number(m[2])]);
-const halfStroke = Number(beakStroke) / 2;
-const hullX = verts.map(([x]) => x), hullY = verts.map(([, y]) => y);
-const hullCx = (Math.min(...hullX) + Math.max(...hullX)) / 2;
-const hullCy = (Math.min(...hullY) + Math.max(...hullY)) / 2;
-const hullHeight = Math.max(...hullY) - Math.min(...hullY) + Number(beakStroke);
+const hull = shapes.reduce(
+  (acc, s) => {
+    const half = s.stroke / 2;
+    const xs = s.pts.map(([x]) => x), ys = s.pts.map(([, y]) => y);
+    return {
+      x0: Math.min(acc.x0, Math.min(...xs) - half),
+      x1: Math.max(acc.x1, Math.max(...xs) + half),
+      y0: Math.min(acc.y0, Math.min(...ys) - half),
+      y1: Math.max(acc.y1, Math.max(...ys) + half),
+    };
+  },
+  { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity },
+);
+const hullCx = (hull.x0 + hull.x1) / 2;
+const hullCy = (hull.y0 + hull.y1) / 2;
+const hullSpan = Math.max(hull.x1 - hull.x0, hull.y1 - hull.y0);
 // Less than the rasters' 72 %: the launcher crops the 108 dp canvas to a 72 dp mask
 // and scales that up, so the same fill reads bigger than the square tile next to
 // other apps' icons. 60 % matches their visual weight.
 const ANDROID_MARK_FILL = 0.6;
-const androidScale = (ANDROID_MARK_FILL * 72) / hullHeight;
-const cornerDp = (Math.max(...verts.map(([x, y]) => Math.hypot(x - hullCx, y - hullCy))) + halfStroke) * androidScale;
+const androidScale = (ANDROID_MARK_FILL * 72) / hullSpan;
+const cornerDp =
+  Math.max(...shapes.map((s) => Math.max(...s.pts.map(([x, y]) => Math.hypot(x - hullCx, y - hullCy))) + s.stroke / 2)) *
+  androidScale;
 if (cornerDp > MAX_SAFE_RADIUS_DP)
   throw new Error(`${MASTER}: corners reach ${cornerDp.toFixed(1)} dp, outside the ${MAX_SAFE_RADIUS_DP} dp safe circle`);
 
-// Paint dark to light: the darkest band covers the whole beak, each lighter one is
+const androidPath = (s, color, indent) => `${indent}<path
+${indent}    android:pathData="${s.d}"
+${indent}    android:strokeColor="${color}"
+${indent}    android:strokeWidth="${s.stroke}"
+${indent}    android:strokeLineJoin="round"
+${indent}    android:fillColor="${color}" />`;
+
+// Paint dark to light: the darkest band covers every mandible, each lighter one is
 // clipped to its slice, so the cuts blend tone into tone and nothing bleeds.
-const beakPath = (color) => `            <path
-                android:pathData="${beakD}"
-                android:strokeColor="${color}"
-                android:strokeWidth="${beakStroke}"
-                android:strokeLineJoin="round"
-                android:fillColor="${color}" />`;
 const androidLayers = [...bands]
   .reverse()
   .map((band) =>
-    band.to === null
-      ? beakPath(band.color)
-      : `            <group>
-                <clip-path android:pathData="${sliceBefore(band.to)}" />
-${beakPath(band.color)}
-            </group>`,
+    band.clip
+      ? `            <group>
+                <clip-path android:pathData="${band.clip}" />
+${shapes.map((s) => androidPath(s, band.color, "                ")).join("\n")}
+            </group>`
+      : shapes.map((s) => androidPath(s, band.color, "            ")).join("\n"),
   )
   .join("\n");
 
@@ -166,10 +209,10 @@ writeFileSync(
   `<?xml version="1.0" encoding="utf-8"?>
 ${header("the adaptive-icon foreground")}
 <!-- Fitted from the master, not typed: the hull fills ${(ANDROID_MARK_FILL * 100).toFixed(0)} % of the 72 dp mask
-     (${(hullHeight * androidScale).toFixed(1)} dp tall, corners at ${cornerDp.toFixed(1)} dp, inside the 66 dp safe
-     circle) and is centred on the hull. A VectorDrawable cannot gradient a stroke,
-     so each band of the master is its own copy of the beak, clipped to its own
-     slice of the gradient axis: the icon keeps all ${bands.length} tones. -->
+     (${(hullSpan * androidScale).toFixed(1)} dp across, corners at ${cornerDp.toFixed(1)} dp, inside the 66 dp safe
+     circle) and is centred on the hull. ${bands.length > 1 ? `A VectorDrawable cannot gradient a
+     stroke, so each band of the master is its own clipped copy: the icon keeps all
+     ${bands.length} tones.` : `One flat tone, like the master.`} -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
@@ -182,6 +225,11 @@ ${header("the adaptive-icon foreground")}
         android:scaleY="${androidScale.toFixed(5)}">
         <group android:translateX="${-hullCx}" android:translateY="${-hullCy}">
 ${androidLayers}
+${seam ? `            <path
+                android:pathData="${seam.d}"
+                android:strokeColor="${seam.androidColor}"
+                android:strokeWidth="${seam.width}"
+                android:strokeLineCap="round" />` : ""}
         </group>
     </group>
 </vector>
@@ -195,8 +243,7 @@ writeFileSync(
   `<?xml version="1.0" encoding="utf-8"?>
 ${header("the adaptive-icon monochrome layer")}
 <!-- Same fit and geometry as the foreground, flattened to one colour: the system
-     tints this layer, so only the silhouette matters. No seam, because the two
-     mandibles are one shape once the tone is gone. -->
+     tints this layer, so only the silhouette matters. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
@@ -208,12 +255,7 @@ ${header("the adaptive-icon monochrome layer")}
         android:scaleX="${androidScale.toFixed(5)}"
         android:scaleY="${androidScale.toFixed(5)}">
         <group android:translateX="${-hullCx}" android:translateY="${-hullCy}">
-            <path
-                android:pathData="${beakD}"
-                android:strokeColor="#FFFFFF"
-                android:strokeWidth="${beakStroke}"
-                android:strokeLineJoin="round"
-                android:fillColor="#FFFFFF" />
+${shapes.map((s) => androidPath(s, "#FFFFFF", "            ")).join("\n")}
         </group>
     </group>
 </vector>
