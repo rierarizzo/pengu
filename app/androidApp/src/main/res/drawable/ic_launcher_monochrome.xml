@@ -16,7 +16,7 @@
         android:scaleY="0.08852">
         <group android:translateX="-518.5" android:translateY="-512">
             <path
-                android:pathData="M362.7 332 L674.3 512 L362.7 692 Z"
+                android:pathData="M338.5 428.4 L698.5 332 L602.1 692 Z"
                 android:strokeColor="#FFFFFF"
                 android:strokeWidth="128"
                 android:strokeLineJoin="round"

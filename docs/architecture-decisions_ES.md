@@ -1001,15 +1001,19 @@ leer/escribir/borrar vive una sola vez.
   commiteados, así que ningún path se escribe dos veces ni ningún tamaño se adivina;
   `branding/README.md` recoge la paleta, los tamaños y las reglas, incluida la lista
   de seis pasos para cambiar la marca.
-- **La marca ocupa el 72 % del tile** (65 % de ancho), centrada. Por encima de eso
-  el triángulo aprieta la keyline de Play; por debajo, el icono se lee como un punto
-  en una barra de tareas dibujada a 24–32 px.
+- **La marca ocupa el 72 % del tile** (72 % de ancho: al ir rotada su contorno es
+  cuadrado), centrada. Por encima de eso el triángulo aprieta la keyline de Play;
+  por debajo, el icono se lee como un punto en una barra de tareas dibujada a 24–32 px.
+- **El pico apunta al noreste.** El triángulo va girado 45° respecto a la derecha del
+  botón de play: apuntar a la derecha es el glifo que usa cualquier otro reproductor,
+  y la diagonal mantiene la lectura de play sin dejar de distinguir a Pengu en una
+  cuadrícula de iconos.
 - **Las puntas son redondas.** Un trazo de 128 con unión redonda dibuja el triángulo,
   así que el trazo es el radio de la esquina (64, el doble del 32 del hand-off); el
-  triángulo va escalado 0,849 sobre su centro para que el contorno exterior mantenga
-  la altura del hand-off. El radio 64 se lee más sólido a tamaño de barra de tareas,
-  y es la escala lo que evita que se lea más pequeño: solo subir el radio retrae las
-  puntas.
+  triángulo va rotado y escalado sobre su centroide para que el contorno exterior
+  mida 488 unidades en su lado mayor. El radio 64 se lee más sólido a tamaño de barra
+  de tareas, y el ajuste es lo que evita que se lea más pequeño: solo subir el radio
+  retrae las puntas.
 - **Los tonos de las mandíbulas son el acento de la app.** `#F5B02A` y `#D98A0B` son
   también `accent` y `accentContainer` en `Tokens.kt`, así que el chrome de la app y
   el icono del launcher son los mismos dos naranjas en vez de dos aproximaciones. La

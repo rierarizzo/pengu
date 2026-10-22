@@ -932,14 +932,17 @@ so the atomic read/write/delete logic lives once.
   renders the committed PNGs and the `.ico` from those SVGs, so no path is ever
   typed twice and no size is guessed; `branding/README.md` lists the palette, the
   sizes and the rules, including the six-step checklist for changing the mark.
-- **The mark fills 72 % of the tile** (65 % wide), centred. Above that the play
-  triangle crowds the Play keyline, below it the icon reads as a dot in a taskbar
-  drawn at 24–32 px.
+- **The mark fills 72 % of the tile** (72 % wide: rotated, so its hull is square),
+  centred. Above that the play triangle crowds the Play keyline, below it the icon
+  reads as a dot in a taskbar drawn at 24–32 px.
+- **The beak points north-east.** The triangle is rolled 45° off the play-button
+  right: pointing right is the glyph every other player uses, and the diagonal keeps
+  the play read while telling Pengu apart in a grid of icons.
 - **The tips are round.** A 128-wide round-join stroke draws the triangle, so the
-  stroke is the corner radius (64, twice the hand-off's 32); the triangle is scaled
-  0.849 about its centre so the outer hull keeps the hand-off's height. Radius 64
-  reads more solid at taskbar sizes, and the scale is what keeps it from reading
-  smaller: a bigger radius alone retracts the tips.
+  stroke is the corner radius (64, twice the hand-off's 32); the triangle is rotated
+  and scaled about its centroid so the outer hull measures 488 units on its largest
+  side. Radius 64 reads more solid at taskbar sizes, and the fit is what keeps it
+  from reading smaller: a bigger radius alone retracts the tips.
 - **The mandible tones are the app's accent.** `#F5B02A` and `#D98A0B` are also
   `accent` and `accentContainer` in `Tokens.kt`, so the in-app chrome and the
   launcher icon are the same two oranges instead of two near-misses. The seam is

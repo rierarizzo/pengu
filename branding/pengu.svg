@@ -2,14 +2,14 @@
   <title id="t">Pengu</title>
   <desc id="d">A play button with a beak's two mandibles.</desc>
   <defs>
-    <path id="beak" d="M362.7 332 L674.3 512 L362.7 692 Z" stroke-width="128" stroke-linejoin="round"/>
+    <path id="beak" d="M338.5 428.4 L698.5 332 L602.1 692 Z" stroke-width="128" stroke-linejoin="round"/>
     <!-- The mandible seam, stepped instead of blended: three flat bands of the
          same orange whose cuts are parallel to the seam (0,699)-(1024,426),
          because the gradient axis is perpendicular to it and centred on it. The
          band above .33 clamps to the seam colour, so only the two cuts need a
          stop pair. -->
     <linearGradient id="plumage" gradientUnits="userSpaceOnUse"
-                    x1="470.78" y1="407.9" x2="553.22" y2="717.1">
+                    x1="473.23" y1="404.81" x2="760.03" y2="570.86">
       <stop offset="0.33" stop-color="#F5B02A"/>
       <stop offset="0.33" stop-color="#E79D1B"/>
       <stop offset="0.67" stop-color="#E79D1B"/>

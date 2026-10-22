@@ -7,13 +7,18 @@ mandibles. The store, launcher and window icons all derive from `pengu.svg`.
 
 - **`pengu.svg` is the only master.** Every other file is derived; do not edit the
   generated ones by hand (they carry a header saying so).
-- **The mark fills 72 % of the tile** (65 % wide), centred — 1.513× the original
-  hand-off, which sat at 48 %. Above that the play triangle crowds the Play
-  keyline; below it the icon reads as a dot in a taskbar drawn at 24–32 px.
+- **The mark fills 72 % of the tile** (72 % wide: it is rotated, so its hull is
+  square), centred — 1.513× the original hand-off, which sat at 48 %. Above that the
+  play triangle crowds the Play keyline; below it the icon reads as a dot in a
+  taskbar drawn at 24–32 px.
+- **The beak points north-east, 45° off the play-button right.** A triangle pointing
+  right is the glyph every other player uses; the diagonal keeps the play read and
+  still tells Pengu apart in a grid.
 - **The tips are round, radius 64.** A 128-wide round-join stroke draws the
-  triangle, so the radius is the stroke; the triangle itself is scaled 0.849 about
-  its centre so the outer hull keeps the hand-off's 488-unit height. Growing the
-  radius on the unscaled path would pull the tips in and shrink the mark.
+  triangle, so the radius is the stroke; the triangle itself is rotated and scaled
+  about its centroid so the outer hull measures 488 units on its largest side
+  (square, at 45°). Growing the radius on an unfitted path would pull the tips in
+  and shrink the mark.
 - **The mandible tones are stepped shading.** `#F5B02A` upper, `#E79D1B` across the
   seam, `#D98A0B` lower, as three flat bands cut along the seam's own diagonal: the
   gradient axis is perpendicular to that seam and centred on it, and each cut is a
@@ -95,9 +100,9 @@ Rare enough to forget the order. Six steps:
    id="beak">` (its `stroke-width` is the corner radius), `<linearGradient
    id="plumage">` with a duplicated stop pair per hard cut, and the 1024 tile
    `<rect>`. Do not break them: the generator throws rather than guess.
-2. **Re-fit the hull to 488 units tall, centred on (518.5, 512).** That is what puts
-   the mark at 72 % of the tile; a new drawing is almost never that size, so scale it
-   — the current 0.849 is that fit baked into the path.
+2. **Re-fit the hull to 488 units on its largest side, centred on (518.5, 512).**
+   That is what puts the mark at 72 % of the tile; a new drawing is almost never
+   that size, so rotate, scale and centre it — the shipped path is already that fit.
 3. Run both generators. The raster step fails if the mark is not ~72 % of the store
    tile, so a missing re-fit cannot pass unnoticed.
 4. **Look at it small**: 16/24/32 px on light and dark backgrounds, plus the 512
@@ -108,5 +113,5 @@ Rare enough to forget the order. Six steps:
    system current_sec_appicon_theme_package` — a corrupt theme package name there
    makes the launcher fail to load adaptive icons.
 6. **Update `docs/architecture-decisions.md` and its `_ES.md` mirror in the same
-   commit**, including the numbers that hang off the geometry: the 72 %/65 %
-   footprint and the 60 % Android fill.
+   commit**, including the numbers that hang off the geometry: the 72 % footprint
+   and the 60 % Android fill.

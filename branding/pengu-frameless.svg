@@ -4,9 +4,9 @@
   <title id="t">Pengu</title>
   <desc id="d">A play button with a beak's two mandibles.</desc>
   <defs>
-    <path id="beak" d="M362.7 332 L674.3 512 L362.7 692 Z" stroke-width="128" stroke-linejoin="round"/>
+    <path id="beak" d="M338.5 428.4 L698.5 332 L602.1 692 Z" stroke-width="128" stroke-linejoin="round"/>
     <linearGradient id="plumage" gradientUnits="userSpaceOnUse"
-                    x1="470.78" y1="407.9" x2="553.22" y2="717.1">
+                    x1="473.23" y1="404.81" x2="760.03" y2="570.86">
       <stop offset="0.33" stop-color="#F5B02A"/>
       <stop offset="0.33" stop-color="#E79D1B"/>
       <stop offset="0.67" stop-color="#E79D1B"/>
@@ -15,7 +15,7 @@
   </defs>
 
   <g transform="translate(502 512) scale(1.78) translate(-512 -512)">
-    <path d="M362.7 332 L674.3 512 L362.7 692 Z" fill="#0B0B0B" stroke="#0B0B0B" stroke-width="132.4"
+    <path d="M338.5 428.4 L698.5 332 L602.1 692 Z" fill="#0B0B0B" stroke="#0B0B0B" stroke-width="132.4"
           stroke-linejoin="round"/>
     <use href="#beak" fill="url(#plumage)" stroke="url(#plumage)"/>
   </g>
