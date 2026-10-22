@@ -12,6 +12,19 @@ plugins {
 
 // One formatter/linter for every module, so CI can gate on it.
 subprojects {
+    // mediamp-api (even 0.5.3) asks for compose.foundation 1.12.0 while the rest of
+    // the Compose stack comes from the catalog at 1.12.1, and Compose's own
+    // compatibility check refuses a mixed graph. foundation has no separate version
+    // axis — it ships with the Compose Multiplatform release — so align it here once
+    // instead of repeating a constraint in every module that pulls mediamp.
+    configurations.configureEach {
+        resolutionStrategy.eachDependency {
+            if (requested.group == "org.jetbrains.compose.foundation") {
+                useVersion(libs.versions.composeMultiplatform.get())
+            }
+        }
+    }
+
     apply(plugin = "org.jlleitschuh.gradle.ktlint")
     extensions.configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
         // Generated sources (Compose resources, etc.) are not ours to style. The
