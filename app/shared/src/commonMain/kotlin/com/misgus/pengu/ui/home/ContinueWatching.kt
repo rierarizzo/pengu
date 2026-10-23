@@ -126,7 +126,7 @@ internal fun ContinueCard(
                 .combinedClickableSurface(
                     state = interaction,
                     onClick = onTap,
-                    onLongClick = actionsState::open,
+                    onLongClick = { actionsState.open() },
                     indication = null,
                     onLongClickLabel = optionsLabel,
                 ),

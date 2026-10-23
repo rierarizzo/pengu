@@ -366,11 +366,12 @@ private fun HeroContent(
             Spacer(Modifier.height(AppSpacing.lg - HeroActionRowInset))
             // Show only the settled description: the library preview can be a
             // different synopsis, and swapping it mid-view reads worse than a
-            // short reserve. `minLines` keeps the layout stable.
+            // short reserve. While loading, reserve the usual height so the copy
+            // does not jump in; once settled, the block follows the actual text.
             HeroSynopsis(
                 text = state.description,
                 loading = !settled,
-                minLines = AppSynopsis.MAX_LINES,
+                minLines = if (settled) 1 else AppSynopsis.MAX_LINES,
                 expandable = true,
             )
             if (settled && state.genres.isNotEmpty()) {

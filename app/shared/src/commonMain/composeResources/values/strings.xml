@@ -53,7 +53,7 @@
     <string name="home_continue_watching">Continue watching</string>
     <string name="home_continue_left">%1$d min left</string>
     <string name="home_continue_play_from_start">Watch from beginning</string>
-    <string name="home_continue_remove">Remove from Continue watching</string>
+    <string name="home_continue_remove">Remove</string>
     <string name="home_continue_remove_error">Could not remove this title from Continue watching.</string>
     <string name="home_error_title">Could not load Home</string>
     <string name="home_empty_message">Install a metadata addon with catalogs to fill this Home.</string>
@@ -120,7 +120,7 @@
     <!-- Detail -->
     <string name="detail_error_library">Could not update your library.</string>
     <string name="detail_error_watched">Could not update the watched state.</string>
-    <string name="detail_add_to_library">Add to my library</string>
+    <string name="detail_add_to_library">Add to library</string>
     <string name="detail_remove_from_library">Remove from library</string>
     <string name="detail_episodes">Episodes</string>
     <string name="detail_you_may_also_like">You May Also Like</string>

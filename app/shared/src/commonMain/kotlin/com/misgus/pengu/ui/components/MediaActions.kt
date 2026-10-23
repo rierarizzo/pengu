@@ -1,17 +1,25 @@
 package com.misgus.pengu.ui.components
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetValue
@@ -25,8 +33,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
 import com.misgus.pengu.app.shared.generated.resources.Res
 import com.misgus.pengu.app.shared.generated.resources.action_mark_unwatched
 import com.misgus.pengu.app.shared.generated.resources.action_mark_watched
@@ -47,11 +61,13 @@ import com.misgus.pengu.ui.shell.LocalSnackbarHost
 import com.misgus.pengu.ui.theme.AppBottomSheetShape
 import com.misgus.pengu.ui.theme.AppColors
 import com.misgus.pengu.ui.theme.AppIconSize
+import com.misgus.pengu.ui.theme.AppSizes
 import com.misgus.pengu.ui.theme.AppSpacing
 import com.misgus.pengu.ui.theme.AppType
 import com.misgus.pengu.ui.theme.safeBottomInset
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
+import kotlin.math.roundToInt
 
 /** Actions that only make sense on a "Continue watching" card. */
 data class ContinueWatchingActions(
@@ -83,7 +99,17 @@ class MediaActionsState internal constructor() {
     var expanded by mutableStateOf(false)
         private set
 
-    fun open() {
+    /**
+     * Where the secondary click happened, in the card's own coordinates.
+     *
+     * The menu is anchored there, so it opens under the cursor instead of at a
+     * corner of the poster.
+     */
+    var position by mutableStateOf(Offset.Zero)
+        private set
+
+    fun open(at: Offset = Offset.Zero) {
+        position = at
         expanded = true
     }
 
@@ -98,16 +124,17 @@ fun rememberMediaActionsState(): MediaActionsState = remember { MediaActionsStat
 private data class MediaActionItem(
     val label: String,
     val icon: ImageVector,
-    val style: ActionButtonStyle = ActionButtonStyle.Outline,
+    val emphasized: Boolean = false,
     val onClick: () -> Unit,
 )
 
 /**
  * Desktop menu and touch sheet for a poster.
  *
- * Desktop only shows the options, anchored to the card. A touch device opens a
- * bottom sheet with the title, its metadata, the synopsis and the same actions
- * as full-width buttons, since a floating menu is a poor target there.
+ * Desktop only shows the options, anchored at the pointer that opened them. A
+ * touch device opens a bottom sheet with the title, its metadata, the synopsis
+ * and the same actions as full-width buttons, since a floating menu is a poor
+ * target there.
  */
 @Composable
 fun MediaActionsHost(
@@ -186,7 +213,7 @@ fun MediaActionsHost(
                         MediaActionItem(
                             label = stringResource(Res.string.home_continue_play_from_start),
                             icon = MaterialIcons.Play,
-                            style = ActionButtonStyle.Filled,
+                            emphasized = true,
                             onClick = continueWatching.onPlayFromBeginning,
                         ),
                     )
@@ -194,7 +221,6 @@ fun MediaActionsHost(
                         MediaActionItem(
                             label = stringResource(Res.string.home_continue_remove),
                             icon = MaterialIcons.Delete,
-                            style = ActionButtonStyle.Text,
                             onClick = continueWatching.onRemove,
                         ),
                     )
@@ -206,7 +232,6 @@ fun MediaActionsHost(
                                     if (saved == true) Res.string.detail_remove_from_library else Res.string.detail_add_to_library,
                                 ),
                             icon = if (saved == true) MaterialIcons.Check else MaterialIcons.Plus,
-                            style = ActionButtonStyle.Tonal,
                             onClick = toggleSaved,
                         ),
                     )
@@ -231,33 +256,51 @@ fun MediaActionsHost(
             }
         }
 
-    if (isDesktop) {
-        DropdownMenu(
-            expanded = state.expanded,
-            onDismissRequest = state::close,
-            containerColor = AppColors.surfaceSelected,
-            shape = MaterialTheme.shapes.medium,
+    if (isDesktop && state.expanded) {
+        Box(
+            Modifier.offset {
+                IntOffset(state.position.x.roundToInt(), state.position.y.roundToInt())
+            },
         ) {
-            items.forEach { item ->
-                DropdownMenuItem(
-                    modifier = Modifier.handCursor(),
-                    enabled = !busy,
-                    text = { Text(item.label, style = AppType.body()) },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = item.icon,
-                            contentDescription = null,
-                            modifier = Modifier.size(AppIconSize.sm),
-                        )
-                    },
-                    onClick = {
-                        state.close()
-                        item.onClick()
-                    },
-                )
+            DropdownMenu(
+                expanded = true,
+                onDismissRequest = state::close,
+                containerColor = AppColors.surfaceSelected,
+                shape = MaterialTheme.shapes.medium,
+                tonalElevation = 0.dp,
+                shadowElevation = 0.dp,
+                border = BorderStroke(AppSizes.borderWidth, MaterialTheme.colorScheme.outlineVariant),
+            ) {
+                items.forEach { item ->
+                    DropdownMenuItem(
+                        modifier = Modifier.handCursor().height(40.dp),
+                        enabled = !busy,
+                        text = {
+                            Text(
+                                item.label,
+                                style =
+                                    AppType.bodySecondary().copy(
+                                        fontWeight = if (item.emphasized) FontWeight.SemiBold else FontWeight.Normal,
+                                    ),
+                                color = if (item.emphasized && !busy) MaterialTheme.colorScheme.primary else LocalContentColor.current,
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = item.icon,
+                                contentDescription = null,
+                                modifier = Modifier.size(AppIconSize.sm),
+                            )
+                        },
+                        onClick = {
+                            state.close()
+                            item.onClick()
+                        },
+                    )
+                }
             }
         }
-    } else if (state.expanded) {
+    } else if (!isDesktop && state.expanded) {
         MediaActionsSheet(
             item = actions.item,
             items = items,
@@ -311,21 +354,61 @@ private fun MediaActionsSheet(
             }
             item.description?.takeIf { it.isNotBlank() }?.let { synopsis ->
                 Spacer(Modifier.height(AppSpacing.md))
-                HeroSynopsis(text = synopsis, minLines = 3, expandable = true)
+                HeroSynopsis(text = synopsis, expandable = true)
             }
             Spacer(Modifier.height(AppSpacing.lg))
             items.forEach { action ->
-                ActionButton(
-                    text = action.label,
-                    icon = action.icon,
-                    onClick = { run(action) },
-                    style = action.style,
+                SheetActionRow(
+                    action = action,
                     enabled = !busy,
-                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { run(action) },
                 )
-                Spacer(Modifier.height(AppSpacing.sm))
             }
         }
+    }
+}
+
+/**
+ * One option in the touch sheet: glyph and label, left aligned, with no button
+ * container. A row is easier to scan than a stack of outlined pills and keeps
+ * the whole width as the tap target.
+ */
+@Composable
+private fun SheetActionRow(
+    action: MediaActionItem,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    val interaction = rememberInteraction()
+    val emphasized = action.emphasized && enabled
+    val contentColor = if (emphasized) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(MaterialTheme.shapes.small)
+                .background(interactionHighlight(interaction))
+                .focusRing(interaction)
+                .clickableSurface(interaction, onClick, enabled = enabled)
+                .heightIn(min = AppSizes.controlHeight)
+                .padding(vertical = AppSpacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = action.icon,
+            contentDescription = null,
+            tint = if (emphasized) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(AppIconSize.sm),
+        )
+        Spacer(Modifier.width(AppSpacing.md))
+        Text(
+            action.label,
+            style =
+                AppType.bodySecondary().copy(
+                    fontWeight = if (emphasized) FontWeight.SemiBold else FontWeight.Normal,
+                ),
+            color = contentColor,
+        )
     }
 }
 

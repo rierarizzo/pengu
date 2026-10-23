@@ -109,9 +109,9 @@ These exist so the same concern is not re-implemented per screen:
   results, so Home and Library do not duplicate the request-ticket logic.
 - **`MediaActions` / `MediaActionsHost`** (`ui/components`) — the right-click /
   long-press menu every poster shares: library and watched toggles plus "More
-  info", and the Continue watching variants ("Watch from beginning", "Remove
-  from Continue watching"). Desktop renders a `DropdownMenu`; touch renders a
-  bottom sheet with the synopsis and full-width actions.
+  info", and the Continue watching variants ("Watch from beginning", "Remove").
+  Desktop renders a `DropdownMenu`; touch renders a bottom sheet with the
+  synopsis and left-aligned actions.
 - **`ReorderableCardColumn`** (`ui/components`) — a short list of cards reordered
   by dragging the handle of one of them; the caller owns the list and persists
   the new order once, on drop. Used by Settings → Addons; reuse it for any other

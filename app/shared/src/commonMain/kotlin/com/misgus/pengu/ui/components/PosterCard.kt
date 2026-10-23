@@ -87,7 +87,7 @@ fun PosterCard(
                             .combinedClickableSurface(
                                 state = interaction,
                                 onClick = onTap,
-                                onLongClick = actionsState::open,
+                                onLongClick = { actionsState.open() },
                                 indication = null,
                                 onLongClickLabel = optionsLabel,
                             )
@@ -96,6 +96,11 @@ fun PosterCard(
                     },
                 ),
     ) {
+        // First child, so its local origin is the card's top-left: the menu
+        // anchor can then use the pointer position unchanged.
+        if (actions != null) {
+            MediaActionsHost(actions, actionsState)
+        }
         Box(
             modifier =
                 Modifier
@@ -129,9 +134,6 @@ fun PosterCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-        }
-        if (actions != null) {
-            MediaActionsHost(actions, actionsState)
         }
     }
 }

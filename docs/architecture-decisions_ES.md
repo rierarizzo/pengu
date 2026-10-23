@@ -784,17 +784,24 @@ leer/escribir/borrar vive una sola vez.
   `MediaActionsHost` (`ui/components/MediaActions.kt`) dan a cada póster el mismo
   menú de clic derecho / pulsación larga, así Home, Library, Catalog, Search,
   Discover y "More like this" no pueden divergir. En desktop ancla un
-  `DropdownMenu` con solo las opciones; en táctil abre una bottom sheet con el
-  título, su metadata, la sinopsis y las mismas opciones como botones de ancho
-  completo. El menú ofrece los toggles de biblioteca y visto, y "More info";
-  cuando el llamador ya conoce esos estados los pasa y, si no, el host los
-  resuelve al abrir. Una tarjeta de "Continue watching" los sustituye por "Watch
-  from beginning", "Remove from Continue watching" y "More info". Quitar borra
-  todas las filas de progreso del título (`ProgressRepository.remove`), no solo
-  el episodio más nuevo, así un episodio anterior sin terminar no puede devolver
-  la fila; después la señal de playback repinta Home. "Watch from beginning"
-  lleva `startFromBeginning` por `StreamsRequest` hasta `PlaybackTarget`, donde
-  el reporter de progreso se salta la posición guardada.
+  `DropdownMenu` en la posición del puntero con solo las opciones; en táctil abre
+  una bottom sheet con el título, su metadata, la sinopsis (ajustada a su
+  contenido) y las mismas opciones como filas alineadas a la izquierda, de ancho
+  completo y sin contorno de botón. El menú
+  ofrece los toggles de biblioteca y visto, y "More info"; cuando el llamador ya
+  conoce esos estados los pasa y, si no, el host los resuelve al abrir. Una
+  tarjeta de "Continue watching" los sustituye por "Watch from beginning",
+  "Remove" y "More info". Quitar borra todas las filas de
+  progreso del título (`ProgressRepository.remove`), no solo el episodio más
+  nuevo, así un episodio anterior sin terminar no puede devolver la fila;
+  después la señal de playback repinta Home. "Watch from beginning" lleva
+  `startFromBeginning` por `StreamsRequest` hasta `PlaybackTarget`, donde el
+  reporter de progreso se salta la posición guardada.
+- **Los bloques de sinopsis se ajustan a su texto.** `HeroSynopsis` solo reserva
+  altura mientras no tiene texto (el estado de carga del hero del detalle); una
+  vez está la descripción, el bloque toma las líneas que realmente usa, así una
+  sinopsis de dos líneas no deja una tercera vacía. La bottom sheet de acciones
+  del póster sigue la misma regla.
 - **Search es dueña del feed de discover.** Tiene una búsqueda de texto libre en
   cada catálogo que declara el extra `search`, con debounce, ejecutada en
   paralelo y deduplicada entre addons, dividida en raíles Movies / Series /

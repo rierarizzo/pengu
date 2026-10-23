@@ -112,9 +112,8 @@ Existen para no reimplementar la misma preocupación en cada pantalla:
 - **`MediaActions` / `MediaActionsHost`** (`ui/components`) — el menú de clic
   derecho / pulsación larga que comparten todos los pósters: toggles de
   biblioteca y visto más "More info", y las variantes de Continue watching
-  ("Watch from beginning", "Remove from Continue watching"). En desktop pinta un
-  `DropdownMenu`; en táctil, una bottom sheet con la sinopsis y acciones de ancho
-  completo.
+  ("Watch from beginning", "Remove"). En desktop pinta un `DropdownMenu`; en
+  táctil, una bottom sheet con la sinopsis y acciones alineadas a la izquierda.
 - **`ReorderableCardColumn`** (`ui/components`) — una lista corta de cards que se
   reordena arrastrando el handle de una de ellas; el llamador posee la lista y
   persiste el nuevo orden una sola vez, al soltar. La usa Ajustes → Addons;

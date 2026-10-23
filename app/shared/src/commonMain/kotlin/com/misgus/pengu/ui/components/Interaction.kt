@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -114,21 +115,23 @@ fun Modifier.combinedClickableSurface(
     ).handCursor(enabled)
 
 /**
- * Calls [onClick] on a secondary-button press (a right click on desktop).
+ * Calls [onClick] with the pointer position on a secondary-button press (a right
+ * click on desktop).
  *
  * Compose's clickable surfaces only handle the primary button, so the poster
  * menu needs its own pointer loop. It runs on the [PointerEventPass.Initial] pass
  * and consumes the press, so the click target underneath never sees a right
- * click as a play/open request.
+ * click as a play/open request. The position is local to this surface, which is
+ * also the anchor of the menu that opens there.
  */
-fun Modifier.onSecondaryClick(onClick: () -> Unit): Modifier =
+fun Modifier.onSecondaryClick(onClick: (Offset) -> Unit): Modifier =
     pointerInput(onClick) {
         awaitPointerEventScope {
             while (true) {
                 val event = awaitPointerEvent(PointerEventPass.Initial)
                 if (event.type == PointerEventType.Press && event.buttons.isSecondaryPressed) {
                     event.changes.forEach { it.consume() }
-                    onClick()
+                    onClick(event.changes.first().position)
                 }
             }
         }
