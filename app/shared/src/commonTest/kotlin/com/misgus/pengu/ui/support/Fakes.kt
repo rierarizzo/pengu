@@ -24,8 +24,6 @@ import com.misgus.pengu.core.repository.MetadataRepository
 import com.misgus.pengu.core.repository.ProgressRepository
 import com.misgus.pengu.core.repository.SignInMethod
 import com.misgus.pengu.core.repository.SignInRequest
-import com.misgus.pengu.core.repository.StreamGroup
-import com.misgus.pengu.core.repository.StreamRepository
 import com.misgus.pengu.core.repository.TmdbLookup
 import com.misgus.pengu.core.repository.TmdbRepository
 import com.misgus.pengu.core.repository.TmdbVerifyResult
@@ -162,16 +160,6 @@ class FakeCatalogRepository(
         gates[ref.key]?.await()
         return items[ref.key].orEmpty()
     }
-}
-
-/** In-memory [StreamRepository] for tests. */
-class FakeStreamRepository(
-    private val groups: List<StreamGroup> = emptyList(),
-) : StreamRepository {
-    override suspend fun all(
-        type: ContentType,
-        id: String,
-    ): List<StreamGroup> = groups
 }
 
 /** In-memory [AddonRepository] for tests. */

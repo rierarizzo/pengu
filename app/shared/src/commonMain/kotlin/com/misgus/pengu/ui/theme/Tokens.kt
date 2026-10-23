@@ -408,9 +408,6 @@ object AppAlpha {
     /** Top fade that keeps the window controls legible over artwork. */
     const val HERO_TOP = 0.45f
 
-    /** Strong top edge of a short media header, such as a dialog. */
-    const val MEDIA_SCRIM_HEADER = 0.6f
-
     /** Player top and bottom control scrims. */
     const val PLAYER_SCRIM = 0.8f
 
@@ -555,15 +552,6 @@ object AppScrim {
                 0f to Color.Transparent,
                 0.7f to Color.Transparent,
                 1f to LocalBrandPalette.current.background.copy(alpha = 0.25f),
-            )
-
-    /** Stronger fade for short media headers, such as dialogs. */
-    val dialogHeader: Brush
-        @Composable get() =
-            Brush.verticalGradient(
-                0f to Color.Black.copy(alpha = AppAlpha.MEDIA_SCRIM_HEADER),
-                0.45f to Color.Transparent,
-                1f to LocalBrandPalette.current.background,
             )
 
     /**
