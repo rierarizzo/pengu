@@ -19,6 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import com.misgus.pengu.app.shared.generated.resources.Res
+import com.misgus.pengu.app.shared.generated.resources.action_more_options
 import com.misgus.pengu.core.model.ProgressThresholds
 import com.misgus.pengu.ui.theme.AppCorner
 import com.misgus.pengu.ui.theme.AppMotion
@@ -29,6 +31,7 @@ import com.misgus.pengu.ui.theme.POSTER_ART_ASPECT
 import com.misgus.pengu.ui.theme.PosterCaption
 import com.misgus.pengu.ui.theme.motionLayer
 import com.misgus.pengu.ui.theme.motionTween
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * One poster card, shared by the Home and detail rows and the poster grids.
@@ -37,7 +40,8 @@ import com.misgus.pengu.ui.theme.motionTween
  * parent (used inside a grid). [hideLabels] drops the title and [caption],
  * leaving the artwork alone. [caption] is the card's second line (a release
  * info or a year), and [progress] is a watch fraction that draws the progress
- * bar for a started title.
+ * bar for a started title. [actions] adds the right-click / long-press menu;
+ * without it the card is tap-only.
  */
 @Composable
 fun PosterCard(
@@ -49,8 +53,11 @@ fun PosterCard(
     hideLabels: Boolean = false,
     width: Dp? = null,
     onTap: () -> Unit,
+    actions: MediaActions? = null,
 ) {
     val interaction = rememberInteraction()
+    val actionsState = rememberMediaActionsState()
+    val optionsLabel = stringResource(Res.string.action_more_options)
     val borderColor =
         animateColorAsState(
             targetValue = if (interaction.active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
@@ -73,7 +80,21 @@ fun PosterCard(
         modifier =
             Modifier
                 .then(if (width != null) Modifier.width(width) else Modifier)
-                .clickableSurface(interaction, onTap, indication = null),
+                .then(
+                    if (actions != null) {
+                        Modifier
+                            .onSecondaryClick(actionsState::open)
+                            .combinedClickableSurface(
+                                state = interaction,
+                                onClick = onTap,
+                                onLongClick = actionsState::open,
+                                indication = null,
+                                onLongClickLabel = optionsLabel,
+                            )
+                    } else {
+                        Modifier.clickableSurface(interaction, onTap, indication = null)
+                    },
+                ),
     ) {
         Box(
             modifier =
@@ -108,6 +129,9 @@ fun PosterCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+        }
+        if (actions != null) {
+            MediaActionsHost(actions, actionsState)
         }
     }
 }

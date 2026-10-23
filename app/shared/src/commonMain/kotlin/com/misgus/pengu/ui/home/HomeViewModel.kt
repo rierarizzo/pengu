@@ -477,6 +477,22 @@ class HomeViewModel(
     }
 
     /**
+     * Publishes a watched toggle made from a poster menu, so the badge changes
+     * without reloading the feed. The repository stays the source of truth; the
+     * next load replaces this flag with what it read.
+     */
+    fun applyWatched(
+        contentId: String,
+        watched: Boolean,
+    ) {
+        _state.update {
+            it.copy(
+                watchedIds = if (watched) it.watchedIds + contentId else it.watchedIds - contentId,
+            )
+        }
+    }
+
+    /**
      * Replaces the featured set with a new mix of the loaded rows.
      *
      * Only a deliberate change calls it (the billboard source in Settings); the set

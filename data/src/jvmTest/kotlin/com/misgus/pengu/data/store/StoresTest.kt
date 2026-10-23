@@ -147,5 +147,8 @@ class StoresTest {
             assertTrue(repository.watchedEntries(listOf("tt2")).any { it.isMarker })
             repository.unmarkWatched("tt2")
             assertTrue(repository.watchedEntries(listOf("tt2")).isEmpty())
+
+            repository.remove("tt1")
+            assertTrue(repository.all().isEmpty())
         }
 }

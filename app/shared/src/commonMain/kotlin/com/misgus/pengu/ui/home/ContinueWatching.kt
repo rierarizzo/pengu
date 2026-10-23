@@ -24,16 +24,21 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.misgus.pengu.app.shared.generated.resources.Res
+import com.misgus.pengu.app.shared.generated.resources.action_more_options
 import com.misgus.pengu.app.shared.generated.resources.detail_episode_code
 import com.misgus.pengu.app.shared.generated.resources.home_continue_left
 import com.misgus.pengu.core.model.ContentTypes
 import com.misgus.pengu.core.model.WatchProgress
 import com.misgus.pengu.core.util.runCatchingCancellable
 import com.misgus.pengu.ui.components.CardProgressBar
+import com.misgus.pengu.ui.components.MediaActions
+import com.misgus.pengu.ui.components.MediaActionsHost
 import com.misgus.pengu.ui.components.PosterImage
-import com.misgus.pengu.ui.components.clickableSurface
+import com.misgus.pengu.ui.components.combinedClickableSurface
 import com.misgus.pengu.ui.components.motionBorder
+import com.misgus.pengu.ui.components.onSecondaryClick
 import com.misgus.pengu.ui.components.rememberInteraction
+import com.misgus.pengu.ui.components.rememberMediaActionsState
 import com.misgus.pengu.ui.services.LocalAppServices
 import com.misgus.pengu.ui.theme.AppCorner
 import com.misgus.pengu.ui.theme.AppScrim
@@ -77,9 +82,12 @@ internal fun ContinueCard(
     entry: ContinueEntry,
     width: Dp,
     onTap: () -> Unit,
+    actions: MediaActions,
 ) {
     val item = entry.item
     val progress = entry.progress
+    val actionsState = rememberMediaActionsState()
+    val optionsLabel = stringResource(Res.string.action_more_options)
     val season = progress.season
     val episode = progress.episode
     // The episode's name is not part of the progress row (the backend has no column
@@ -114,7 +122,14 @@ internal fun ContinueCard(
                 .aspectRatio(16f / 9f)
                 .motionBorder(color = { borderColor.value }, width = AppSizes.borderWidth, cornerRadius = AppCorner.small)
                 .clip(MaterialTheme.shapes.small)
-                .clickableSurface(interaction, onTap, indication = null),
+                .onSecondaryClick(actionsState::open)
+                .combinedClickableSurface(
+                    state = interaction,
+                    onClick = onTap,
+                    onLongClick = actionsState::open,
+                    indication = null,
+                    onLongClickLabel = optionsLabel,
+                ),
     ) {
         PosterImage(artwork, Modifier.fillMaxSize())
         // Keeps the copy readable on any artwork without giving the card away.
@@ -153,6 +168,7 @@ internal fun ContinueCard(
         progress.fraction?.let { fraction ->
             CardProgressBar(fraction.toFloat(), Modifier.align(Alignment.BottomCenter))
         }
+        MediaActionsHost(actions, actionsState)
     }
 }
 

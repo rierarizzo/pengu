@@ -23,6 +23,15 @@ interface ProgressRepository {
     suspend fun save(progress: WatchProgress)
 
     /**
+     * Removes every progress row of [contentId].
+     *
+     * A series has one row per episode, so deleting only the newest one would
+     * let an older unfinished episode bring the title back to "Continue
+     * watching". This is the whole-title reset the Continue watching menu uses.
+     */
+    suspend fun remove(contentId: String)
+
+    /**
      * Watched history entries for [candidateIds].
      *
      * Mirrors the account's own watched data, not a client-side heuristic.

@@ -732,6 +732,21 @@ so the atomic read/write/delete logic lives once.
   notice, so the picker never loses its sources silently. Rows carry the "Play"
   action label, so a screen reader announces the action instead of a column of
   identically named buttons.
+- **Poster actions live in one component.** `MediaActions` +
+  `MediaActionsHost` (`ui/components/MediaActions.kt`) give every poster the
+  same right-click / long-press menu, so Home, Library, Catalog, Search, Discover
+  and "More like this" cannot drift. Desktop anchors a `DropdownMenu` with the
+  options only; a touch device opens a bottom sheet with the title, its
+  metadata, the synopsis and the same options as full-width buttons. The menu
+  offers the library and watched toggles and "More info"; when the caller
+  already knows those states it passes them, otherwise the host resolves them
+  on open. A "Continue watching" card replaces them with "Watch from
+  beginning", "Remove from Continue watching" and "More info". Removing deletes
+  every progress row of the title (`ProgressRepository.remove`), not just the
+  newest episode, so an older unfinished episode cannot bring the row back; the
+  playback signal then repaints Home. "Watch from beginning" carries
+  `startFromBeginning` through `StreamsRequest` into `PlaybackTarget`, where the
+  progress reporter skips the saved position.
 - **Search owns the discover feed.** It has a free-text search across every
   catalog that declares the `search` extra, debounced, run in parallel and
   deduped across addons, split into Movies / Series / Other rails; and — while

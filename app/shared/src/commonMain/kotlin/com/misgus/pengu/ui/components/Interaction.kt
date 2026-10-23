@@ -2,6 +2,7 @@ package com.misgus.pengu.ui.components
 
 import androidx.compose.foundation.Indication
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
@@ -18,8 +19,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.InputMode
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.isSecondaryPressed
 import androidx.compose.ui.input.pointer.pointerHoverIcon
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
@@ -81,6 +86,53 @@ fun Modifier.clickableSurface(
         onClickLabel = onClickLabel,
         onClick = onClick,
     ).handCursor(enabled)
+
+/**
+ * [clickableSurface] with a long-press action.
+ *
+ * The poster actions menu uses it so the same surface keeps its click target on
+ * touch, where there is no secondary button; desktop adds
+ * [onSecondaryClick] on top.
+ */
+fun Modifier.combinedClickableSurface(
+    state: InteractionState,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+    enabled: Boolean = true,
+    role: Role? = Role.Button,
+    indication: Indication? = ripple(),
+    onLongClickLabel: String? = null,
+): Modifier =
+    combinedClickable(
+        interactionSource = state.source,
+        indication = indication,
+        enabled = enabled,
+        role = role,
+        onLongClickLabel = onLongClickLabel,
+        onLongClick = onLongClick,
+        onClick = onClick,
+    ).handCursor(enabled)
+
+/**
+ * Calls [onClick] on a secondary-button press (a right click on desktop).
+ *
+ * Compose's clickable surfaces only handle the primary button, so the poster
+ * menu needs its own pointer loop. It runs on the [PointerEventPass.Initial] pass
+ * and consumes the press, so the click target underneath never sees a right
+ * click as a play/open request.
+ */
+fun Modifier.onSecondaryClick(onClick: () -> Unit): Modifier =
+    pointerInput(onClick) {
+        awaitPointerEventScope {
+            while (true) {
+                val event = awaitPointerEvent(PointerEventPass.Initial)
+                if (event.type == PointerEventType.Press && event.buttons.isSecondaryPressed) {
+                    event.changes.forEach { it.consume() }
+                    onClick()
+                }
+            }
+        }
+    }
 
 /**
  * Pointer cursor of an interactive surface.

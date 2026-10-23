@@ -18,6 +18,7 @@ import com.misgus.pengu.app.shared.generated.resources.empty_nothing_to_show
 import com.misgus.pengu.app.shared.generated.resources.library_empty_message
 import com.misgus.pengu.app.shared.generated.resources.library_error_title
 import com.misgus.pengu.core.model.LibraryItem
+import com.misgus.pengu.ui.components.MediaActions
 import com.misgus.pengu.ui.components.Message
 import com.misgus.pengu.ui.components.PosterCard
 import com.misgus.pengu.ui.components.SkeletonPosterGrid
@@ -99,6 +100,13 @@ private fun LibraryContent(
                         watched = item.contentId in state.watchedIds,
                         hideLabels = hideLabels,
                         onTap = { onOpen(item) },
+                        actions =
+                            MediaActions(
+                                item = item,
+                                saved = true,
+                                watched = item.contentId in state.watchedIds,
+                                onMoreInfo = { onOpen(item) },
+                            ),
                     )
                 }
             }

@@ -780,6 +780,21 @@ leer/escribir/borrar vive una sola vez.
   fuentes en silencio. Las filas llevan la etiqueta de acción "Play", así que un
   lector de pantalla anuncia la acción en vez de una columna de botones con el
   mismo nombre.
+- **Las acciones del póster viven en un solo componente.** `MediaActions` +
+  `MediaActionsHost` (`ui/components/MediaActions.kt`) dan a cada póster el mismo
+  menú de clic derecho / pulsación larga, así Home, Library, Catalog, Search,
+  Discover y "More like this" no pueden divergir. En desktop ancla un
+  `DropdownMenu` con solo las opciones; en táctil abre una bottom sheet con el
+  título, su metadata, la sinopsis y las mismas opciones como botones de ancho
+  completo. El menú ofrece los toggles de biblioteca y visto, y "More info";
+  cuando el llamador ya conoce esos estados los pasa y, si no, el host los
+  resuelve al abrir. Una tarjeta de "Continue watching" los sustituye por "Watch
+  from beginning", "Remove from Continue watching" y "More info". Quitar borra
+  todas las filas de progreso del título (`ProgressRepository.remove`), no solo
+  el episodio más nuevo, así un episodio anterior sin terminar no puede devolver
+  la fila; después la señal de playback repinta Home. "Watch from beginning"
+  lleva `startFromBeginning` por `StreamsRequest` hasta `PlaybackTarget`, donde
+  el reporter de progreso se salta la posición guardada.
 - **Search es dueña del feed de discover.** Tiene una búsqueda de texto libre en
   cada catálogo que declara el extra `search`, con debounce, ejecutada en
   paralelo y deduplicada entre addons, dividida en raíles Movies / Series /

@@ -88,6 +88,13 @@ class LocalProgressRepository(
             _changes.value += 1
         }
 
+    override suspend fun remove(contentId: String) =
+        mutex.withLock {
+            val rows = store.read()
+            store.write(rows.filterNot { it["content_id"].stringOrNull() == contentId })
+            _changes.value += 1
+        }
+
     override suspend fun markWatched(
         contentId: String,
         contentType: ContentType,

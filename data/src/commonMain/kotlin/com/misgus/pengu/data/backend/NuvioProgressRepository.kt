@@ -63,6 +63,14 @@ class NuvioProgressRepository(
         _changes.value += 1
     }
 
+    override suspend fun remove(contentId: String) {
+        rest.delete(
+            "watch_progress",
+            filter = "profile_id=eq.${requireProfileId()}&content_id=eq.${postgrestLiteral(contentId)}",
+        )
+        _changes.value += 1
+    }
+
     override suspend fun watchedEntries(candidateIds: Collection<String>): List<WatchedEntry> {
         val ids = candidateIds.filter { it.isNotEmpty() }.distinct()
         if (ids.isEmpty()) return emptyList()

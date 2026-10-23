@@ -34,6 +34,7 @@ import com.misgus.pengu.app.shared.generated.resources.Res
 import com.misgus.pengu.app.shared.generated.resources.detail_episode_code
 import com.misgus.pengu.app.shared.generated.resources.detail_error_library
 import com.misgus.pengu.app.shared.generated.resources.empty_nothing_to_show
+import com.misgus.pengu.app.shared.generated.resources.home_continue_remove_error
 import com.misgus.pengu.app.shared.generated.resources.home_continue_watching
 import com.misgus.pengu.app.shared.generated.resources.home_empty_message
 import com.misgus.pengu.app.shared.generated.resources.home_error_title
@@ -44,6 +45,8 @@ import com.misgus.pengu.core.player.PlaybackTarget
 import com.misgus.pengu.core.repository.CatalogRef
 import com.misgus.pengu.core.repository.PosterSize
 import com.misgus.pengu.core.util.runCatchingCancellable
+import com.misgus.pengu.ui.components.ContinueWatchingActions
+import com.misgus.pengu.ui.components.MediaActions
 import com.misgus.pengu.ui.components.Message
 import com.misgus.pengu.ui.components.PosterCard
 import com.misgus.pengu.ui.components.SectionHeader
@@ -124,7 +127,8 @@ fun HomeScreen(
     // pick that was never written down — the picker decides again. A debrid URL
     // that fails to play is dropped by the player, so the next tap lands here too.
     val scope = rememberCoroutineScope()
-    val onContinue: (ContinueEntry) -> Unit = { entry ->
+    val removeContinueError = stringResource(Res.string.home_continue_remove_error)
+    val playEntry: (ContinueEntry, Boolean) -> Unit = { entry, fromStart ->
         val item = entry.item
         val progress = entry.progress
         val playId = resumePlayId(progress)
@@ -159,6 +163,7 @@ fun HomeScreen(
                             contentId = progress.contentId,
                             season = season,
                             episode = episode,
+                            startFromBeginning = fromStart,
                         ),
                     )
                 } else {
@@ -172,10 +177,20 @@ fun HomeScreen(
                             season = season,
                             episode = episode,
                             contentId = progress.contentId,
+                            startFromBeginning = fromStart,
                         ),
                     )
                 }
             }
+        }
+    }
+    val onContinue: (ContinueEntry) -> Unit = { entry -> playEntry(entry, false) }
+    val onContinueFromStart: (ContinueEntry) -> Unit = { entry -> playEntry(entry, true) }
+    val onRemoveContinue: (ContinueEntry) -> Unit = { entry ->
+        scope.launch {
+            runCatchingCancellable { services.progress.remove(entry.progress.contentId) }
+                .onSuccess { services.playbackUpdates.notifyClosed() }
+                .onFailure { snackbar?.showSnackbar(removeContinueError) }
         }
     }
 
@@ -191,7 +206,10 @@ fun HomeScreen(
             onOpenPreview = { navigator.push(ContentRoute.Detail(LibraryItem.fromPreview(it))) },
             onOpenCatalog = { navigator.push(ContentRoute.Catalog(it)) },
             onToggleSaved = viewModel::toggleSaved,
+            onWatchedChanged = viewModel::applyWatched,
             onContinue = onContinue,
+            onContinueFromStart = onContinueFromStart,
+            onRemoveContinue = onRemoveContinue,
             onHeroArtworkSettled = { heroArtworkReady = true },
             onPlayPreview = { preview ->
                 onOpenStreams(
@@ -234,7 +252,10 @@ private fun HomeContent(
     onOpenCatalog: (CatalogRef) -> Unit,
     onPlayPreview: (MetaPreview) -> Unit,
     onContinue: (ContinueEntry) -> Unit,
+    onContinueFromStart: (ContinueEntry) -> Unit,
+    onRemoveContinue: (ContinueEntry) -> Unit,
     onToggleSaved: (MetaPreview) -> Unit,
+    onWatchedChanged: (String, Boolean) -> Unit,
     onHeroArtworkSettled: () -> Unit,
 ) {
     val windowSize = LocalWindowSize.current
@@ -306,7 +327,23 @@ private fun HomeContent(
                             ) {
                                 items(state.continueWatching) { entry ->
                                     val cardWidth = if (compact) CompactContinueWidth else ContinueWidth
-                                    ContinueCard(entry, cardWidth) { onContinue(entry) }
+                                    ContinueCard(
+                                        entry = entry,
+                                        width = cardWidth,
+                                        onTap = { onContinue(entry) },
+                                        actions =
+                                            MediaActions(
+                                                item = entry.item,
+                                                saved = entry.item.contentId in state.savedIds,
+                                                watched = entry.item.contentId in state.watchedIds,
+                                                continueWatching =
+                                                    ContinueWatchingActions(
+                                                        onPlayFromBeginning = { onContinueFromStart(entry) },
+                                                        onRemove = { onRemoveContinue(entry) },
+                                                    ),
+                                                onMoreInfo = { onOpenDetail(entry.item) },
+                                            ),
+                                    )
                                 }
                             }
                         }
@@ -334,6 +371,14 @@ private fun HomeContent(
                                     watched = item.id in state.watchedIds,
                                     hideLabels = hideLabels,
                                     onTap = { onOpenPreview(item) },
+                                    actions =
+                                        MediaActions(
+                                            item = LibraryItem.fromPreview(item),
+                                            saved = item.id in savedIds,
+                                            watched = item.id in state.watchedIds,
+                                            onMoreInfo = { onOpenPreview(item) },
+                                            onWatchedChanged = { onWatchedChanged(item.id, it) },
+                                        ),
                                 )
                             }
                         }

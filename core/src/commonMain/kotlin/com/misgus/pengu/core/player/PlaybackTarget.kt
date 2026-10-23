@@ -25,6 +25,13 @@ data class PlaybackTarget(
     val httpHeaders: Map<String, String>? = null,
     /** Name of the episode this target plays, for the screens that describe it. */
     val episodeTitle: String? = null,
+    /**
+     * Start at zero even when a saved position exists.
+     *
+     * "Watch from beginning" uses it; a normal resume leaves it `false` and
+     * [PlaybackProgressReporter] applies the stored position.
+     */
+    val startFromBeginning: Boolean = false,
 ) {
     /** Whether progress can be saved for this target. */
     val canReportProgress: Boolean get() = contentId != null
@@ -67,6 +74,7 @@ data class PlaybackTarget(
             episode: Episode? = null,
             contentId: String? = null,
             episodeTitle: String? = null,
+            startFromBeginning: Boolean = false,
         ): PlaybackTarget {
             val parsed = parseEpisodeId(id)
             val resolvedSeason = season ?: parsed?.season
@@ -82,6 +90,7 @@ data class PlaybackTarget(
                 episode = if (isEpisode) resolvedEpisode else null,
                 httpHeaders = httpHeaders,
                 episodeTitle = episodeTitle,
+                startFromBeginning = startFromBeginning,
             )
         }
 

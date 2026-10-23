@@ -20,4 +20,6 @@ data class StreamsRequest(
     val episode: Episode? = null,
     /** Name of the episode, so the player can remember it for the continue card. */
     val episodeTitle: String? = null,
+    /** Start at zero instead of resuming a saved position. */
+    val startFromBeginning: Boolean = false,
 )

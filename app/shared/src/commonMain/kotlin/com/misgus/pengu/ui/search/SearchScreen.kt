@@ -34,6 +34,7 @@ import com.misgus.pengu.core.model.LibraryItem
 import com.misgus.pengu.core.model.MetaPreview
 import com.misgus.pengu.core.repository.PosterSize
 import com.misgus.pengu.ui.components.AppSearchField
+import com.misgus.pengu.ui.components.MediaActions
 import com.misgus.pengu.ui.components.Message
 import com.misgus.pengu.ui.components.PosterCard
 import com.misgus.pengu.ui.components.SectionHeader
@@ -180,13 +181,19 @@ private fun ResultsRail(
         horizontalArrangement = Arrangement.spacedBy(windowSize.gridSpacing),
     ) {
         items(previews, key = { "${it.type}:${it.id}" }) { item ->
+            val libraryItem = LibraryItem.fromPreview(item)
             PosterCard(
                 name = item.name,
                 poster = item.poster,
                 caption = item.releaseInfo,
                 width = cardWidth,
                 hideLabels = hideLabels,
-                onTap = { onOpenDetail(LibraryItem.fromPreview(item)) },
+                onTap = { onOpenDetail(libraryItem) },
+                actions =
+                    MediaActions(
+                        item = libraryItem,
+                        onMoreInfo = { onOpenDetail(libraryItem) },
+                    ),
             )
         }
     }

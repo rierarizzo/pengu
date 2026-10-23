@@ -41,6 +41,7 @@ import com.misgus.pengu.core.repository.CatalogRef
 import com.misgus.pengu.ui.catalog.CatalogUiState
 import com.misgus.pengu.ui.catalog.CatalogViewModel
 import com.misgus.pengu.ui.components.AppIconButton
+import com.misgus.pengu.ui.components.MediaActions
 import com.misgus.pengu.ui.components.Message
 import com.misgus.pengu.ui.components.PosterCard
 import com.misgus.pengu.ui.components.SkeletonPosterGrid
@@ -161,12 +162,18 @@ private fun CatalogContent(
                 horizontalArrangement = Arrangement.spacedBy(windowSize.gridSpacing),
             ) {
                 items(state.items, key = { it.id }) { item ->
+                    val libraryItem = LibraryItem.fromPreview(item)
                     PosterCard(
                         name = item.name,
                         poster = item.poster,
                         caption = item.releaseInfo,
                         hideLabels = hideLabels,
-                        onTap = { onOpenDetail(LibraryItem.fromPreview(item)) },
+                        onTap = { onOpenDetail(libraryItem) },
+                        actions =
+                            MediaActions(
+                                item = libraryItem,
+                                onMoreInfo = { onOpenDetail(libraryItem) },
+                            ),
                     )
                 }
                 if (state.isLoadingMore) {

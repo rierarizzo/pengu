@@ -231,6 +231,7 @@ fun AppShell() {
                             episode = request.episode,
                             contentId = request.contentId,
                             episodeTitle = request.episodeTitle,
+                            startFromBeginning = request.startFromBeginning,
                         )
                     // Remembered so "Continue watching" can resume this title
                     // without the picker while the URL is still fresh (see

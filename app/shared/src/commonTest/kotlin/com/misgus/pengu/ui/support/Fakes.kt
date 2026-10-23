@@ -109,6 +109,11 @@ class FakeProgressRepository(
         _changes.value += 1
     }
 
+    override suspend fun remove(contentId: String) {
+        saved.removeAll { it.contentId == contentId }
+        _changes.value += 1
+    }
+
     override suspend fun watchedEntries(candidateIds: Collection<String>): List<WatchedEntry> =
         entries.filter { it.contentId in candidateIds }
 

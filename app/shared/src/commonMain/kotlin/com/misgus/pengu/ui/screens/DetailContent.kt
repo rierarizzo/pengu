@@ -109,7 +109,7 @@ internal fun DetailScrollContent(
     }
     if (state.similar.isNotEmpty()) {
         Spacer(Modifier.height(SectionSpacing))
-        SimilarRow(state.similar) { preview ->
+        SimilarRow(state.similar, addonBaseUrl = item.addonBaseUrl) { preview ->
             onOpenDetail(LibraryItem.fromPreview(preview, addonBaseUrl = item.addonBaseUrl))
         }
     }

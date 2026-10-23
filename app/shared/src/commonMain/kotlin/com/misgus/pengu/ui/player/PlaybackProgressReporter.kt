@@ -38,6 +38,7 @@ class PlaybackProgressReporter(
     suspend fun resumePosition(): Duration? {
         if (!target.canReportProgress || resumeResolved) return null
         resumeResolved = true
+        if (target.startFromBeginning) return null
         if (!settings.state.value.resumePlayback) return null
         return runCatchingCancellable {
             val entry = find(repository.all())

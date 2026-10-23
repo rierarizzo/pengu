@@ -104,6 +104,8 @@ class WatchedBadgeResolverTest {
 
         override suspend fun save(progress: WatchProgress) = Unit
 
+        override suspend fun remove(contentId: String) = Unit
+
         override suspend fun watchedEntries(candidateIds: Collection<String>): List<WatchedEntry> =
             entries.filter { it.contentId in candidateIds }
 

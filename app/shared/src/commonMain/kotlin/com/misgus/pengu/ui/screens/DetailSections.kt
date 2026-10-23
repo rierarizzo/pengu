@@ -43,6 +43,7 @@ import com.misgus.pengu.app.shared.generated.resources.detail_specials
 import com.misgus.pengu.app.shared.generated.resources.detail_you_may_also_like
 import com.misgus.pengu.app.shared.generated.resources.media_rating
 import com.misgus.pengu.core.model.Episode
+import com.misgus.pengu.core.model.LibraryItem
 import com.misgus.pengu.core.model.MetaPerson
 import com.misgus.pengu.core.model.MetaPreview
 import com.misgus.pengu.core.model.MetaVideo
@@ -56,6 +57,8 @@ import com.misgus.pengu.ui.components.ActionButton
 import com.misgus.pengu.ui.components.ActionButtonStyle
 import com.misgus.pengu.ui.components.CardProgressBar
 import com.misgus.pengu.ui.components.MarqueeText
+import com.misgus.pengu.ui.components.MediaActions
+import com.misgus.pengu.ui.components.PosterCard
 import com.misgus.pengu.ui.components.PosterImage
 import com.misgus.pengu.ui.components.RemoteImage
 import com.misgus.pengu.ui.components.SkeletonBox
@@ -74,7 +77,6 @@ import com.misgus.pengu.ui.theme.AppSpacing
 import com.misgus.pengu.ui.theme.AppType
 import com.misgus.pengu.ui.theme.COMPACT_SCALE
 import com.misgus.pengu.ui.theme.LocalWindowSize
-import com.misgus.pengu.ui.theme.POSTER_ART_ASPECT
 import com.misgus.pengu.ui.theme.PosterCaption
 import com.misgus.pengu.ui.theme.WindowSize
 import com.misgus.pengu.ui.theme.cellWidth
@@ -200,6 +202,7 @@ internal fun DetailsSection(
 @Composable
 internal fun SimilarRow(
     items: List<MetaPreview>,
+    addonBaseUrl: String? = null,
     onOpen: (MetaPreview) -> Unit,
 ) {
     // The same size as the catalog grids, so a title looks the same everywhere.
@@ -221,50 +224,19 @@ internal fun SimilarRow(
             horizontalArrangement = Arrangement.spacedBy(windowSize.gridSpacing),
         ) {
             items(items) { item ->
-                val interaction = rememberInteraction()
-                val borderColor =
-                    animateColorAsState(
-                        targetValue =
-                            if (interaction.active) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.outlineVariant
-                            },
-                        animationSpec = motionTween(),
-                        label = "borderColor",
-                    )
-                Column(
-                    modifier =
-                        Modifier
-                            .width(cardWidth)
-                            .clickableSurface(interaction, onClick = { onOpen(item) }, indication = null),
-                ) {
-                    Box(
-                        Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(POSTER_ART_ASPECT)
-                            .motionBorder(color = { borderColor.value }, width = AppSizes.borderWidth, cornerRadius = AppCorner.small)
-                            .clip(MaterialTheme.shapes.small),
-                    ) {
-                        PosterImage(item.poster, Modifier.fillMaxSize())
-                    }
-                    if (!settings.hideLabels) {
-                        Spacer(Modifier.height(AppSpacing.sm))
-                        MarqueeText(
-                            text = item.name,
-                            style = PosterCaption.title(),
-                            active = interaction.active,
-                        )
-                        item.releaseInfo?.takeIf { it.isNotEmpty() }?.let {
-                            Text(
-                                it,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                style = PosterCaption.meta(),
-                            )
-                        }
-                    }
-                }
+                PosterCard(
+                    name = item.name,
+                    poster = item.poster,
+                    caption = item.releaseInfo,
+                    width = cardWidth,
+                    hideLabels = settings.hideLabels,
+                    onTap = { onOpen(item) },
+                    actions =
+                        MediaActions(
+                            item = LibraryItem.fromPreview(item, addonBaseUrl = addonBaseUrl),
+                            onMoreInfo = { onOpen(item) },
+                        ),
+                )
             }
         }
     }
