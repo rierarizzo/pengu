@@ -611,9 +611,10 @@ leer/escribir/borrar vive una sola vez.
   `verticalScroll` plano, no un `LazyColumn`: el reciclado lazy recompone cada
   fila (y libera el hero) al cruzar el viewport, lo que cuesta más de lo que
   ahorra, así que Home mantiene una fila por cada catálogo navegable que
-  declaran los addons en vez de limitar el número (el límite está en los ítems
-  por fila, no en las filas). En desktop el artwork abarca el 75% del ancho de la
-  ventana, anclado a la esquina superior derecha de un
+  declaran los addons — sea cual sea el tipo que declare, porque la app trata el
+  tipo de un catálogo como una cadena opaca — en vez de limitar el número (el
+  límite está en los ítems por fila, no en las filas). En desktop el artwork
+  abarca el 75% del ancho de la ventana, anclado a la esquina superior derecha de un
   marco de altura fija, y se recorta (`Crop`, alineado arriba); ensanchar la
   ventana revela más artwork en lugar de estirar el billboard, así que las
   secciones de abajo mantienen su sitio. Lo lavan degradados de

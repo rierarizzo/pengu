@@ -572,9 +572,11 @@ so the atomic read/write/delete logic lives once.
   is never pinned) in a plain `Column` + `verticalScroll`, not a `LazyColumn`:
   lazy recycling re-composes each row (and disposes the hero) as it crosses the
   viewport, which costs more than it saves, so Home keeps a row for every
-  browsable catalog the addons declare instead of capping the count (the cap
-  lives on the items per row, not on the rows). On desktop the artwork spans 75%
-  of the window width, pinned to the top-right corner of a frame with a fixed
+  browsable catalog the addons declare — whatever type it names, since the
+  app routes a catalog's type through as a plain string — instead of capping the
+  count (the cap lives on the items per row, not on the rows). On desktop the
+  artwork spans 75% of the window width, pinned to the top-right corner of a
+  frame with a fixed
   height, and cropped
   (`Crop`, top-aligned); widening the window reveals more artwork instead of
   stretching the billboard taller, so the sections below keep their place. It is

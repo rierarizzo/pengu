@@ -2,7 +2,6 @@ package com.misgus.pengu.data.addons
 
 import com.misgus.pengu.core.model.Addon
 import com.misgus.pengu.core.model.ContentType
-import com.misgus.pengu.core.model.ContentTypes
 import com.misgus.pengu.core.model.MetaPreview
 import com.misgus.pengu.core.repository.AddonRepository
 import com.misgus.pengu.core.repository.CatalogRef
@@ -39,7 +38,6 @@ class StremioCatalogRepository internal constructor(
                         runCatchingCancellable {
                             val manifest = addonClient.fetchManifest()
                             manifest.catalogs
-                                .filter { it.type == ContentTypes.MOVIE.value || it.type == ContentTypes.SERIES.value }
                                 .map { catalog ->
                                     CatalogRef(
                                         addonName = addon.name ?: manifest.name,
