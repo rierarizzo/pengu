@@ -135,8 +135,8 @@ import com.misgus.pengu.app.shared.generated.resources.settings_tone_mapping_hab
 import com.misgus.pengu.app.shared.generated.resources.settings_tone_mapping_mobius
 import com.misgus.pengu.app.shared.generated.resources.settings_tone_mapping_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_typeface
-import com.misgus.pengu.app.shared.generated.resources.settings_typeface_ibm_plex
 import com.misgus.pengu.app.shared.generated.resources.settings_typeface_inter
+import com.misgus.pengu.app.shared.generated.resources.settings_typeface_roboto
 import com.misgus.pengu.app.shared.generated.resources.settings_typeface_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_video_url
 import com.misgus.pengu.core.player.PlaybackTarget
@@ -464,7 +464,7 @@ private fun AppearanceSection(
 ) {
     val typefaceLabels =
         mapOf(
-            AppTypeface.IBM_PLEX_SANS to stringResource(Res.string.settings_typeface_ibm_plex),
+            AppTypeface.ROBOTO to stringResource(Res.string.settings_typeface_roboto),
             AppTypeface.INTER to stringResource(Res.string.settings_typeface_inter),
         )
     SettingsPanel {

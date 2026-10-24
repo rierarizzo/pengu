@@ -44,9 +44,9 @@ object AppType {
      * Metadata line under a hero title (`Series • 2026 • Drama • ★ 7.8`).
      *
      * Reads one step down the label roles, like the rest of the billboard copy,
-     * with a small negative tracking: IBM Plex Sans is wider than the geometric
-     * faces it was compared against, and the dot-separated ribbon has to stay on
-     * one line under the title on both billboards.
+     * with a small negative tracking: the dot-separated ribbon has to stay on
+     * one line under the title on both billboards, and the tightened tracking
+     * buys the room.
      */
     @Composable
     fun heroMeta(): TextStyle {

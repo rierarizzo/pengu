@@ -629,7 +629,7 @@ so the atomic read/write/delete logic lives once.
   wide window the rail floats over the content,
   which reserves its width, so the navigation never overlaps it.
 - **Typography.** Two typefaces are bundled through Compose Resources in
-  `:app:shared`: **IBM Plex Sans** (the default) and Inter. Both ship the same
+  `:app:shared`: **Roboto** (the default) and Inter. Both ship the same
   four weights (Regular, Medium, SemiBold, Bold) and go through the same weight
   map, so `appearance.typeface` swaps the letterforms without touching the scale:
   `PenguTheme(typeface)` resolves the family once per composition and the whole UI reads
@@ -648,10 +648,10 @@ so the atomic read/write/delete logic lives once.
   runs lighter than stock (`Bold` to `Medium`, `SemiBold` to `Normal`), so
   headings sit at Medium while titles, body and large labels sit at Normal. The
   small roles (`bodySmall`, `labelMedium`, `labelSmall`) keep Medium: at 12sp
-  the Regular stems of IBM Plex Sans are thin enough that grayscale antialiasing
+  the Regular stems are thin enough that grayscale antialiasing
   — Compose Desktop has no ClearType — makes them read as jagged. `body*` bottoms
   out at `Normal` because no lighter weight is bundled, so a genuinely
-  thinner body needs `ibm_plex_sans_light.ttf` added to `:app:shared`. No type
+  thinner body needs `roboto_light.ttf` added to `:app:shared`. No type
   slot carries a colour: text colour comes from the colour scheme at the call
   site, as Material intends. The reading palette is white-based —
   `BrandPalette.textPrimary` is `#FFFFFF` and the secondary roles
@@ -778,7 +778,7 @@ so the atomic read/write/delete logic lives once.
   mirrors the accent, so no cold hue sneaks into the warm palette. The scrims
   and the native window chrome read `LocalBrandPalette` too. There is no theme
   setting: the palette is fixed until a second one is worth adding. The typeface
-  loaded from Compose Resources (IBM Plex Sans by default, Inter as the
+  loaded from Compose Resources (Roboto by default, Inter as the
   alternative, picked in Settings → Appearance) and the small, square-ish shape
   scale (`AppCorner` feeds
   `MaterialTheme.shapes`: 1/2/3/4/6dp; the app reads square, not rounded) stay

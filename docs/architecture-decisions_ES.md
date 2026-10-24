@@ -668,7 +668,7 @@ leer/escribir/borrar vive una sola vez.
   sobre el contenido, que reserva su ancho, así que la navegación nunca lo
   solapa.
 - **Tipografía.** Dos tipografías se incluyen mediante Compose Resources en
-  `:app:shared`: **IBM Plex Sans** (la de por defecto) e Inter. Ambas traen los
+  `:app:shared`: **Roboto** (la de por defecto) e Inter. Ambas traen los
   mismos cuatro pesos (Regular, Medium, SemiBold, Bold) y pasan por el mismo mapa
   de pesos, así que `appearance.typeface` cambia las formas sin tocar la escala:
   `PenguTheme(typeface)` resuelve la familia una vez por composición y toda la UI la lee
@@ -687,11 +687,11 @@ leer/escribir/borrar vive una sola vez.
   (`Bold` a `Medium`, `SemiBold` a `Normal`), así que los encabezados se sientan
   en Medium mientras títulos, cuerpo y labels grandes se sientan en Normal. Los
   roles pequeños (`bodySmall`, `labelMedium`, `labelSmall`) se quedan en Medium:
-  a 12sp los tallos de IBM Plex Sans Regular son lo bastante finos como para que
+  a 12sp los tallos de Regular son lo bastante finos como para que
   el antialiasing en escala de grises — Compose Desktop no tiene ClearType — los
   haga leerse como irregulares. `body*` llega
   como mínimo a `Normal` porque no se incluye ningún peso más ligero, así que un
-  cuerpo realmente más fino necesita añadir `ibm_plex_sans_light.ttf` a
+  cuerpo realmente más fino necesita añadir `roboto_light.ttf` a
   `:app:shared`. Ningún slot de
   tipo lleva color: el color del texto viene del esquema de color en el punto de
   llamada, como pretende Material. La paleta de lectura está basada en blanco —
@@ -830,7 +830,7 @@ leer/escribir/borrar vive una sola vez.
   en la paleta cálida. Los scrims y el chrome nativo de la ventana también leen
   `LocalBrandPalette`. No hay ajuste de tema: la paleta es fija hasta que
   merezca la pena añadir una segunda. La tipografía
-  cargada desde Compose Resources (IBM Plex Sans por defecto, Inter como
+  cargada desde Compose Resources (Roboto por defecto, Inter como
   alternativa, elegida en Ajustes → Apariencia) y la escala de formas pequeña y
   tirando a cuadrada (`AppCorner` alimenta `MaterialTheme.shapes`: 1/2/3/4/6dp; la app se
   lee cuadrada, no redondeada) no dependen de la paleta. Los diálogos y las bottom

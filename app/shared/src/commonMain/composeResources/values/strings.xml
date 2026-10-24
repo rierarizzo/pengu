@@ -193,7 +193,7 @@
     <string name="settings_remember_window_size_subtitle">Reopen at the size and maximized state you closed it with.</string>
     <string name="settings_typeface">Typeface</string>
     <string name="settings_typeface_subtitle">The font every screen is set in.</string>
-    <string name="settings_typeface_ibm_plex">IBM Plex Sans</string>
+    <string name="settings_typeface_roboto">Roboto</string>
     <string name="settings_typeface_inter">Inter</string>
     <string name="settings_posters">Posters</string>
     <string name="settings_posters_subtitle">Size and captions of the poster rows.</string>

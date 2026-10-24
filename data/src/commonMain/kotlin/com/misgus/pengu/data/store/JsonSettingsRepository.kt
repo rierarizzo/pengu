@@ -28,7 +28,7 @@ import kotlinx.serialization.json.JsonPrimitive
  *
  * ```json
  * {
- *   "appearance.typeface": "ibm_plex_sans",
+ *   "appearance.typeface": "roboto",
  *   "animations.enabled": true,
  *   "window.rememberSize": true,
  *   "window.width": 1280,
@@ -141,7 +141,7 @@ class JsonSettingsRepository(
 
     private fun JsonObject.toSettings() =
         AppSettings(
-            typeface = this[KEY_TYPEFACE].stringOrNull().toAppTypeface() ?: AppTypeface.IBM_PLEX_SANS,
+            typeface = this[KEY_TYPEFACE].stringOrNull().toAppTypeface() ?: AppTypeface.ROBOTO,
             animationsEnabled = this[KEY_ANIMATIONS].boolOrNull() ?: true,
             rememberWindowSize = this[KEY_REMEMBER_WINDOW].boolOrNull() ?: true,
             windowWidth = this[KEY_WINDOW_WIDTH].intOrNull()?.takeIf { it > 0 },
@@ -173,12 +173,7 @@ class JsonSettingsRepository(
             else -> null
         }
 
-    private fun String?.toAppTypeface(): AppTypeface? =
-        when (this?.lowercase()?.replace('-', '_')?.replace(' ', '_')) {
-            // The file is hand-editable, so accept the spellings a person writes.
-            "plex", "ibm_plex" -> AppTypeface.IBM_PLEX_SANS
-            else -> AppTypeface.entries.firstOrNull { it.name.equals(this, ignoreCase = true) }
-        }
+    private fun String?.toAppTypeface(): AppTypeface? = AppTypeface.entries.firstOrNull { it.name.equals(this, ignoreCase = true) }
 
     private fun String?.toTmdbLanguage(): TmdbLanguage? = TmdbLanguage.entries.firstOrNull { it.name.equals(this, ignoreCase = true) }
 

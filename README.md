@@ -17,7 +17,7 @@ against the same shared code; each composition root picks its player engine.
 
 | Layer | Technology |
 | --- | --- |
-| UI | Compose Multiplatform + Material 3, IBM Plex Sans or Inter |
+| UI | Compose Multiplatform + Material 3, Roboto or Inter |
 | State | `androidx.lifecycle` ViewModel + `StateFlow` |
 | HTTP | Ktor client (CIO for the backend, OkHttp for addons) |
 | JSON | kotlinx.serialization (defensive `JsonElement` parsing) |

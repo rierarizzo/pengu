@@ -14,14 +14,14 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.misgus.pengu.app.shared.generated.resources.Res
-import com.misgus.pengu.app.shared.generated.resources.ibm_plex_sans_bold
-import com.misgus.pengu.app.shared.generated.resources.ibm_plex_sans_medium
-import com.misgus.pengu.app.shared.generated.resources.ibm_plex_sans_regular
-import com.misgus.pengu.app.shared.generated.resources.ibm_plex_sans_semibold
 import com.misgus.pengu.app.shared.generated.resources.inter_bold
 import com.misgus.pengu.app.shared.generated.resources.inter_medium
 import com.misgus.pengu.app.shared.generated.resources.inter_regular
 import com.misgus.pengu.app.shared.generated.resources.inter_semibold
+import com.misgus.pengu.app.shared.generated.resources.roboto_bold
+import com.misgus.pengu.app.shared.generated.resources.roboto_medium
+import com.misgus.pengu.app.shared.generated.resources.roboto_regular
+import com.misgus.pengu.app.shared.generated.resources.roboto_semibold
 import com.misgus.pengu.core.repository.AppTypeface
 import org.jetbrains.compose.resources.Font
 
@@ -133,12 +133,12 @@ private fun appTypography(font: FontFamily): Typography {
 @Composable
 internal fun appFontFamily(typeface: AppTypeface): FontFamily =
     when (typeface) {
-        AppTypeface.IBM_PLEX_SANS ->
+        AppTypeface.ROBOTO ->
             FontFamily(
-                Font(Res.font.ibm_plex_sans_regular, FontWeight.Normal),
-                Font(Res.font.ibm_plex_sans_medium, FontWeight.Medium),
-                Font(Res.font.ibm_plex_sans_semibold, FontWeight.SemiBold),
-                Font(Res.font.ibm_plex_sans_bold, FontWeight.Bold),
+                Font(Res.font.roboto_regular, FontWeight.Normal),
+                Font(Res.font.roboto_medium, FontWeight.Medium),
+                Font(Res.font.roboto_semibold, FontWeight.SemiBold),
+                Font(Res.font.roboto_bold, FontWeight.Bold),
             )
         AppTypeface.INTER ->
             FontFamily(
@@ -157,7 +157,7 @@ internal fun appFontFamily(typeface: AppTypeface): FontFamily =
  */
 @Composable
 fun PenguTheme(
-    typeface: AppTypeface = AppTypeface.IBM_PLEX_SANS,
+    typeface: AppTypeface = AppTypeface.ROBOTO,
     content: @Composable () -> Unit,
 ) {
     val fontFamily = appFontFamily(typeface)

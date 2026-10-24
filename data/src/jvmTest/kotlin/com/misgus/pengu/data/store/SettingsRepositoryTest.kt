@@ -36,7 +36,7 @@ class SettingsRepositoryTest {
             assertFalse(settings.state.value.hideLabels)
             assertTrue(settings.state.value.showCatalogType)
             val loaded = settings.state.value
-            assertEquals(AppTypeface.IBM_PLEX_SANS, loaded.typeface)
+            assertEquals(AppTypeface.ROBOTO, loaded.typeface)
             assertEquals(HeroSource.SMART, loaded.heroSource)
             assertTrue(loaded.heroCatalogKeys.isEmpty())
             assertEquals("", loaded.tmdbApiKey)
@@ -73,18 +73,6 @@ class SettingsRepositoryTest {
             reloaded.load()
 
             assertEquals(AppTypeface.INTER, reloaded.state.value.typeface)
-        }
-
-    @Test
-    fun readsTheTypefaceSpellingsAPersonWrites() =
-        runTest {
-            val path = File(tempDir(), "settings.json").path
-            File(path).writeText("""{"appearance.typeface":"plex"}""")
-            val settings = JsonSettingsRepository(JsonMapStore(path, pretty = true))
-
-            settings.load()
-
-            assertEquals(AppTypeface.IBM_PLEX_SANS, settings.state.value.typeface)
         }
 
     @Test

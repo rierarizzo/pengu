@@ -11,7 +11,7 @@ below, which keep their own licenses.
 | [AndroidX Media3](https://github.com/androidx/media) | Android playback engine pulled in by the mediamp ExoPlayer backend | Apache-2.0 |
 | mediamp mpv runtime (Windows/macOS) | bundled libmpv + FFmpeg, built without GPL-only components | LGPL-2.1-or-later (see [libmpv-LGPL-2.1.txt](libmpv-LGPL-2.1.txt)) |
 | mediamp mpv runtime (Linux) | bundled libmpv + FFmpeg; uses mpv's GPL-only X11 output | GPL-3.0 |
-| IBM Plex Sans | UI typeface (default) | SIL Open Font License 1.1 ([IBM-Plex-Sans-OFL.txt](IBM-Plex-Sans-OFL.txt)) |
+| Roboto | UI typeface (default) | SIL Open Font License 1.1 ([Roboto-OFL.txt](Roboto-OFL.txt)) |
 | Inter | Alternative UI typeface, picked in Settings → Appearance | SIL Open Font License 1.1 ([Inter-OFL.txt](Inter-OFL.txt)) |
 | [Material Symbols](https://github.com/google/material-design-icons) | vendored UI icon set (`MaterialIcons.kt`, Sharp style) | Apache-2.0 ([Material-Symbols-Apache-2.0.txt](Material-Symbols-Apache-2.0.txt)) |
 

@@ -15,8 +15,8 @@ enum class PosterSize {
 
 /** Typeface every screen is set in. */
 enum class AppTypeface {
-    /** IBM Plex Sans: humanist and slightly warm, the app default. */
-    IBM_PLEX_SANS,
+    /** Roboto: neutral and compact, the app default. */
+    ROBOTO,
 
     /** Inter: neutral and compact, tighter at small sizes. */
     INTER,
@@ -80,7 +80,7 @@ data class AppSettings(
     /** Play the app's motion (transitions, hover, skeletons). */
     val animationsEnabled: Boolean = true,
     /** Typeface every screen is set in. */
-    val typeface: AppTypeface = AppTypeface.IBM_PLEX_SANS,
+    val typeface: AppTypeface = AppTypeface.ROBOTO,
     /**
      * Reopen the desktop window at the size and maximized state it was closed
      * with. Desktop only: a phone window is the screen.
