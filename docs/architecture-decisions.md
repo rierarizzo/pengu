@@ -361,15 +361,15 @@ so the atomic read/write/delete logic lives once.
   and `Modifier.focusRing` (in `Interaction.kt`) gives every focusable control
   the same keyboard ring.
 - **Icons are vendored, not a dependency.** `ui/icons/MaterialIcons.kt` holds
-  the Material Symbols Sharp (Apache-2.0, Google) glyphs the whole UI uses as
+  the Material Symbols Rounded (Apache-2.0, Google) glyphs the whole UI uses as
   `ImageVector`s, each built lazily from the official SVG path through
   `PathParser`; `scripts/gen_icons.mjs` regenerates the file from the
-  `@material-symbols/svg-400` package. Sharp is the style that squares the
-  corners off, which matches the app's flat, tint-only icon language better than
-  a rounder set. The glyphs live on a 960x960 grid whose y axis runs from -960
-  to 0, so each vector is built inside a group translated by +960 while call
-  sites still size it at 24dp. The back arrow and the
-  sign-in/out glyphs carry `autoMirror = true`,
+  `@material-symbols/svg-400` package. Rounded is the style Nuvio's own Material
+  glyphs use, and its softened corners sit the icons in the app's flat,
+  tint-only language without a per-glyph edit. The glyphs live on a 960x960
+  grid whose y axis runs from -960 to 0, so each vector is built inside a group
+  translated by +960 while call sites still size it at 24dp. The back arrow and
+  the sign-in/out glyphs carry `autoMirror = true`,
   which is what Material's auto-mirrored variants did. The Windows caption
   buttons keep their own native-shaped glyphs (`WindowsCaptionIcons` in
   `:app:desktopApp`), so the bar reads as Windows chrome. The app does not depend on
@@ -692,7 +692,7 @@ so the atomic read/write/delete logic lives once.
   a keyboard/D-pad target, and the item is announced as a selected tab. The rail
   drops the labels to stay narrow, centers the profile avatar and the section
   items in the window, and paints the page background instead of a panel colour,
-  so it blends into the content. The glyphs are Material Symbols Sharp
+  so it blends into the content. The glyphs are Material Symbols Rounded
   (`MaterialIcons`), so the selected state is the tint alone. The glyph is sized
   `AppIconSize.nav` (28dp) rather than the 24dp in-row default, because the item
   shows nothing else. The bar adds a hairline `outlineVariant` top edge and

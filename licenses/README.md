@@ -13,7 +13,7 @@ below, which keep their own licenses.
 | mediamp mpv runtime (Linux) | bundled libmpv + FFmpeg; uses mpv's GPL-only X11 output | GPL-3.0 |
 | Roboto | UI typeface (default) | SIL Open Font License 1.1 ([Roboto-OFL.txt](Roboto-OFL.txt)) |
 | Inter | Alternative UI typeface, picked in Settings → Appearance | SIL Open Font License 1.1 ([Inter-OFL.txt](Inter-OFL.txt)) |
-| [Material Symbols](https://github.com/google/material-design-icons) | vendored UI icon set (`MaterialIcons.kt`, Sharp style) | Apache-2.0 ([Material-Symbols-Apache-2.0.txt](Material-Symbols-Apache-2.0.txt)) |
+| [Material Symbols](https://github.com/google/material-design-icons) | vendored UI icon set (`MaterialIcons.kt`, Rounded style) | Apache-2.0 ([Material-Symbols-Apache-2.0.txt](Material-Symbols-Apache-2.0.txt)) |
 
 The desktop player engine is **mediamp's mpv backend**: it loads libmpv through
 a JNI wrapper and renders into the Compose/Skia canvas, so the video is normal

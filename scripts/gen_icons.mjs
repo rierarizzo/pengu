@@ -1,4 +1,4 @@
-// Regenerates ui/icons/MaterialIcons.kt from the Material Symbols Sharp set
+// Regenerates ui/icons/MaterialIcons.kt from the Material Symbols Rounded set
 // (Apache-2.0, Google), published as @material-symbols/svg-400 on npm. Run:
 //   node scripts/gen_icons.mjs > app/shared/src/commonMain/kotlin/com/misgus/pengu/ui/icons/MaterialIcons.kt
 //
@@ -7,7 +7,7 @@
 // inside a group translated by +960.
 
 const VERSION = "0.48.0";
-const BASE = `https://cdn.jsdelivr.net/npm/@material-symbols/svg-400@${VERSION}/sharp`;
+const BASE = `https://cdn.jsdelivr.net/npm/@material-symbols/svg-400@${VERSION}/rounded`;
 
 // [Kotlin name, package file name, autoMirror]
 const icons = [
@@ -77,7 +77,7 @@ import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.unit.dp
 
 /**
- * Icon set vendored from Material Symbols Sharp (Apache-2.0, Google).
+ * Icon set vendored from Material Symbols Rounded (Apache-2.0, Google).
  *
  * The whole UI uses these glyphs; call sites size them with
  * [com.misgus.pengu.ui.theme.AppIconSize]. \`scripts/gen_icons.mjs\` regenerates

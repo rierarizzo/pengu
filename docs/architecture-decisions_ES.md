@@ -383,15 +383,15 @@ leer/escribir/borrar vive una sola vez.
   `Modifier.focusRing` (en `Interaction.kt`) da a cada control enfocable el mismo
   anillo de teclado.
 - **Los iconos se vendorizan, no son una dependencia.** `ui/icons/MaterialIcons.kt`
-  contiene los glifos de Material Symbols Sharp (Apache-2.0, Google) que usa toda
+  contiene los glifos de Material Symbols Rounded (Apache-2.0, Google) que usa toda
   la UI como `ImageVector`s, cada uno construido de forma perezosa desde el path
   SVG oficial mediante `PathParser`; `scripts/gen_icons.mjs` regenera el fichero
-  desde el paquete `@material-symbols/svg-400`. Sharp es el estilo que
-  rectifica las esquinas, y encaja mejor con el lenguaje de iconos plano y de
-  solo tinte de la app que un set más redondeado. Los glifos viven en un grid de
-  960x960 cuyo eje y va de -960 a 0, así que cada vector se construye dentro de
-  un grupo trasladado +960 mientras los sitios de uso lo siguen dimensionando a
-  24dp. La flecha de volver y los
+  desde el paquete `@material-symbols/svg-400`. Rounded es el estilo que usan los
+  glifos Material de Nuvio, y sus esquinas suavizadas encajan en el lenguaje de
+  iconos plano y de solo tinte de la app sin retocar glifo a glifo. Los glifos
+  viven en un grid de 960x960 cuyo eje y va de -960 a 0, así que cada vector se
+  construye dentro de un grupo trasladado +960 mientras los sitios de uso lo
+  siguen dimensionando a 24dp. La flecha de volver y los
   glifos de inicio/cierre de sesión llevan `autoMirror = true`, que es lo que
   hacían las variantes auto-espejadas de Material. Los botones de caption de
   Windows conservan sus glifos nativos (`WindowsCaptionIcons` en
@@ -737,7 +737,7 @@ leer/escribir/borrar vive una sola vez.
   seleccionada. El rail elimina las etiquetas para mantenerse estrecho, centra el
   avatar de perfil y los items de sección en la ventana, y pinta el fondo de
   página en vez de un color de panel, así que se funde con el contenido. Los
-  glifos son Material Symbols Sharp (`MaterialIcons`), así que el estado
+  glifos son Material Symbols Rounded (`MaterialIcons`), así que el estado
   seleccionado es solo el tinte. El glifo se dimensiona con `AppIconSize.nav`
   (28dp) en vez del default de 24dp de las filas, porque el item no muestra nada
   más. La barra añade un borde hairline `outlineVariant` arriba y mide
