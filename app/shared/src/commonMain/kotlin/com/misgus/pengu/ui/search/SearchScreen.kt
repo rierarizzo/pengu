@@ -9,10 +9,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -26,12 +25,9 @@ import com.misgus.pengu.app.shared.generated.resources.search_failed_title
 import com.misgus.pengu.app.shared.generated.resources.search_no_results_title
 import com.misgus.pengu.app.shared.generated.resources.search_nothing_matched
 import com.misgus.pengu.app.shared.generated.resources.search_placeholder
-import com.misgus.pengu.app.shared.generated.resources.search_type_movies
-import com.misgus.pengu.app.shared.generated.resources.search_type_other
-import com.misgus.pengu.app.shared.generated.resources.search_type_series
-import com.misgus.pengu.core.model.ContentTypes
 import com.misgus.pengu.core.model.LibraryItem
 import com.misgus.pengu.core.model.MetaPreview
+import com.misgus.pengu.core.model.isLandscape
 import com.misgus.pengu.core.repository.PosterSize
 import com.misgus.pengu.ui.components.AppSearchField
 import com.misgus.pengu.ui.components.MediaActions
@@ -46,19 +42,22 @@ import com.misgus.pengu.ui.services.LocalAppServices
 import com.misgus.pengu.ui.shell.ContentNavigator
 import com.misgus.pengu.ui.shell.ContentRoute
 import com.misgus.pengu.ui.theme.AppSpacing
+import com.misgus.pengu.ui.theme.LANDSCAPE_ART_ASPECT
 import com.misgus.pengu.ui.theme.LocalWindowSize
 import com.misgus.pengu.ui.theme.cellWidth
 import com.misgus.pengu.ui.theme.gridSpacing
+import com.misgus.pengu.ui.theme.landscapeCardWidth
 import com.misgus.pengu.ui.theme.posterCardHeight
 import com.misgus.pengu.ui.theme.screenPadding
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * Search section: a free-text search across every searchable addon catalog,
- * with the discover feed underneath the bar while the query is empty.
+ * Search section: a free-text search across every searchable addon catalog, with
+ * the discover feed underneath the bar while the query is empty.
  *
- * Discover used to be its own section; it lives here now. Results are grouped in
- * Movies / Series / Other rails.
+ * A search keeps one rail per catalog, like Nuvio: each addon answers with its
+ * own results, so the sections say where a title came from instead of merging
+ * everything into three rails that hide the source.
  */
 @Composable
 fun SearchScreen(
@@ -79,9 +78,11 @@ fun SearchScreen(
             if (state.query.isBlank()) {
                 DiscoverFeed(
                     state = discoverState,
-                    items = discoverState.items,
                     hideLabels = settings.hideLabels,
                     onOpenDetail = { navigator.push(ContentRoute.Detail(it)) },
+                    onSelectType = discoverViewModel::selectType,
+                    onSelectCatalog = discoverViewModel::selectCatalog,
+                    onSelectGenre = discoverViewModel::selectGenre,
                     onLoadMore = discoverViewModel::loadMore,
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -127,42 +128,30 @@ private fun SearchResults(
     onOpenDetail: (LibraryItem) -> Unit,
 ) {
     when {
-        state.isSearching && state.results.isEmpty() ->
+        state.isSearching && state.sections.isEmpty() ->
             Box(Modifier.fillMaxSize(), Alignment.Center) {
                 CircularProgressIndicator()
             }
-        state.error != null && state.results.isEmpty() ->
+        state.error != null && state.sections.isEmpty() ->
             Message(
                 icon = MaterialIcons.Error,
                 title = stringResource(Res.string.search_failed_title),
                 message = stringResource(state.error.toUserMessage()),
             )
-        state.results.isEmpty() && state.hasSearched ->
+        state.sections.isEmpty() && state.hasSearched ->
             Message(
                 icon = MaterialIcons.Inbox,
                 title = stringResource(Res.string.search_no_results_title),
                 message = stringResource(Res.string.search_nothing_matched, state.query.trim()),
             )
-        else -> {
-            val movies = state.results.filter { it.type == ContentTypes.MOVIE }
-            val series = state.results.filter { it.type == ContentTypes.SERIES }
-            val other = state.results.filter { it.type != ContentTypes.MOVIE && it.type != ContentTypes.SERIES }
-            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-                if (movies.isNotEmpty()) {
-                    SectionHeader(stringResource(Res.string.search_type_movies))
-                    ResultsRail(movies, posterSize, hideLabels, onOpenDetail)
+        else ->
+            LazyColumn(Modifier.fillMaxSize()) {
+                items(state.sections, key = { it.key }) { section ->
+                    SectionHeader(section.title)
+                    ResultsRail(section.items, posterSize, hideLabels, onOpenDetail)
                 }
-                if (series.isNotEmpty()) {
-                    SectionHeader(stringResource(Res.string.search_type_series))
-                    ResultsRail(series, posterSize, hideLabels, onOpenDetail)
-                }
-                if (other.isNotEmpty()) {
-                    SectionHeader(stringResource(Res.string.search_type_other))
-                    ResultsRail(other, posterSize, hideLabels, onOpenDetail)
-                }
-                Spacer(Modifier.height(AppSpacing.xl))
+                item(key = "search-bottom") { Spacer(Modifier.height(AppSpacing.xl)) }
             }
-        }
     }
 }
 
@@ -175,8 +164,19 @@ private fun ResultsRail(
 ) {
     val windowSize = LocalWindowSize.current
     val cardWidth = posterSize.cellWidth(windowSize)
+    // A landscape result (a live event, a channel) keeps its wide, shorter
+    // artwork; the rail is as tall as the tallest card in it.
+    val wideWidth = landscapeCardWidth(cardWidth)
+    val railHeight =
+        previews.maxOfOrNull { item ->
+            if (item.isLandscape) {
+                posterCardHeight(wideWidth, hideLabels, LANDSCAPE_ART_ASPECT)
+            } else {
+                posterCardHeight(cardWidth, hideLabels)
+            }
+        } ?: posterCardHeight(cardWidth, hideLabels)
     LazyRow(
-        modifier = Modifier.height(posterCardHeight(cardWidth, hideLabels)),
+        modifier = Modifier.height(railHeight),
         contentPadding = PaddingValues(horizontal = windowSize.screenPadding),
         horizontalArrangement = Arrangement.spacedBy(windowSize.gridSpacing),
     ) {
@@ -186,8 +186,9 @@ private fun ResultsRail(
                 name = item.name,
                 poster = item.poster,
                 caption = item.releaseInfo,
-                width = cardWidth,
+                width = if (item.isLandscape) wideWidth else cardWidth,
                 hideLabels = hideLabels,
+                landscape = item.isLandscape,
                 onTap = { onOpenDetail(libraryItem) },
                 actions =
                     MediaActions(

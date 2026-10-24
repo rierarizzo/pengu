@@ -31,18 +31,40 @@ data class CatalogRef(
     /** Stable key for dedupe and identity. */
     val key: String get() = "$addonBaseUrl|$type|$id"
 
-    /** Whether the catalog accepts a free-text `search` parameter. */
-    val searches: Boolean get() = extras.any { it.name == CatalogExtras.SEARCH }
+    /**
+     * Whether the catalog accepts a free-text `search` parameter.
+     *
+     * The same rule Nuvio applies: declaring `search` is not enough when the
+     * catalog also needs an extra only the addon knows (a list of ids, a genre
+     * with no options); that catalog cannot be searched with a query alone.
+     */
+    val searches: Boolean
+        get() =
+            extras.any { it.name == CatalogExtras.SEARCH } &&
+                extras.none { it.isRequired && it.name != CatalogExtras.SEARCH }
 
     /**
      * Whether the catalog can be fetched with no query parameter.
      *
      * A catalog with a required extra cannot be browsed: it needs a query its
-     * grid does not have (a search term, a list of ids, ...), and asking anyway
-     * just returns empty. Home and Discover only use browsable catalogs; Search
-     * uses [searches].
+     * grid does not have (a list of ids, ...), and asking anyway just returns
+     * empty. `skip` and `search` never block browsing — a required `search`
+     * marks a search-only catalog, which is what keeps it out of Discover —
+     * and a required `genre` with options is browsable, because Discover picks
+     * one of them. This matches Nuvio's rules, so both apps show the same
+     * catalogs in the same places. Home and Discover use it; Search uses
+     * [searches].
      */
-    val browsable: Boolean get() = extras.none { it.isRequired }
+    val browsable: Boolean
+        get() =
+            extras.none { it.name == CatalogExtras.SEARCH && it.isRequired } &&
+                extras.none { extra ->
+                    when (extra.name) {
+                        CatalogExtras.GENRE -> extra.isRequired && extra.options.isEmpty()
+                        CatalogExtras.SKIP, CatalogExtras.SEARCH -> false
+                        else -> extra.isRequired
+                    }
+                }
 }
 
 /**

@@ -27,6 +27,7 @@ import com.misgus.pengu.ui.theme.AppMotion
 import com.misgus.pengu.ui.theme.AppScale
 import com.misgus.pengu.ui.theme.AppSizes
 import com.misgus.pengu.ui.theme.AppSpacing
+import com.misgus.pengu.ui.theme.LANDSCAPE_ART_ASPECT
 import com.misgus.pengu.ui.theme.POSTER_ART_ASPECT
 import com.misgus.pengu.ui.theme.PosterCaption
 import com.misgus.pengu.ui.theme.motionLayer
@@ -37,7 +38,9 @@ import org.jetbrains.compose.resources.stringResource
  * One poster card, shared by the Home and detail rows and the poster grids.
  *
  * [width] is the fixed width for horizontal rows; when null the card fills its
- * parent (used inside a grid). [hideLabels] drops the title and [caption],
+ * parent (used inside a grid). [landscape] draws the artwork wide (16:9) instead
+ * of as a 2:3 poster, for a title whose addon declares `posterShape: landscape`.
+ * [hideLabels] drops the title and [caption],
  * leaving the artwork alone. [caption] is the card's second line (a release
  * info or a year), and [progress] is a watch fraction that draws the progress
  * bar for a started title. [actions] adds the right-click / long-press menu;
@@ -51,6 +54,7 @@ fun PosterCard(
     progress: Double? = null,
     watched: Boolean = false,
     hideLabels: Boolean = false,
+    landscape: Boolean = false,
     width: Dp? = null,
     onTap: () -> Unit,
     actions: MediaActions? = null,
@@ -105,7 +109,7 @@ fun PosterCard(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .aspectRatio(POSTER_ART_ASPECT)
+                    .aspectRatio(if (landscape) LANDSCAPE_ART_ASPECT else POSTER_ART_ASPECT)
                     .motionLayer(scale = { scale.value })
                     .motionBorder(color = { borderColor.value }, width = AppSizes.borderWidth, cornerRadius = AppCorner.small)
                     .clip(shape),

@@ -20,21 +20,37 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/** One catalog's answer to the query, shown as a rail of its own. */
+data class SearchSection(
+    /** Stable key for the rail, so a re-search does not reuse the old one. */
+    val key: String,
+    /** The catalog the results come from. */
+    val title: String,
+    val items: List<MetaPreview>,
+)
+
 /** Immutable state of the Search section. */
 data class SearchUiState(
     val query: String = "",
     val isSearching: Boolean = false,
-    val results: List<MetaPreview> = emptyList(),
+    /** One section per catalog that answered, in the addons' order. */
+    val sections: List<SearchSection> = emptyList(),
     /** `true` once a query has completed, so "no results" is not shown before. */
     val hasSearched: Boolean = false,
     val error: Throwable? = null,
 )
 
 /**
- * Searches every catalog that declares the `search` extra, in parallel.
+ * Searches every catalog that declares the `search` extra, in parallel, and
+ * keeps one rail per catalog, like Nuvio.
  *
- * The query is debounced so typing does not fire a request per keystroke, and
- * results are deduped across addons by `type:id`.
+ * Merging the answers would hide which addon found what and would drop the same
+ * title found by a second catalog, so each one keeps its own section; a catalog
+ * that answers nothing simply has no rail. [CatalogRef.searches] decides what is
+ * asked: a catalog that needs an extra the app cannot fill is skipped instead of
+ * being queried with a bare term.
+ *
+ * The query is debounced so typing does not fire a request per keystroke.
  */
 class SearchViewModel(
     account: AccountRepository,
@@ -63,7 +79,7 @@ class SearchViewModel(
         if (trimmed.isEmpty()) {
             requestId++
             _state.update {
-                it.copy(isSearching = false, results = emptyList(), hasSearched = false, error = null)
+                it.copy(isSearching = false, sections = emptyList(), hasSearched = false, error = null)
             }
             return
         }
@@ -78,21 +94,31 @@ class SearchViewModel(
         val id = ++requestId
         _state.update { it.copy(isSearching = true, error = null) }
         try {
-            val results =
+            val sections =
                 coroutineScope {
                     searchableCatalogs()
                         .map { ref ->
                             async {
-                                runCatchingCancellable {
-                                    catalogs.items(ref, mapOf(CatalogExtras.SEARCH to query))
-                                }.getOrDefault(emptyList())
+                                val items =
+                                    runCatchingCancellable {
+                                        catalogs.items(ref, mapOf(CatalogExtras.SEARCH to query))
+                                    }.getOrDefault(emptyList())
+                                ref to items
                             }
                         }.awaitAll()
-                }.flatten()
+                }.mapNotNull { (ref, items) ->
+                    if (items.isEmpty()) {
+                        null
+                    } else {
+                        SearchSection(
+                            key = "${ref.key}:${query.lowercase()}",
+                            title = ref.name,
+                            items = items,
+                        )
+                    }
+                }
             if (id != requestId) return
-            val seen = mutableSetOf<String>()
-            val unique = results.filter { seen.add("${it.type}:${it.id}") }
-            _state.update { it.copy(isSearching = false, results = unique, hasSearched = true) }
+            _state.update { it.copy(isSearching = false, sections = sections, hasSearched = true) }
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (error: Throwable) {

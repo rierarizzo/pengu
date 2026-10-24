@@ -183,8 +183,16 @@ so the atomic read/write/delete logic lives once.
   to the artwork's 2:3 ratio (`POSTER_ART_ASPECT`) instead of stretching the art
   to fill the freed caption space, so the poster keeps the base size the setting
   defines. The Home rows append the catalog's content type to its name with a
-  dot (`Popular · Movies`), switched off by `catalog.showType`; the billboard
-  metadata is unaffected.
+  dot (`Popular · Movies`), switched off by `catalog.showType`; the label covers
+  every type an addon can declare — movies, series, anime, and the protocol's own
+  values (`Sport`, `TV`, ...) capitalized as spelled — so a row is never the only
+  one without one. The billboard metadata is unaffected.
+- **Landscape artwork keeps its shape.** A catalog item whose addon declares
+  `posterShape: landscape` (a live event, a channel) is drawn at 16:9
+  (`LANDSCAPE_ART_ASPECT`) and `LANDSCAPE_WIDTH_SCALE` wider in a row, matching
+  Nuvio's ratio; the rail is as tall as the tallest card in it. Cropping a banner
+  into a 2:3 poster cut the picture in half, which is what a sports catalog
+  showed. Grids keep their columns and draw the wide cell at 16:9.
 - **The client has no third-party metadata provider.** Artwork, synopses, cast
   and the "You may also like" row come from the Stremio addons; whatever an addon
   does not send is the backend's job, not the app's. A TMDB read used to live
@@ -730,21 +738,31 @@ so the atomic read/write/delete logic lives once.
   does not leave an empty third line. The poster action sheet uses the same
   rule.
 - **Search owns the discover feed.** It has a free-text search across every
-  catalog that declares the `search` extra, debounced, run in parallel and
-  deduped across addons, split into Movies / Series / Other rails; and — while
-  the query is empty — the discover feed underneath the bar. The search field is
+  catalog that declares the `search` extra, and — while the query is empty — the
+  discover feed underneath the bar. The search field is
   pinned at the top with the same `screenPadding` as the other sections' first
-  row and a `md` gap below it. The feed flattens
-  every catalog the enabled addons declare into a single mixed grid, like the
-  Library, so the catalog boundaries stay invisible. Only browsable catalogs are
-  used: one whose extras are required (a search term, a list of ids, ...) cannot
-  be fetched without a query, so it is skipped instead of asking and getting an
-  empty page. The catalogs are interleaved across addons before the cap, so one
-  addon with many catalogs does not crowd out the rest, and the items are
-  interleaved round-robin and deduped, so the grid alternates sources instead of
-  showing one catalog as a block. It pages with `skip` as the grid is scrolled,
-  so it keeps growing instead of stopping at the first page. Discover is no
-  longer a section.
+  row and a `md` gap below it.
+- **Search answers are one rail per catalog.** Every searchable catalog is asked
+  in parallel with the same term, and each that answers keeps its own rail
+  (catalog name as the title, its addon underneath), so the section says where a
+  title came from and a title found twice stays visible in both. A catalog that
+  answers nothing has no rail; a failure drops that rail instead of the screen.
+  The results are not merged, deduped or split by type: that was the old
+  Movies / Series / Other layout, and it hid which addon produced what.
+- **Discover is one catalog at a time.** Three pickers sit above the grid — type,
+  catalog and genre — and the grid pages only the chosen catalog with `skip`.
+  The type list comes from the catalogs the addons open for browsing, the catalog
+  list is the ones of that type, and the genre options come from the chosen
+  catalog's `genre` extra (a required genre is picked for the user and always
+  sent). Only browsable catalogs are offered: one whose extras are required (a
+  list of ids, a genre with no options, ...) cannot be fetched without a query, so
+  it is skipped instead of asking and getting an empty page. `skip` and `search`
+  never block browsing, a required `search` marks the catalog search-only (and
+  keeps it out of Discover), and a required `genre` with options is browsable.
+  `CatalogRef` carries exactly Nuvio's rules, so both apps show the same catalogs
+  in the same places. This replaced a single mixed grid that interleaved every
+  catalog, which made the per-catalog flags an addon declares invisible. The
+  choice is kept for the session; Discover is not a section of its own.
 - **Theme** follows Material 3 and is data, not code. `BrandPalette`
   (`theme/Tokens.kt`) is a data class holding the app's raw colours, shipped as
   the single `CoffeePalette`; `PenguTheme` provides it through

@@ -193,7 +193,17 @@ leer/escribir/borrar vive una sola vez.
   imagen para llenar el hueco liberado, así el póster conserva el tamaño base que
   define el ajuste. Las filas de Home añaden el tipo de contenido al nombre del
   catálogo con un punto (`Popular · Movies`), y `catalog.showType` lo oculta; la
-  metadata del billboard no se ve afectada.
+  etiqueta cubre todos los tipos que un addon puede declarar — movies, series,
+  anime y los valores propios del protocolo (`Sport`, `TV`, ...) capitalizados
+  como vienen — así ninguna fila se queda sin ella. La metadata del billboard no
+  se ve afectada.
+- **El artwork en landscape conserva su forma.** Un item de catálogo cuyo addon
+  declara `posterShape: landscape` (un evento en vivo, un canal) se dibuja a 16:9
+  (`LANDSCAPE_ART_ASPECT`) y `LANDSCAPE_WIDTH_SCALE` más ancho en una fila, con el
+  ratio de Nuvio; el raíl es tan alto como la card más alta. Recortar un banner a
+  un póster 2:3 partía la imagen a la mitad, que es lo que mostraba un catálogo
+  de deportes. Las rejillas mantienen sus columnas y dibujan la celda ancha a
+  16:9.
 - **El cliente no tiene proveedor de metadata de terceros.** El artwork, las
   sinopsis, el cast y la fila "You may also like" vienen de los addons de
   Stremio; lo que un addon no manda es trabajo del backend, no de la app. Aquí
@@ -777,22 +787,34 @@ leer/escribir/borrar vive una sola vez.
   sinopsis de dos líneas no deja una tercera vacía. La bottom sheet de acciones
   del póster sigue la misma regla.
 - **Search es dueña del feed de discover.** Tiene una búsqueda de texto libre en
-  cada catálogo que declara el extra `search`, con debounce, ejecutada en
-  paralelo y deduplicada entre addons, dividida en raíles Movies / Series /
-  Other; y — mientras la consulta está vacía — el feed de discover debajo de la
-  barra. El campo de búsqueda queda fijado arriba con el mismo `screenPadding`
-  que la primera fila de las demás secciones y un margen `md` por debajo. El feed
-  aplana cada catálogo que declaran los addons activos en una única rejilla mixta,
-  como la Library, para que los límites de catálogo queden
-  invisibles. Solo se usan catálogos navegables: uno cuyos extras son
-  obligatorios (un término de búsqueda, una lista de ids, ...) no se puede pedir
-  sin una consulta, así que se salta en vez de pedir y obtener una página vacía.
-  Los catálogos se intercalan entre addons antes del límite, así que un addon con
-  muchos catálogos no desplaza a los demás, y los items se intercalan round-robin
-  y se deduplican, así que la rejilla alterna fuentes en vez de mostrar un
-  catálogo como un bloque. Pagina con `skip` según se desplaza la rejilla, así
-  que sigue creciendo en vez de parar en la primera página. Discover ya no es una
-  sección.
+  cada catálogo que declara el extra `search`, y — mientras la consulta está
+  vacía — el feed de discover debajo de la barra. El campo de búsqueda queda
+  fijado arriba con el mismo `screenPadding` que la primera fila de las demás
+  secciones y un margen `md` por debajo.
+- **La búsqueda responde con un raíl por catálogo.** Se pregunta en paralelo a
+  todos los catálogos buscables con el mismo término, y cada uno que responde
+  conserva su propio raíl (el nombre del catálogo como título y su addon debajo),
+  así la sección dice de dónde salió cada título y uno encontrado dos veces sigue
+  visible en ambos. Un catálogo que no responde nada no tiene raíl; un fallo
+  elimina ese raíl, no la pantalla. Los resultados no se fusionan, ni se
+  deduplican, ni se parten por tipo: ese era el formato anterior
+  Movies / Series / Other, que escondía qué addon aportaba qué.
+- **Discover es un catálogo a la vez.** Sobre la rejilla hay tres selectores —
+  tipo, catálogo y género — y la rejilla pagina solo el catálogo elegido con
+  `skip`. La lista de tipos sale de los catálogos que los addons abren para
+  navegar, la de catálogos son los de ese tipo, y las opciones de género salen
+  del extra `genre` del catálogo elegido (un género obligatorio se elige por el
+  usuario y se envía siempre). Solo se ofrecen catálogos navegables: uno cuyos
+  extras son obligatorios (una lista de ids, un género sin opciones, ...) no se
+  puede pedir sin una consulta, así que se salta en vez de pedir y obtener una
+  página vacía. `skip` y `search` nunca bloquean la navegación, un `search`
+  obligatorio marca el catálogo como solo-búsqueda (y lo saca de Discover), y un
+  `genre` obligatorio con opciones sí es navegable. `CatalogRef` lleva exactamente
+  las reglas de Nuvio, así que las dos apps muestran los mismos catálogos en los
+  mismos sitios. Esto reemplazó a una única rejilla mixta que intercalaba todos
+  los catálogos, y que volvía invisibles las flags por catálogo que declara el
+  addon. La elección se mantiene durante la sesión; Discover no es una sección
+  propia.
 - **El tema** sigue Material 3 y es dato, no código. `BrandPalette`
   (`theme/Tokens.kt`) es una data class con los colores crudos de la app,
   publicada como la única `CoffeePalette`; `PenguTheme` la proporciona por

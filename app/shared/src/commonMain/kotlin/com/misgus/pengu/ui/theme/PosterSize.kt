@@ -15,6 +15,26 @@ import com.misgus.pengu.core.repository.PosterSize
  */
 const val POSTER_ART_ASPECT = 2f / 3f
 
+/**
+ * Ratio of artwork an addon declares as `landscape`.
+ *
+ * A live event or a channel has no portrait art: its image is a wide banner, and
+ * cropping it into a 2:3 cell cuts the picture in half. `MetaPreview.posterShape`
+ * says which one a title carries.
+ */
+const val LANDSCAPE_ART_ASPECT = 16f / 9f
+
+/**
+ * How much wider a landscape card is than a portrait one in the same row.
+ *
+ * Matching Nuvio's ratio, so the same catalog looks the same in both apps: a
+ * landscape card is roughly a 16:9 version of the row, not a poster-width strip.
+ */
+private const val LANDSCAPE_WIDTH_SCALE = 1.64f
+
+/** Card width in a row whose artwork is landscape, from the row's portrait width. */
+fun landscapeCardWidth(portraitWidth: Dp): Dp = portraitWidth * LANDSCAPE_WIDTH_SCALE
+
 /** How much a poster shrinks on a compact window (phone). */
 internal const val COMPACT_SCALE = 0.65f
 
@@ -71,13 +91,14 @@ fun gridCells(windowSize: WindowSize): GridCells =
 /**
  * Height of a poster card [cardWidth] wide.
  *
- * The artwork always keeps its 2:3 ([POSTER_ART_ASPECT]) and a card that shows
- * its caption adds the fixed caption block ([PosterCaption.blockHeight]). A
- * proportional caption reserve would shrink with a phone's narrow cell and let
- * the caption eat into the artwork, cropping it.
+ * The artwork keeps [aspect] and a card that shows its caption adds the fixed
+ * caption block ([PosterCaption.blockHeight]). A proportional caption reserve
+ * would shrink with a phone's narrow cell and let the caption eat into the
+ * artwork, cropping it.
  */
 @Composable
 fun posterCardHeight(
     cardWidth: Dp,
     hideLabels: Boolean,
-): Dp = cardWidth / POSTER_ART_ASPECT + if (hideLabels) 0.dp else PosterCaption.blockHeight()
+    aspect: Float = POSTER_ART_ASPECT,
+): Dp = cardWidth / aspect + if (hideLabels) 0.dp else PosterCaption.blockHeight()

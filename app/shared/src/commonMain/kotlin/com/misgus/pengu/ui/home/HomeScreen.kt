@@ -40,6 +40,7 @@ import com.misgus.pengu.app.shared.generated.resources.home_empty_message
 import com.misgus.pengu.app.shared.generated.resources.home_error_title
 import com.misgus.pengu.core.model.LibraryItem
 import com.misgus.pengu.core.model.MetaPreview
+import com.misgus.pengu.core.model.isLandscape
 import com.misgus.pengu.core.model.releaseYear
 import com.misgus.pengu.core.player.PlaybackTarget
 import com.misgus.pengu.core.repository.CatalogRef
@@ -60,11 +61,13 @@ import com.misgus.pengu.ui.shell.ContentRoute
 import com.misgus.pengu.ui.shell.LocalSnackbarHost
 import com.misgus.pengu.ui.streams.StreamsRequest
 import com.misgus.pengu.ui.theme.AppSpacing
+import com.misgus.pengu.ui.theme.LANDSCAPE_ART_ASPECT
 import com.misgus.pengu.ui.theme.LocalWindowHeight
 import com.misgus.pengu.ui.theme.LocalWindowSize
 import com.misgus.pengu.ui.theme.WindowSize
 import com.misgus.pengu.ui.theme.cellWidth
 import com.misgus.pengu.ui.theme.gridSpacing
+import com.misgus.pengu.ui.theme.landscapeCardWidth
 import com.misgus.pengu.ui.theme.posterCardHeight
 import com.misgus.pengu.ui.theme.safeTopInset
 import com.misgus.pengu.ui.theme.screenPadding
@@ -351,14 +354,25 @@ private fun HomeContent(
                 }
                 itemsIndexed(state.rows, key = { _, row -> "row:${row.ref.key}" }) { index, row ->
                     Column(Modifier.pullUp(if (index == 0 && !hasContinue) liftPx else 0)) {
-                        val typeLabel = contentTypeLabel(row.ref.type)
                         SectionHeader(
-                            title = if (showCatalogType && typeLabel != null) "${row.title} · $typeLabel" else row.title,
+                            title = if (showCatalogType) "${row.title} · ${contentTypeLabel(row.ref.type)}" else row.title,
                             onSeeAll = { onOpenCatalog(row.ref) },
                         )
                         val cardWidth = posterSize.cellWidth(windowSize)
+                        // A row whose addon declares landscape art (a live event, a
+                        // channel) gets wider, shorter cards; the rail is as tall as
+                        // the tallest card in it so a mixed row still lines up.
+                        val wideWidth = landscapeCardWidth(cardWidth)
+                        val railHeight =
+                            row.items.maxOfOrNull { item ->
+                                if (item.isLandscape) {
+                                    posterCardHeight(wideWidth, hideLabels, LANDSCAPE_ART_ASPECT)
+                                } else {
+                                    posterCardHeight(cardWidth, hideLabels)
+                                }
+                            } ?: posterCardHeight(cardWidth, hideLabels)
                         LazyRow(
-                            modifier = Modifier.height(posterCardHeight(cardWidth, hideLabels)),
+                            modifier = Modifier.height(railHeight),
                             contentPadding = PaddingValues(horizontal = windowSize.screenPadding),
                             horizontalArrangement = Arrangement.spacedBy(windowSize.gridSpacing),
                         ) {
@@ -367,7 +381,8 @@ private fun HomeContent(
                                     name = item.name,
                                     poster = item.poster,
                                     caption = item.releaseInfo,
-                                    width = cardWidth,
+                                    width = if (item.isLandscape) wideWidth else cardWidth,
+                                    landscape = item.isLandscape,
                                     watched = item.id in state.watchedIds,
                                     hideLabels = hideLabels,
                                     onTap = { onOpenPreview(item) },

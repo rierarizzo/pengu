@@ -30,23 +30,24 @@ class SearchViewModelTest {
 
     private fun ref(
         id: String,
-        searchable: Boolean,
+        searchable: Boolean = true,
+        type: String = "movie",
     ) = CatalogRef(
-        addonName = "Addon",
+        addonName = "Addon $id",
         addonBaseUrl = "https://addon-$id",
-        type = ContentType("movie"),
+        type = ContentType(type),
         id = id,
         name = id,
-        extras = if (searchable) listOf(AddonCatalogExtra("search")) else emptyList(),
+        extras = if (searchable) listOf(AddonCatalogExtra("search", isRequired = true)) else emptyList(),
     )
 
     private fun preview(id: String) = MetaPreview(id = id, type = ContentType("movie"), name = id)
 
     @Test
-    fun searchesOnlySearchableCatalogsAndDedupes() =
+    fun keepsOneSectionPerSearchableCatalogWithoutMerging() =
         runTest(dispatcher) {
-            val first = ref("first", searchable = true)
-            val second = ref("second", searchable = true)
+            val first = ref("first")
+            val second = ref("second")
             val plain = ref("top", searchable = false)
             val catalogs =
                 FakeCatalogRepository(
@@ -54,6 +55,8 @@ class SearchViewModelTest {
                     items =
                         mapOf(
                             first.key to listOf(preview("tt1"), preview("tt2")),
+                            // The same title found by a second catalog stays in its own
+                            // section instead of being dropped as a duplicate.
                             second.key to listOf(preview("tt1"), preview("tt3")),
                             plain.key to listOf(preview("tt9")),
                         ),
@@ -64,19 +67,43 @@ class SearchViewModelTest {
             viewModel.onQueryChange("dune")
             advanceUntilIdle()
 
-            assertTrue(viewModel.state.value.hasSearched)
-            assertFalse(viewModel.state.value.isSearching)
+            val state = viewModel.state.value
+            assertTrue(state.hasSearched)
+            assertFalse(state.isSearching)
+            assertEquals(listOf("first", "second"), state.sections.map { it.title })
             assertEquals(
-                listOf("tt1", "tt2", "tt3"),
-                viewModel.state.value.results
-                    .map { it.id },
+                listOf(listOf("tt1", "tt2"), listOf("tt1", "tt3")),
+                state.sections.map { section -> section.items.map { it.id } },
             )
         }
 
     @Test
-    fun clearingTheQueryResetsResults() =
+    fun dropsTheSectionsOfACatalogThatAnsweredNothing() =
         runTest(dispatcher) {
-            val searchable = ref("first", searchable = true)
+            val answered = ref("answered")
+            val empty = ref("empty")
+            val catalogs =
+                FakeCatalogRepository(
+                    refs = listOf(answered, empty),
+                    items = mapOf(answered.key to listOf(preview("tt1"))),
+                )
+            val viewModel = SearchViewModel(FakeAccountRepository(), catalogs)
+            advanceUntilIdle()
+
+            viewModel.onQueryChange("dune")
+            advanceUntilIdle()
+
+            assertEquals(
+                listOf("answered"),
+                viewModel.state.value.sections
+                    .map { it.title },
+            )
+        }
+
+    @Test
+    fun clearingTheQueryResetsTheSections() =
+        runTest(dispatcher) {
+            val searchable = ref("first")
             val catalogs =
                 FakeCatalogRepository(
                     refs = listOf(searchable),
@@ -87,12 +114,12 @@ class SearchViewModelTest {
 
             viewModel.onQueryChange("dune")
             advanceUntilIdle()
-            assertEquals(1, viewModel.state.value.results.size)
+            assertEquals(1, viewModel.state.value.sections.size)
 
             viewModel.onQueryChange("")
             advanceUntilIdle()
             assertTrue(
-                viewModel.state.value.results
+                viewModel.state.value.sections
                     .isEmpty(),
             )
             assertFalse(viewModel.state.value.hasSearched)

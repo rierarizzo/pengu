@@ -69,6 +69,10 @@
     <string name="discover_error_title">Could not load Discover</string>
     <string name="discover_empty_title">Nothing to discover</string>
     <string name="discover_empty_message">Install a metadata addon with catalogs to fill this section.</string>
+    <string name="discover_filter_type">Type</string>
+    <string name="discover_filter_catalog">Catalog</string>
+    <string name="discover_filter_genre">All genres</string>
+    <string name="discover_context">%1$s · %2$s</string>
 
     <!-- Catalog -->
     <string name="catalog_error_title">Could not load this catalog</string>
@@ -81,7 +85,7 @@
     <string name="search_nothing_matched">Nothing matched &quot;%1$s&quot;.</string>
     <string name="search_type_movies">Movies</string>
     <string name="search_type_series">Series</string>
-    <string name="search_type_other">Other</string>
+    <string name="search_type_anime">Anime</string>
 
     <!-- Content types -->
     <string name="content_type_movie">Movie</string>

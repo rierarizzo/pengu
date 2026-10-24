@@ -6,7 +6,6 @@ import com.misgus.pengu.core.model.MetaPreview
 import com.misgus.pengu.core.repository.CatalogRef
 import com.misgus.pengu.core.repository.CatalogRepository
 import com.misgus.pengu.ui.support.FakeAccountRepository
-import com.misgus.pengu.ui.support.FakeCatalogRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -18,6 +17,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class DiscoverViewModelTest {
@@ -45,174 +45,213 @@ class DiscoverViewModelTest {
 
     private fun preview(
         id: String,
-        type: String,
+        type: String = "movie",
     ) = MetaPreview(id = id, type = ContentType(type), name = id)
 
-    @Test
-    fun mixesMoviesAndSeriesInOneList() =
-        runTest(dispatcher) {
-            val movies = ref("movie", "top")
-            val series = ref("series", "trending")
-            val catalogs =
-                FakeCatalogRepository(
-                    refs = listOf(movies, series),
-                    items =
-                        mapOf(
-                            movies.key to listOf(preview("m1", "movie")),
-                            series.key to listOf(preview("s1", "series")),
-                        ),
-                )
-            val viewModel = DiscoverViewModel(FakeAccountRepository(), catalogs)
-            advanceUntilIdle()
-
-            val ids =
-                viewModel.state.value.items
-                    .map { it.id }
-            assertEquals(listOf("m1", "s1"), ids)
-        }
-
-    @Test
-    fun dedupesAcrossCatalogsAndSkipsEmptyOnes() =
-        runTest(dispatcher) {
-            val first = ref("movie", "top")
-            val second = ref("movie", "popular")
-            val empty = ref("series", "empty")
-            val catalogs =
-                FakeCatalogRepository(
-                    refs = listOf(first, second, empty),
-                    items =
-                        mapOf(
-                            first.key to listOf(preview("m1", "movie"), preview("m2", "movie")),
-                            second.key to listOf(preview("m1", "movie"), preview("m3", "movie")),
-                        ),
-                )
-            val viewModel = DiscoverViewModel(FakeAccountRepository(), catalogs)
-            advanceUntilIdle()
-
-            val ids =
-                viewModel.state.value.items
-                    .map { it.id }
-            // m1 comes from the first catalog and m3 from the second; the second
-            // catalog's duplicate of m1 is dropped, and round-robin keeps an item
-            // of the second catalog before the first catalog's second item.
-            assertEquals(listOf("m1", "m3", "m2"), ids)
-        }
-
-    @Test
-    fun interleavesItemsFromDifferentCatalogs() =
-        runTest(dispatcher) {
-            val first = ref("movie", "top")
-            val second = ref("movie", "popular")
-            val catalogs =
-                FakeCatalogRepository(
-                    refs = listOf(first, second),
-                    items =
-                        mapOf(
-                            first.key to listOf(preview("a1", "movie"), preview("a2", "movie"), preview("a3", "movie")),
-                            second.key to listOf(preview("b1", "movie"), preview("b2", "movie")),
-                        ),
-                )
-            val viewModel = DiscoverViewModel(FakeAccountRepository(), catalogs)
-            advanceUntilIdle()
-
-            val ids =
-                viewModel.state.value.items
-                    .map { it.id }
-            assertEquals(listOf("a1", "b1", "a2", "b2", "a3"), ids)
-        }
-
-    @Test
-    fun keepsPagingOnLoadMoreUntilTheCatalogIsExhausted() =
-        runTest(dispatcher) {
-            val paged = ref("movie", "top", extras = listOf(AddonCatalogExtra("skip")))
-            val pages =
-                listOf(
-                    listOf(preview("m1", "movie"), preview("m2", "movie")),
-                    listOf(preview("m3", "movie"), preview("m4", "movie")),
-                )
-            val catalogs = PagedCatalogRepository(paged, pages, pageSize = 2)
-            val viewModel = DiscoverViewModel(FakeAccountRepository(), catalogs)
-            advanceUntilIdle()
-
-            val firstPage =
-                viewModel.state.value.items
-                    .map { it.id }
-            assertEquals(listOf("m1", "m2"), firstPage)
-            assertTrue(viewModel.state.value.hasMore)
-
-            viewModel.loadMore()
-            advanceUntilIdle()
-            val secondPage =
-                viewModel.state.value.items
-                    .map { it.id }
-            assertEquals(listOf("m1", "m2", "m3", "m4"), secondPage)
-
-            viewModel.loadMore()
-            advanceUntilIdle()
-            assertFalse(viewModel.state.value.hasMore)
-            assertEquals(4, viewModel.state.value.items.size)
-        }
-
-    @Test
-    fun keepsEveryAddonWhenOneDeclaresManyCatalogs() =
-        runTest(dispatcher) {
-            // The first addon declares far more catalogs than the cap, so a plain
-            // take() would drop the second addon entirely.
-            val many = (1..25).map { ref("movie", "a$it", addon = "A") }
-            val few = (1..2).map { ref("movie", "b$it", addon = "B") }
-            val refs = many + few
-            val catalogs =
-                FakeCatalogRepository(
-                    refs = refs,
-                    items = refs.associate { it.key to listOf(preview(it.id, "movie")) },
-                )
-            val viewModel = DiscoverViewModel(FakeAccountRepository(), catalogs)
-            advanceUntilIdle()
-
-            val ids =
-                viewModel.state.value.items
-                    .map { it.id }
-            assertTrue(ids.any { it.startsWith("b") })
-        }
-
-    @Test
-    fun skipsCatalogsThatRequireAnExtra() =
-        runTest(dispatcher) {
-            val browsable = ref("movie", "top")
-            val searchOnly =
-                ref("movie", "search", extras = listOf(AddonCatalogExtra("search", isRequired = true)))
-            val catalogs =
-                FakeCatalogRepository(
-                    refs = listOf(searchOnly, browsable),
-                    items =
-                        mapOf(
-                            searchOnly.key to listOf(preview("s1", "movie")),
-                            browsable.key to listOf(preview("m1", "movie")),
-                        ),
-                )
-            val viewModel = DiscoverViewModel(FakeAccountRepository(), catalogs)
-            advanceUntilIdle()
-
-            val ids =
-                viewModel.state.value.items
-                    .map { it.id }
-            assertEquals(listOf("m1"), ids)
-        }
-
-    /** Serves fixed-size pages by translating the `skip` extra into a page index. */
-    private class PagedCatalogRepository(
-        private val ref: CatalogRef,
-        private val pages: List<List<MetaPreview>>,
-        private val pageSize: Int,
+    /** Answers each catalog with its items and records the extras it was asked with. */
+    private class RecordingCatalogRepository(
+        private val refs: List<CatalogRef>,
+        private val items: Map<String, List<MetaPreview>>,
+        private val pages: Map<String, List<List<MetaPreview>>> = emptyMap(),
     ) : CatalogRepository {
-        override suspend fun catalogs(): List<CatalogRef> = listOf(ref)
+        val calls = mutableListOf<Pair<String, Map<String, String>?>>()
+
+        override suspend fun catalogs(): List<CatalogRef> = refs
 
         override suspend fun items(
             ref: CatalogRef,
             extra: Map<String, String>?,
         ): List<MetaPreview> {
-            val index = (extra?.get("skip")?.toIntOrNull() ?: 0) / pageSize
-            return pages.getOrNull(index).orEmpty()
+            calls += ref.key to extra
+            val paged = pages[ref.key]
+            if (paged != null) {
+                val skip = extra?.get("skip")?.toIntOrNull() ?: 0
+                // Pages of two items each, so `skip` is a page offset.
+                return paged.getOrNull(skip / 2).orEmpty()
+            }
+            return items[ref.key].orEmpty()
         }
     }
+
+    @Test
+    fun offersTheFirstDiscoverCatalogOfTheFirstType() =
+        runTest(dispatcher) {
+            val series = ref("series", "top_series", addon = "A")
+            val movie = ref("movie", "top_movie", addon = "A")
+            val repo =
+                RecordingCatalogRepository(
+                    refs = listOf(series, movie),
+                    items = mapOf(series.key to listOf(preview("s1", "series")), movie.key to listOf(preview("m1"))),
+                )
+            val viewModel = DiscoverViewModel(FakeAccountRepository(), repo)
+            viewModel.load()
+            advanceUntilIdle()
+
+            val state = viewModel.state.value
+            assertEquals(listOf(ContentType("movie"), ContentType("series")), state.types)
+            assertEquals(ContentType("movie"), state.selectedType)
+            assertEquals(listOf("top_movie"), state.catalogs.map { it.id })
+            // Only the selected catalog is asked, and with no extras.
+            assertEquals(listOf<Pair<String, Map<String, String>?>>(movie.key to null), repo.calls)
+            assertEquals(listOf("m1"), state.items.map { it.id })
+        }
+
+    @Test
+    fun neverOffersASearchOnlyCatalog() =
+        runTest(dispatcher) {
+            val searchOnly = ref("movie", "search", extras = listOf(AddonCatalogExtra("search", isRequired = true)))
+            val browsable = ref("movie", "top")
+            val repo =
+                RecordingCatalogRepository(
+                    refs = listOf(searchOnly, browsable),
+                    items = mapOf(browsable.key to listOf(preview("m1"))),
+                )
+            val viewModel = DiscoverViewModel(FakeAccountRepository(), repo)
+            viewModel.load()
+            advanceUntilIdle()
+
+            assertEquals(
+                listOf("top"),
+                viewModel.state.value.catalogs
+                    .map { it.id },
+            )
+            assertEquals(
+                listOf("m1"),
+                viewModel.state.value.items
+                    .map { it.id },
+            )
+        }
+
+    @Test
+    fun switchingTheTypeShowsItsOwnCatalogsAndFirstPage() =
+        runTest(dispatcher) {
+            val movie = ref("movie", "top_movie")
+            val series = ref("series", "top_series")
+            val repo =
+                RecordingCatalogRepository(
+                    refs = listOf(movie, series),
+                    items = mapOf(movie.key to listOf(preview("m1")), series.key to listOf(preview("s1", "series"))),
+                )
+            val viewModel = DiscoverViewModel(FakeAccountRepository(), repo)
+            viewModel.load()
+            advanceUntilIdle()
+
+            viewModel.selectType(ContentType("series"))
+            advanceUntilIdle()
+
+            assertEquals(ContentType("series"), viewModel.state.value.selectedType)
+            assertEquals(
+                listOf("top_series"),
+                viewModel.state.value.catalogs
+                    .map { it.id },
+            )
+            assertEquals(
+                listOf("s1"),
+                viewModel.state.value.items
+                    .map { it.id },
+            )
+        }
+
+    @Test
+    fun aGenreSelectionIsSentToTheCatalog() =
+        runTest(dispatcher) {
+            val catalog =
+                ref(
+                    "movie",
+                    "top",
+                    extras = listOf(AddonCatalogExtra("genre", options = listOf("Action", "Drama")), AddonCatalogExtra("skip")),
+                )
+            val repo = RecordingCatalogRepository(listOf(catalog), mapOf(catalog.key to listOf(preview("m1"))))
+            val viewModel = DiscoverViewModel(FakeAccountRepository(), repo)
+            viewModel.load()
+            advanceUntilIdle()
+
+            assertEquals(listOf("Action", "Drama"), viewModel.state.value.genres)
+            assertNull(viewModel.state.value.selectedGenre)
+
+            viewModel.selectGenre("Drama")
+            advanceUntilIdle()
+
+            assertEquals("Drama", viewModel.state.value.selectedGenre)
+            assertEquals(mapOf("genre" to "Drama"), repo.calls.last().second)
+        }
+
+    @Test
+    fun aRequiredGenreIsPickedAndAlwaysSent() =
+        runTest(dispatcher) {
+            val catalog =
+                ref(
+                    "movie",
+                    "top",
+                    extras =
+                        listOf(
+                            AddonCatalogExtra("genre", isRequired = true, options = listOf("Action", "Drama")),
+                            AddonCatalogExtra("skip"),
+                        ),
+                )
+            val repo = RecordingCatalogRepository(listOf(catalog), mapOf(catalog.key to listOf(preview("m1"))))
+            val viewModel = DiscoverViewModel(FakeAccountRepository(), repo)
+            viewModel.load()
+            advanceUntilIdle()
+
+            assertTrue(viewModel.state.value.genreRequired)
+            assertEquals("Action", viewModel.state.value.selectedGenre)
+            assertEquals(mapOf("genre" to "Action"), repo.calls.single().second)
+        }
+
+    @Test
+    fun pagesTheSelectedCatalogUntilItIsExhausted() =
+        runTest(dispatcher) {
+            val catalog = ref("movie", "top", extras = listOf(AddonCatalogExtra("skip")))
+            val repo =
+                RecordingCatalogRepository(
+                    refs = listOf(catalog),
+                    items = emptyMap(),
+                    pages =
+                        mapOf(
+                            catalog.key to
+                                listOf(
+                                    listOf(preview("m1"), preview("m2")),
+                                    listOf(preview("m3"), preview("m4")),
+                                ),
+                        ),
+                )
+            val viewModel = DiscoverViewModel(FakeAccountRepository(), repo)
+            viewModel.load()
+            advanceUntilIdle()
+
+            assertEquals(
+                listOf("m1", "m2"),
+                viewModel.state.value.items
+                    .map { it.id },
+            )
+            assertTrue(viewModel.state.value.hasMore)
+
+            viewModel.loadMore()
+            advanceUntilIdle()
+
+            // The next page is asked with the offset of what is already on screen.
+            assertEquals(mapOf("skip" to "2"), repo.calls.last().second)
+            assertEquals(
+                listOf("m1", "m2", "m3", "m4"),
+                viewModel.state.value.items
+                    .map { it.id },
+            )
+
+            viewModel.loadMore()
+            advanceUntilIdle()
+            assertFalse(viewModel.state.value.hasMore)
+        }
+
+    @Test
+    fun aCatalogWithoutSkipDoesNotPage() =
+        runTest(dispatcher) {
+            val catalog = ref("movie", "top")
+            val repo = RecordingCatalogRepository(listOf(catalog), mapOf(catalog.key to listOf(preview("m1"))))
+            val viewModel = DiscoverViewModel(FakeAccountRepository(), repo)
+            viewModel.load()
+            advanceUntilIdle()
+
+            assertFalse(viewModel.state.value.hasMore)
+        }
 }

@@ -25,6 +25,16 @@ data class MetaPreview(
 )
 
 /**
+ * Whether the artwork is wide (16:9) instead of a portrait poster.
+ *
+ * The protocol's `posterShape` is `poster`, `square` or `landscape`; only the
+ * last one changes the card, because the addon is saying its image is a banner
+ * (a live event, a channel) and drawing it in a 2:3 cell crops it.
+ */
+val MetaPreview.isLandscape: Boolean
+    get() = posterShape.equals("landscape", ignoreCase = true)
+
+/**
  * A full metadata record, called a "meta detail" in Stremio terms.
  *
  * Credits are merged from `app_extras`, the top-level (deprecated) fields and
