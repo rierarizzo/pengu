@@ -20,7 +20,7 @@ actual fun createHttpClient(): HttpClient =
  * CIO is HTTP/1.1 only, so a cold Home opened one TCP+TLS connection per
  * catalog — several of them usually live on the same host. OkHttp multiplexes
  * them over HTTP/2 and, with [IPv4FirstDns], does not wait on a broken AAAA
- * record before trying IPv4. Backend and TMDB traffic keeps CIO.
+ * record before trying IPv4. Backend traffic keeps CIO.
  */
 actual fun createAddonHttpClient(): HttpClient =
     HttpClient(OkHttp) {

@@ -155,8 +155,7 @@ internal fun metaVideoFromJson(json: JsonObject): MetaVideo =
         number = json["number"].intOrNull(),
         released = json["released"].stringOrNull(),
         thumbnail = json["thumbnail"].stringOrNull(),
-        // Off-schema, but some addons send them; the detail page falls back to
-        // TMDB for whatever is missing.
+        // Off-schema, but some addons send them; the detail page shows them as sent.
         description = (json["overview"] ?: json["description"]).stringOrNull()?.takeIf { it.isNotBlank() },
         runtimeMinutes = json["runtime"].intOrNull()?.takeIf { it > 0 },
         rating = json["rating"].doubleOrNull()?.takeIf { it > 0 },

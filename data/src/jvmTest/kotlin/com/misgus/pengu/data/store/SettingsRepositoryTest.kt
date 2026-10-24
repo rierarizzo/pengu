@@ -3,7 +3,6 @@ package com.misgus.pengu.data.store
 import com.misgus.pengu.core.repository.AppTypeface
 import com.misgus.pengu.core.repository.HeroSource
 import com.misgus.pengu.core.repository.PosterSize
-import com.misgus.pengu.core.repository.TmdbLanguage
 import com.misgus.pengu.core.repository.ToneMapping
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonObject
@@ -39,8 +38,6 @@ class SettingsRepositoryTest {
             assertEquals(AppTypeface.ROBOTO, loaded.typeface)
             assertEquals(HeroSource.SMART, loaded.heroSource)
             assertTrue(loaded.heroCatalogKeys.isEmpty())
-            assertEquals("", loaded.tmdbApiKey)
-            assertEquals(TmdbLanguage.SYSTEM, loaded.tmdbLanguage)
         }
 
     @Test
@@ -84,22 +81,6 @@ class SettingsRepositoryTest {
             settings.setHeroCatalogKeys(listOf("https://a|movie|top", "https://b|series|new", "https://c|movie|x"))
 
             assertEquals(listOf("https://a|movie|top", "https://b|series|new"), settings.state.value.heroCatalogKeys)
-        }
-
-    @Test
-    fun persistsTheTmdbKeyAndLanguage() =
-        runTest {
-            val store = JsonMapStore(File(tempDir(), "settings.json").path, pretty = true)
-
-            val settings = JsonSettingsRepository(store)
-            settings.load()
-            settings.setTmdbApiKey("  abc  ")
-            settings.setTmdbLanguage(TmdbLanguage.SPANISH)
-
-            val reloaded = JsonSettingsRepository(store)
-            reloaded.load()
-            assertEquals("abc", reloaded.state.value.tmdbApiKey)
-            assertEquals(TmdbLanguage.SPANISH, reloaded.state.value.tmdbLanguage)
         }
 
     @Test

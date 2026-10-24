@@ -51,6 +51,14 @@ interface AddonRepository {
     val canManage: Boolean get() = false
 
     /**
+     * Key of the active profile, when the backend has profiles.
+     *
+     * Local, profile-scoped caches (the Home feed) key themselves by it, so a
+     * backend without profiles simply does not cache.
+     */
+    val profileKey: String? get() = null
+
+    /**
      * Fetches [url]'s manifest and appends the addon to the installed list.
      *
      * The manifest is validated before anything is written, so a typo does not

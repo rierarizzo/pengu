@@ -15,7 +15,7 @@ import kotlin.test.assertTrue
 /**
  * The desktop loader must decode an SVG title logo.
  *
- * TMDB serves many logos as SVG (a newer series can have one and nothing else),
+ * Providers serve many logos as SVG (a newer series can have one and nothing else),
  * and the app's own raster decoder claims every source, so an SVG that reached
  * it failed to paint at all. The logo request also has to ask for a real
  * resolution: an SVG has a viewBox, not pixels, so decoding it at

@@ -51,7 +51,6 @@ internal fun DetailScrollContent(
     state: DetailUiState,
     item: LibraryItem,
     openStreams: (StreamsRequest) -> Unit,
-    onLoadSeason: (Int) -> Unit,
     onOpenDetail: (LibraryItem) -> Unit,
 ) {
     if (state.isSeries && state.episodes.isNotEmpty()) {
@@ -60,9 +59,6 @@ internal fun DetailScrollContent(
         EpisodesSection(
             contentId = state.contentId,
             videos = state.episodes,
-            episodeDetails = state.episodeDetails,
-            seasonsLoading = state.seasonsLoading,
-            onLoadSeason = onLoadSeason,
         ) { video ->
             openStreams(
                 StreamsRequest(
@@ -119,7 +115,7 @@ internal fun DetailScrollContent(
 /** Vertical gap between two detail sections; the same everywhere so they read evenly. */
 private val SectionSpacing = AppSpacing.lg
 
-/** Localized label for TMDB's English lifecycle status; unknown values pass through. */
+/** Localized label for the provider's English lifecycle status; unknown values pass through. */
 @Composable
 private fun statusLabel(status: String): String =
     when (status.lowercase()) {
@@ -135,7 +131,7 @@ private fun statusLabel(status: String): String =
         else -> status
     }
 
-/** Groups a whole US-dollar amount (`63000000` -> `$63,000,000`); TMDB reports USD. */
+/** Groups a whole US-dollar amount (`63000000` -> `$63,000,000`); the sources report USD. */
 private fun formatMoney(amount: Long): String {
     val grouped =
         amount

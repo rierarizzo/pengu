@@ -40,7 +40,6 @@ fun SectionHost(
                         progress = services.progress,
                         metadata = services.metadata,
                         badges = services.watchedBadges,
-                        tmdb = services.tmdb,
                         addons = services.addons,
                         settings = services.settings,
                         playbackUpdates = services.playbackUpdates,

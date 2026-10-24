@@ -20,10 +20,10 @@ internal data class HeroArt(
  * The artwork the billboard draws for [item].
  *
  * A wide window shows the backdrop it always used. A phone prefers the
- * language-neutral (textless) poster TMDB provides, fitted at the bottom, and
- * falls back to the old backdrop/poster chain when there is none. The layer and
- * the preloader both go through here, so the preload always warms the URL that
- * is actually drawn.
+ * language-neutral (textless) poster when the provider sends one, fitted at the
+ * bottom, and falls back to the old backdrop/poster chain when there is none.
+ * The layer and the preloader both go through here, so the preload always warms
+ * the URL that is actually drawn.
  */
 internal fun heroArtwork(
     item: MetaPreview,

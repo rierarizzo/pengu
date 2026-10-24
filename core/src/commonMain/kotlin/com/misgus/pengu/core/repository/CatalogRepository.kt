@@ -46,6 +46,18 @@ data class CatalogRef(
 }
 
 /**
+ * One row of the last Home feed: a catalog and the items it answered.
+ *
+ * Home paints these before the addons answer, so the type lives here and not in
+ * the UI: the store that keeps them is part of the catalog path.
+ */
+data class CatalogRow(
+    val ref: CatalogRef,
+    val title: String,
+    val items: List<MetaPreview>,
+)
+
+/**
  * Reads the catalogs the account's addons expose, and their items.
  *
  * The UI depends on this interface, never on the addon client in `data/`.
@@ -59,4 +71,15 @@ interface CatalogRepository {
         ref: CatalogRef,
         extra: Map<String, String>? = null,
     ): List<MetaPreview>
+
+    /**
+     * Rows of the last Home load for the active profile, or empty when none.
+     *
+     * Served so the feed paints before the first round-trip: every cold start
+     * otherwise waits for each addon's manifest and then its catalog.
+     */
+    suspend fun cachedRows(): List<CatalogRow> = emptyList()
+
+    /** Remembers [rows] as the feed to paint on the next cold start. */
+    suspend fun cacheRows(rows: List<CatalogRow>) = Unit
 }

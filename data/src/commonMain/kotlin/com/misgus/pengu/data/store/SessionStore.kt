@@ -25,6 +25,9 @@ object AppPaths {
 
     /** Last known addon list, per profile. */
     val addonsFile: String by lazy { "$configDir/addons.json" }
+
+    /** Last Home feed, per profile, painted before the addons answer. */
+    val homeFeedFile: String by lazy { "$configDir/home_feed.json" }
 }
 
 /**

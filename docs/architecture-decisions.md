@@ -113,8 +113,8 @@ so the atomic read/write/delete logic lives once.
   like VS Code's `settings.json` (`appearance.typeface`,
   `animations.enabled`, `window.rememberSize`, `window.width`, `window.height`,
   `window.maximized`, `player.resumePlayback`,
-  `player.autoPlayNext`, `player.streamUrlCache`, `poster.size`, `labels.hidden`, `catalog.showType`,
-  `metadata.tmdbApiKey`, `metadata.tmdbLanguage`).
+  `player.autoPlayNext`, `player.streamUrlCache`, `poster.size`,
+  `labels.hidden`, `catalog.showType`).
   `JsonSettingsRepository` reads it defensively, keeps unknown keys on write and
   can `reload()` after a manual edit; the settings screen groups the toggles into
   categories (`SettingsCategory`, in `ui/screens`), edits the same file, shows
@@ -122,7 +122,7 @@ so the atomic read/write/delete logic lives once.
   desktop settings app: **Account**, **General**, **About** and **Advanced**.
   General holds Playback, Appearance (typeface, motion, and the desktop's window
   size), Home (billboard,
-  poster size, row labels), Addons and Metadata; About holds the product, license
+  poster size, row labels) and Addons; About holds the product, license
   and credits page; Advanced holds the configuration file, the cache actions and
   the playback test.
   A page never mixes two unrelated concerns, and the look-and-feel settings
@@ -185,45 +185,21 @@ so the atomic read/write/delete logic lives once.
   defines. The Home rows append the catalog's content type to its name with a
   dot (`Popular · Movies`), switched off by `catalog.showType`; the billboard
   metadata is unaffected.
-- **TMDB enrichment is optional and presentation-only.** A key set in Settings
-  (`metadata.tmdbApiKey`, with `metadata.tmdbLanguage` for the answer language,
-  system locale by default) turns on a second metadata provider used only by the
-  detail screen and the home billboard, and it never replaces an identifier
-  (`MetaDetail.id` and `MetaVideo.id` still address streams). Two merge rules,
-  one per screen (`MetadataEnrichment.kt`): the home billboard *fills gaps*, so
-  TMDB only adds what the catalog preview left empty and the billboard paints
-  immediately; the **detail page gives TMDB priority**, because there one
-  consistent source is worth more than the fastest first paint. There the page
-  is published **once**, after the addon and TMDB have both answered
-  (`DetailUiState.hasLoaded`), so nothing is drawn from one source and redrawn
-  from another: the hero (artwork, logo, metadata line, synopsis), the cast and
-  crew rows, the details table and the episode cards are final the first time
-  they appear, and a phone goes straight from nothing to the textless poster
-  (the same reason the synopsis already reserved its space instead of showing
-  the preview copy). TMDB also supplies
-  the crew — director and writers, read from `credits` for a movie and from
-  `aggregate_credits` for a series, which is the only form that keeps the roles
-  once every episode director is folded in — and the addon keeps only what
-  addresses playback. TMDB's localized name also wins over the addon's, so the
-  page names the title the way its artwork and copy do. The IMDb score is the one
-  field that is a fallback in the other direction: TMDB carries an audience
-  score, not IMDb's, so it only fills in when no addon reported one, the same
-  rule Nuvio's client uses.
-  `TmdbMetadataRepository` resolves any content id to a TMDB one — an explicit
-  `tmdb:` id, IMDb/TVDB
-  through `/find`, otherwise a title-and-year search that rejects an ambiguous
-  match — then fetches the detail with its images, external ids and credits. A
-  title only TMDB knows (a recommendation) is retried on the addons through the
-  IMDb id TMDB reports, and that id then drives its streams, so a `tmdb:`
-  preview still plays. Both
-  the resolved id and the payload are cached for the process. The addon answer
-  and the enrichment are awaited together, so a slow lookup delays the page
-  rather than being painted over. The "You may also like" row is built from TMDB's
-  recommendations (its similar list as a fallback), and falls back to the addon's
-  own similar catalog when there is no key or no match. Without a key the
-  repository short-circuits and no request leaves the app. The key lives in
-  `settings.json` like every other preference, so it stays hand-editable; it is
-  masked in the UI and never logged, and TMDB's attribution is shown in the card.
+- **The client has no third-party metadata provider.** Artwork, synopses, cast
+  and the "You may also like" row come from the Stremio addons; whatever an addon
+  does not send is the backend's job, not the app's. A TMDB read used to live
+  here, driven by a key the user pasted in Settings; it is gone because an
+  embedded key is extractable and the enrichment belongs where the key can stay
+  secret. So the app carries no TMDB key, no `/find` id resolution and no
+  request to `api.themoviedb.org`, and the detail page has a single source
+  instead of two merging rules. What survives from that design is the rule it
+  existed for: the page is published **once** (`DetailUiState.hasLoaded`), so
+  nothing is drawn from the library item and then redrawn from the addon — the
+  hero, the cast and crew rows, the details table and the episode cards are
+  final the first time they appear. `MetaDetail` is also what the billboard
+  renders, so catalog previews paint immediately, and "You may also like" is the
+  addon's own similar catalog. TMDB's attribution stays on the About page,
+  because the artwork and copy the app shows can still originate there.
 - **Session renewal**: `NuvioAuth` renews the token before a request when it
   has expired, and `NuvioRest` renews once more when the backend answers `401`.
   Renewals are serialized with a mutex so parallel requests do not refresh
@@ -260,7 +236,7 @@ so the atomic read/write/delete logic lives once.
   on the next read, so Home always shows what the addons currently answer. Addon
   traffic is
   deliberately the only cached traffic: `createHttpClient()`, used by the Nuvio
-  backend and TMDB, has no cache, because a stale `library_items` or
+  backend, has no cache, because a stale `library_items` or
   `watch_progress` read would show the user data they just changed. The addon
   client runs on **OkHttp on both platforms** and the backend client on CIO on
   desktop / OkHttp on Android; CIO is HTTP/1.1 only, so a cold Home would open one
@@ -279,6 +255,17 @@ so the atomic read/write/delete logic lives once.
   one round-trip from the cold path; a device without a network keeps working
   from the snapshot. The snapshot keeps every installed addon, enabled or not;
   `all()` filters the disabled ones out for the content path.
+- **Home paints the last feed from disk.** `StremioCatalogRepository` keeps the
+  rows of the last load in `home_feed.json`, per profile
+  (`AddonRepository.profileKey`), and Home publishes them before the first
+  catalog answers: `doLoad` paints the cached rows (billboard included) and then
+  replaces them, in one update, with the network answer, which is also what the
+  next start paints. Without it a cold Home stays on its loading screen until
+  every addon has answered its manifest and then its catalog — the addon HTTP
+  cache does not help there, because most addons declare no freshness — and one
+  slow addon holds the whole screen. A failed or empty load never overwrites the
+  stored feed, so the next start still has something to paint. The watch history
+  is not cached: progress reads are cheap and must stay current.
 - **Addons are managed from Settings.** `AddonRepository` exposes
   `installed()`, `install`, `setEnabled`, `remove`, `reorder` and `canManage`
   next to the content read. `NuvioAddonRepository` validates a pasted URL by
@@ -306,7 +293,7 @@ so the atomic read/write/delete logic lives once.
   go stale or to be replaced under the user, and a catalog edited on the addon
   shows up on the next load instead of from a stored copy. That first paint is the
   whole screen: the rows, "Continue watching" (its backend read runs alongside the
-  catalogs) and the billboard already enriched with TMDB artwork, so nothing fills
+  catalogs) and the billboard, so nothing fills
   in after the user is looking at it. The one thing that still arrives later is the
   billboard's image itself, so the screen keeps its loading overlay until the first
   slide is decoded (with a short timeout, and the feed is composed behind it, so
@@ -437,8 +424,8 @@ so the atomic read/write/delete logic lives once.
 - **The Home hero draws from every catalog.** `pickFeatured` (in
   `HomeViewModel`) takes the pool of every row's items, dedupes by `type:id`,
   balances movies and series, and shuffles, so the billboard is not tied to the
-  first catalog. The featured set is picked from the full set of rows and enriched
-  from TMDB before the paint, while the loading screen is still up, so the hero
+  first catalog. The featured set is picked from the full set of rows before the
+  paint, while the loading screen is still up, so the hero
   appears once and is never swapped afterwards. Well-rated titles
   (IMDb >= 6, unknown passes) come first and low ratings are only used when there
   is not enough good content. The six
@@ -521,24 +508,12 @@ so the atomic read/write/delete logic lives once.
   so the rail only wraps to the tallest card in the season and a short synopsis
   never shrinks its card. A phone steps the width down by the poster rails'
   `COMPACT_SCALE`, so an episode card stays in proportion with the posters above
-  and below it instead of filling the screen. A Stremio video has no synopsis, score or runtime, so
-  those come from TMDB: `TmdbRepository.season` fetches `/tv/{id}/season/{n}`,
-  and the episode picker asks for the open season only, caching it per season in
-  the ViewModel (`DetailUiState.episodeDetails`, keyed by season number) and per
-  payload in `TmdbMetadataRepository`, so moving between seasons costs one
-  request each and the episode ids that address streams stay the addon's. The
-  parser still reads `overview`/`description`, `runtime` and `rating` off a
-  video when an addon sends them off-schema; that copy is used first because it
-  is already there and final, and TMDB fills only what is missing. The score is
-  TMDB's audience score, not IMDb's: the addons publish no per-episode rating,
-  and unlike the hero's there is nothing to fall back to per episode. While the
-  open season is in flight the rail paints cards the size of a
-  real one with nothing in them (`EpisodeCardSkeleton`, driven by
-  `DetailUiState.seasonsLoading`) instead of the addon's still and title, which
-  TMDB would replace a moment later — the same single-author rule the rest of the
-  page follows through `hasLoaded`. The cards stay clickable: opening the
-  streams does not depend on that copy. Without a key nothing waits, because the
-  addon answer is already final. A card also badges watch state: the shared
+  and below it instead of filling the screen. A Stremio video has no synopsis,
+  score or runtime, so a card reads them off the video when an addon sends them
+  off-schema (`overview`/`description`, `runtime`, `rating`) and drops the part
+  the addon did not send, so a missing runtime never leaves a dangling
+  separator. The episode ids that address streams stay the addon's. A card also
+  badges watch state: the shared
   `WatchedBadge` when the account marked the episode (or the whole title), and
   the app's `LinearProgressIndicator` bar along the bottom of the still when
   playback was left part-way. `episodeWatchState` (`DetailSections.kt`) builds
@@ -551,7 +526,7 @@ so the atomic read/write/delete logic lives once.
 - **The detail page lists a title's metadata as a table.** The "Details" section
   renders label/value rows — Released, Country, Status, Original language,
   Seasons, Episodes, Budget and Revenue — each split by a hairline and only for
-  the rows a source actually filled. TMDB reports status in English, so it is
+  the rows a source actually filled. Providers report status in English, so it is
   mapped to a localized string; budget and revenue are whole US-dollar amounts.
   Cast and crew reuse the catalog's caption roles (`PosterCaption`), with the
   character dimmed like a poster's year, so a person card and a poster read the
@@ -877,7 +852,7 @@ so the atomic read/write/delete logic lives once.
   both the request size and the cap): deriving the decode size from the box
   would shrink the content to the canvas's share of the box, so a padded
   wordmark was decoded below the size it is drawn at and then upscaled, which
-  read as jagged. It is deliberately not `Size.ORIGINAL`, because many TMDB
+  read as jagged. It is deliberately not `Size.ORIGINAL`, because many title
   logos are **SVG** — a 2025 series can ship only an SVG — and an SVG has a
   viewBox rather than pixels, so `ORIGINAL` would rasterise a 107-unit-wide
   wordmark at 107px. The app depends on `coil-svg`; on desktop that decoder is
@@ -921,8 +896,8 @@ so the atomic read/write/delete logic lives once.
   backdrop is 16:9 and the compact billboard is a tall cover, so cropping one
   into the other cuts the composition apart; a language-neutral poster is
   already portrait and carries no baked-in title, so the live logo sits over the
-  art instead of a crop of it. TMDB's enrichment supplies one (`textlessPoster`,
-  its highest-resolution `iso_639_1 == null` poster), and `heroArtwork` selects it on
+  art instead of a crop of it. A provider can supply one (`textlessPoster`,
+  the highest-resolution language-neutral poster it has), and `heroArtwork` selects it on
   a compact window, fitted whole into a frame that is exactly the poster's size
   (`1 / POSTER_ART_ASPECT`) — falling back to the backdrop, then the poster, both
   cropped — while the wide billboard keeps the backdrop it always used. The whole
@@ -935,9 +910,9 @@ so the atomic read/write/delete logic lives once.
   sides again. The detail backdrop makes the same textless choice on a phone,
   cropped to fill, and there drops the left-to-right readability scrim so the
   artwork is only darkened at the bottom, under the copy. It also waits for the
-  enrichment to settle before painting, so the choice is never re-made on screen.
+  load to settle before painting, so the choice is never re-made on screen.
   The Home preloader goes through the same helper, so it always
-  warms the URL the layer will draw. The featured set is enriched before the paint
+  warms the URL the layer will draw. The featured set is picked before the paint
   and Home keeps its loading overlay until the first slide's image is decoded, so
   the billboard is never seen with the bare background.
 - **Poster size** is a single setting (`PosterSize`: default / large, 210 / 230
@@ -1161,19 +1136,16 @@ soft bottom scrim, so the artwork gets the whole card instead of sharing it with
 caption block. The row is about what is in progress, not about what was saved: a
 title missing from the library is resolved from its metadata (`unsavedItem`), so
 finishing an episode of something never added to the library still puts it in the
-row. A library item stored without a backdrop would be drawn as a
-cropped portrait poster, so `enrichContinue` looks its wide art up in TMDB — only
-for those entries, behind the billboard's semaphore and this screen's
-enrich-before-paint rule, and every one of those lookups is time-boxed
-(`ENRICH_TIMEOUT`) because the row is published with the rest of Home: an addon or
-TMDB that stalls leaves a card without its enrichment instead of holding the
-screen. Tapping a card resumes playback: `LastStream`
+row. A library item stored without a backdrop is drawn as a cropped portrait
+poster, because the card has nothing else to show: Home no longer goes looking
+for a wide one, and the artwork it paints is what the addons returned.
+Tapping a card resumes playback: `LastStream`
 (`StreamCacheRepository`, written to `last_streams.json` when a stream is picked)
 remembers the URL the title was last played with, keyed by playback's own
 identity — `WatchProgress.contentId` plus the episode's `videoId`, with a blank
 `videoId` treated as absent because that is how the backend stores a movie's —
-because the library item can carry an id the addons do not answer (`tmdb:123` for
-a title opened from a TMDB recommendation) while progress records the resolved
+because the library item can carry an id the addons do not answer while progress
+records the resolved
 one. The same record carries the episode's **name**: the progress row has no
 column for it (the backend schema is not ours), so the card reads it from there
 (`S1E3 · Like a Boy · 33 min left`) instead of asking the addons for metadata
@@ -1307,13 +1279,13 @@ not a one-file change. They are grouped by the axis they change, not by effort.
   top rated in days), stale-while-revalidate so no one waits on an expiry, and
   single-flight so a cold row costs one TMDB request instead of one per waiting
   client, bounded and caching empty responses too. Images are already cached by
-  Coil (memory + disk); the lever is the requested size, which `TmdbMapper`
-  already sets (`w500` / `w1280`).
+  Coil (memory + disk); the lever is the requested size the server puts in the
+  URL.
 
   Two things need designing. TMDB's list endpoints do not return `imdb_id`, so
-  tapping a catalog item needs the `/external_ids` lookup before the addons can
-  resolve streams (the `TmdbIdResolver` machinery exists for the detail screen);
-  without a cache the Home paints fast but every tap pays an extra hop. And the
+  tapping a catalog item needs the server to send the resolved IMDb id along
+  with the row, or the client pays an extra hop before the addons can resolve
+  streams; without a cache the Home paints fast but every tap is slower. And the
   TMDB terms of use have to be checked for cache lifetime, commercial use and a
   single shared key, with the server adding its own per-client rate limiting.
   The in-repo seam is `BackendKind` + `createBackend`; `CatalogRef` is

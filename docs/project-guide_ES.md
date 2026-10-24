@@ -20,7 +20,7 @@ app/player       Adaptador compartido de PlayerService sobre mediamp (lo usan am
 app/shared       UI Compose + ViewModels (toda la UI del producto)
 core             Dominio puro: modelos, contratos de repositorio, reglas, constantes
 data             Implementaciones: addons Stremio, backend Nuvio, ficheros
-                 locales, enriquecimiento opcional con TMDB
+                 locales
 ```
 
 La única regla que importa:
@@ -65,7 +65,6 @@ usan ambas plataformas (ver §7).
 | Cambiar un contrato de repositorio | `core/.../core/repository/` |
 | Cambiar cómo se piden metadata/streams/subtítulos | `data/.../data/addons/` |
 | Cambiar la caché HTTP, la compresión o el DNS (velocidad de arranque en frío) | `data/.../data/platform/` (`HttpDefaults.kt`, `Platform.jvm.kt`, `Platform.android.kt`) |
-| Cambiar el enriquecimiento opcional con TMDB (resolución de ids, artwork, recomendaciones) | `data/.../data/tmdb/`, `core/.../model/Tmdb.kt` |
 | Cambiar el comportamiento del backend Nuvio | `data/.../data/backend/` |
 | Cambiar el modo local/offline | `data/.../data/local/` y `data/.../data/store/` |
 | Añadir un backend | `data/.../data/BackendFactory.kt` (`BackendKind`, `createBackend`) |
@@ -129,8 +128,12 @@ Existen para no reimplementar la misma preocupación en cada pantalla:
   los instalados, activos o no, para que `AddonsSettings` pueda administrarlos
   mientras `all()` filtra los desactivados. Es la capa local-first:
   `NuvioAddonRepository` responde desde su snapshot y refresca detrás, y degrada
-  a "nada guardado" si el fichero falta o está corrupto. El feed no se persiste:
-  Home siempre carga sus catálogos.
+  a "nada guardado" si el fichero falta o está corrupto.
+- **`HomeFeedStore`** (`data/store`, cableado en `StremioCatalogRepository`) — las
+  filas de la última carga de Home, por perfil, para que un arranque frío pinte
+  el feed anterior en vez de esperar el manifiesto y el catálogo de cada addon.
+  Se escribe tras una carga correcta y nunca tras una fallida o vacía; la
+  respuesta de red reemplaza lo que hay en pantalla un momento después.
 - **`VideoOutput`** (`core/player`) — marcador tipado de la salida de plataforma
   del reproductor; `VideoSurfaceRenderer` (en `app/player`) lo extiende
   y dibuja el vídeo como contenido Compose, sea cual sea el motor cableado.

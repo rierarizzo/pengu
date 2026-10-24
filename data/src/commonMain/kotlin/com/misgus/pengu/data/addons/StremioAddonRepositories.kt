@@ -5,6 +5,8 @@ import com.misgus.pengu.core.repository.CatalogRepository
 import com.misgus.pengu.core.repository.MetadataRepository
 import com.misgus.pengu.core.repository.StreamRepository
 import com.misgus.pengu.core.repository.SubtitleRepository
+import com.misgus.pengu.data.store.HomeFeedStore
+import com.misgus.pengu.data.store.NoopHomeFeedStore
 import io.ktor.client.HttpClient
 
 /**
@@ -19,10 +21,11 @@ import io.ktor.client.HttpClient
 class StremioAddonRepositories(
     addons: AddonRepository,
     client: HttpClient,
+    homeFeed: HomeFeedStore = NoopHomeFeedStore(),
 ) {
     private val clients = AddonClientPool(client)
 
-    val catalogs: CatalogRepository = StremioCatalogRepository(addons, clients)
+    val catalogs: CatalogRepository = StremioCatalogRepository(addons, clients, homeFeed)
 
     val metadata: MetadataRepository = StremioMetadataRepository(addons, clients)
 

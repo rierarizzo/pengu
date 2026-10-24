@@ -101,13 +101,14 @@ fun HomeScreen(
         }
     }
 
-    // The feed and the watch history are published together, so rows and
-    // "Continue watching" appear in the same paint. The last thing that can still
-    // pop in is the billboard artwork, a full-size image: on the transition from
-    // loading to loaded, Home keeps its loading screen until the first slide is
-    // decoded (or the wait times out), so the hero never shows the bare background
-    // and then fills in. A Home that was already loaded when the screen composed
-    // (coming back from another section) is not gated again.
+    // The feed is published in one update once the addons and the watch history
+    // have answered, and the last feed from disk goes up before that first paint,
+    // so a cold Home is not blank while the addons are read. The last thing that
+    // can still pop in is the billboard artwork, a full-size image: on the
+    // transition from loading to loaded, Home keeps its loading screen until the
+    // first slide is decoded (or the wait times out), so the hero never shows the
+    // bare background and then fills in. A Home that was already loaded when the
+    // screen composed (coming back from another section) is not gated again.
     val cameLoaded = remember { state.rows.isNotEmpty() }
     var heroArtworkReady by remember { mutableStateOf(false) }
     val featuredKey = state.featured.map { it.type to it.id }
@@ -266,10 +267,9 @@ private fun HomeContent(
                 title = stringResource(Res.string.home_error_title),
                 message = stringResource(state.error.toUserMessage()),
             )
-        // Nothing is published until every catalog and the watch history have
-        // answered, so what is on screen is loaded: the loading screen covers the
-        // whole first load. A refresh behind keeps the loaded rows, so it never
-        // gets here.
+        // The whole first load is covered by the loading screen unless the previous
+        // feed was painted from disk, in which case the rows are already there and
+        // the refresh behind replaces them without coming back here.
         state.rows.isEmpty() && (state.isLoading || !state.hasLoaded) ->
             HomeLoading()
         state.rows.isEmpty() && state.continueWatching.isEmpty() ->

@@ -12,7 +12,6 @@
     <string name="action_try_again">Try again</string>
     <string name="action_sign_in">Sign in</string>
     <string name="action_sign_out">Sign out</string>
-    <string name="action_save">Save</string>
     <string name="action_cancel">Cancel</string>
     <string name="action_remove">Remove</string>
     <string name="action_close">Close</string>
@@ -240,21 +239,6 @@
     <string name="settings_cache_subtitle">What the app keeps on this device to paint faster. Clearing it only costs a re-download.</string>
     <string name="settings_clear_image_cache">Clear image cache</string>
     <string name="settings_clear_watch_cache">Clear continue watching cache</string>
-    <string name="settings_metadata">Metadata</string>
-    <string name="settings_metadata_subtitle">Fill missing artwork, synopses and cast, and build &quot;You may also like&quot;, from TMDB.</string>
-    <string name="settings_tmdb_api_key">TMDB API key</string>
-    <string name="settings_tmdb_api_key_subtitle">A v3 API key or a v4 read access token. Leave empty to disable.</string>
-    <string name="settings_tmdb_api_key_show">Show API key</string>
-    <string name="settings_tmdb_api_key_hide">Hide API key</string>
-    <string name="settings_tmdb_language">Language</string>
-    <string name="settings_tmdb_language_subtitle">The language TMDB answers in.</string>
-    <string name="settings_tmdb_language_system">System</string>
-    <string name="settings_tmdb_language_english">English</string>
-    <string name="settings_tmdb_language_spanish">Spanish</string>
-    <string name="settings_tmdb_test">Test</string>
-    <string name="settings_tmdb_test_ok">The key works.</string>
-    <string name="settings_tmdb_test_invalid">TMDB rejected this key.</string>
-    <string name="settings_tmdb_test_unreachable">Could not reach TMDB. Check your connection and try again.</string>
     <string name="settings_tmdb_attribution">This product uses the TMDB API but is not endorsed or certified by TMDB.</string>
 
     <!-- Home billboard -->

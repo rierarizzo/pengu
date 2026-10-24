@@ -80,7 +80,7 @@ leer/escribir/borrar vive una sola vez.
 
 ## Datos (`:data`)
 
-- **Cliente Ktor** (CIO para backend/TMDB, OkHttp para addons en ambas
+- **Cliente Ktor** (CIO para el backend, OkHttp para addons en ambas
   plataformas) en lugar de `package:http`.
 - **kotlinx.serialization** con la API `JsonElement` y pequeños helpers
   defensivos de coerción (`JsonUtils.kt`), reflejando `json_utils.dart`: los
@@ -119,8 +119,7 @@ leer/escribir/borrar vive una sola vez.
   punteadas, como el `settings.json` de VS Code (`appearance.typeface`, `animations.enabled`,
   `window.rememberSize`, `window.width`, `window.height`, `window.maximized`,
   `player.resumePlayback`, `player.autoPlayNext`, `player.streamUrlCache`, `poster.size`,
-  `labels.hidden`, `catalog.showType`, `metadata.tmdbApiKey`,
-  `metadata.tmdbLanguage`).
+  `labels.hidden`, `catalog.showType`).
   `JsonSettingsRepository` lo lee de
   forma defensiva, conserva las claves desconocidas al escribir y puede
   `reload()` tras una edición manual; la pantalla de ajustes agrupa los toggles
@@ -129,8 +128,8 @@ leer/escribir/borrar vive una sola vez.
   cuatro bloques, como una app de ajustes de escritorio: **Cuenta**, **General**,
   **Acerca de** y **Avanzado**. General contiene Playback, Apariencia (tipografía,
   movimiento y el tamaño de ventana del escritorio), Home (billboard, tamaño de póster,
-  etiquetas de fila),
-  Addons y Metadata; Acerca de contiene la página de producto, licencia y
+  etiquetas de fila) y
+  Addons; Acerca de contiene la página de producto, licencia y
   créditos; Avanzado contiene el fichero de configuración, las acciones de caché
   y la prueba de
   reproducción. Una página nunca mezcla dos asuntos sin relación, y los ajustes de
@@ -195,48 +194,23 @@ leer/escribir/borrar vive una sola vez.
   define el ajuste. Las filas de Home añaden el tipo de contenido al nombre del
   catálogo con un punto (`Popular · Movies`), y `catalog.showType` lo oculta; la
   metadata del billboard no se ve afectada.
-- **El enriquecimiento con TMDB es opcional y solo de presentación.** Una clave
-  puesta en Ajustes (`metadata.tmdbApiKey`, con `metadata.tmdbLanguage` para el
-  idioma de respuesta, el del sistema por defecto) activa un segundo proveedor de
-  metadata que solo usan la pantalla de detalle y el billboard de Home, y nunca
-  reemplaza un identificador (`MetaDetail.id` y `MetaVideo.id` siguen
-  direccionando los streams). Dos reglas de merge, una por pantalla
-  (`MetadataEnrichment.kt`): el billboard de Home *rellena huecos*, así que TMDB
-  solo añade lo que el preview del catálogo dejó vacío y el billboard pinta de
-  inmediato; la **pantalla de detalle da prioridad a TMDB**, porque ahí una sola
-  fuente consistente vale más que el primer pintado más rápido. Allí la página
-  se publica **una sola vez**, cuando ya respondieron el addon y TMDB
-  (`DetailUiState.hasLoaded`), así que nada se pinta desde una fuente y se
-  repinta desde otra: el hero (artwork, logo, línea de metadata, sinopsis), las
-  filas de cast y crew, la tabla de detalles y las tarjetas de episodio son
-  finales la primera vez que aparecen, y un teléfono pasa directo de nada al
-  póster sin texto (la misma razón por la que la sinopsis ya reservaba su espacio
-  en vez de enseñar el copy del preview). TMDB también
-  aporta el crew — dirección y guion, leído de `credits` en una película y de
-  `aggregate_credits` en una serie, que es la única forma que conserva los roles
-  cuando se juntan los directores de todos los episodios —, y el addon conserva
-  solo lo que direcciona el playback. El nombre localizado de TMDB también gana
-  al del addon, así la página nombra el título igual que su arte y su texto. La
-  nota es el único campo que hace de fallback en la otra dirección: TMDB trae la
-  nota de su público, no la de IMDb, así que solo rellena cuando ningún addon
-  reportó una, la misma regla que usa el cliente de Nuvio.
-  `TmdbMetadataRepository`
-  resuelve cualquier content id a uno de TMDB — un id `tmdb:` explícito,
-  IMDb/TVDB vía `/find`, y si no una búsqueda por título y año que rechaza un
-  match ambiguo — y luego pide el detalle con sus imágenes, ids externos y
-  créditos. Un título que solo conoce TMDB (una recomendación) se reintenta en
-  los addons con el id de IMDb que TMDB reporta, y ese id pasa a manejar sus
-  streams, así que un preview `tmdb:` igual reproduce. Tanto el id resuelto como
-  el payload se cachean durante el proceso.
-  La respuesta del addon y el enriquecimiento se esperan juntos, así que una
-  búsqueda lenta retrasa la página en vez de ser pintada por encima. La fila
-  "More like
-  this" se construye con las recomendaciones de TMDB (su lista similar como
-  respaldo) y cae al catálogo similar del addon cuando no hay clave o no hay
-  match. Sin clave el repositorio corta y ninguna petición sale de la app. La
-  clave vive en `settings.json` como el resto de preferencias, así que sigue
-  siendo editable a mano; se enmascara en la UI y nunca se registra, y la
-  atribución de TMDB se muestra en la card.
+- **El cliente no tiene proveedor de metadata de terceros.** El artwork, las
+  sinopsis, el cast y la fila "You may also like" vienen de los addons de
+  Stremio; lo que un addon no manda es trabajo del backend, no de la app. Aquí
+  vivía una lectura de TMDB movida por una clave que el usuario pegaba en
+  Ajustes; desaparece porque una clave embebida es extraíble y el enriquecimiento
+  pertenece a donde la clave puede quedar en secreto. Así que la app no lleva
+  clave de TMDB, ni resolución de ids por `/find`, ni ninguna petición a
+  `api.themoviedb.org`, y la pantalla de detalle tiene una sola fuente en vez de
+  dos reglas de merge. De aquel diseño sobrevive la regla por la que existía: la
+  página se publica **una sola vez** (`DetailUiState.hasLoaded`), así que nada se
+  pinta desde el item de biblioteca y se repinta luego desde el addon — el hero,
+  las filas de cast y crew, la tabla de detalles y las tarjetas de episodio son
+  finales la primera vez que aparecen. `MetaDetail` es también lo que pinta el
+  billboard, así que los previews de catálogo pintan de inmediato, y "You may
+  also like" es el catálogo similar del addon. La atribución de TMDB sigue en la
+  página Acerca de, porque el arte y el texto que muestra la app todavía pueden
+  venir de ahí.
 - **Renovación de sesión**: `NuvioAuth` renueva el token antes de una petición
   cuando ha caducado, y `NuvioRest` renueva una vez más cuando el backend
   responde `401`. Las renovaciones se serializan con un mutex para que peticiones
@@ -248,7 +222,7 @@ leer/escribir/borrar vive una sola vez.
   lugar de en fila. Home resuelve los catálogos con una ventana deslizante de
   cuatro peticiones (una fila que responde libera su hueco de inmediato) mientras
   lee el historial de reproducción en paralelo, y publica el feed una sola vez —
-  filas, "Continuar viendo" y el billboard ya enriquecido —, así que la pantalla
+  filas, "Continuar viendo" y el billboard —, así que la pantalla
   pasa de su estado de carga al conjunto entero de una vez. Al volver a la sección conserva las filas
   cargadas y refresca detrás, y los manifiestos de addons se precalientan en
   cuanto hay perfil. Library carga la biblioteca y su progreso juntos; el
@@ -273,7 +247,7 @@ leer/escribir/borrar vive una sola vez.
   vuelve a pedir en la siguiente lectura, así que Home siempre muestra lo que los
   addons responden ahora. El tráfico de addons es
   deliberadamente el único cacheado: `createHttpClient()`, usado por el backend
-  Nuvio y TMDB, no tiene caché, porque servir un `library_items` o un
+  Nuvio, no tiene caché, porque servir un `library_items` o un
   `watch_progress` viejo le mostraría al usuario datos que acaba de cambiar. El
   cliente de addons corre sobre **OkHttp en ambas plataformas** y el del backend
   sobre CIO en desktop / OkHttp en Android; CIO es solo HTTP/1.1, así que un Home
@@ -295,6 +269,18 @@ leer/escribir/borrar vive una sola vez.
   frío; un dispositivo sin red sigue funcionando desde el snapshot. El snapshot
   guarda todos los addons instalados, activos o no; `all()` filtra los
   desactivados para el camino de contenido.
+- **Home pinta el último feed desde disco.** `StremioCatalogRepository` guarda las
+  filas de la última carga en `home_feed.json`, por perfil
+  (`AddonRepository.profileKey`), y Home las publica antes de que responda el
+  primer catálogo: `doLoad` pinta las filas guardadas (billboard incluido) y
+  después las reemplaza, en una sola actualización, con la respuesta de red, que
+  es también la que pinta el siguiente arranque. Sin esto un Home frío se queda
+  en su pantalla de carga hasta que cada addon ha respondido su manifiesto y
+  luego su catálogo — la caché HTTP de addons no ayuda ahí, porque la mayoría no
+  declara frescura — y un addon lento retiene la pantalla entera. Una carga
+  fallida o vacía nunca sobrescribe el feed guardado, así que el siguiente
+  arranque sigue teniendo algo que pintar. El historial de reproducción no se
+  cachea: leerlo es barato y tiene que estar al día.
 - **Los addons se administran desde Ajustes.** `AddonRepository` expone
   `installed()`, `install`, `setEnabled`, `remove`, `reorder` y `canManage`
   junto a la lectura de contenido. `NuvioAddonRepository` valida la URL pegada
@@ -325,7 +311,7 @@ leer/escribir/borrar vive una sola vez.
   catálogo editado en el addon aparece en la siguiente carga en vez de desde una
   copia guardada. Ese primer pintado es la pantalla entera: las filas,
   "Continuar viendo" (su lectura del backend corre junto a los catálogos) y el
-  billboard ya enriquecido con el artwork de TMDB, así que nada se rellena después
+  billboard, así que nada se rellena después
   de que el usuario esté mirando. Lo único que sigue llegando más tarde es la
   propia imagen del billboard, así que la pantalla mantiene su overlay de carga
   hasta que el primer slide está decodificado (con un timeout corto, y con el feed
@@ -466,7 +452,7 @@ leer/escribir/borrar vive una sola vez.
   `HomeViewModel`) arma el pool con los ítems de todas las filas, deduplica por
   `type:id`, balancea películas y series y baraja, así que el billboard no queda
   atado al primer catálogo. El set destacado se elige del conjunto completo de
-  filas y se enriquece desde TMDB antes del pintado, con la pantalla de carga
+  filas antes del pintado, con la pantalla de carga
   todavía arriba, así que el hero aparece una vez y no se cambia después. Los títulos bien calificados (IMDb >= 6, desconocido pasa) van
   primero y los de baja calificación solo se usan cuando no alcanza el buen
   contenido. Los seis slides auto-avanzan cada `HERO_AUTO_ADVANCE_INTERVAL`
@@ -557,24 +543,11 @@ leer/escribir/borrar vive una sola vez.
   con el `COMPACT_SCALE` de los rails de pósters, así una tarjeta de episodio
   queda en proporción con los pósters de arriba y de abajo en vez de llenar la
   pantalla. Un video de Stremio no
-  tiene sinopsis, nota ni duración, así que eso viene de TMDB:
-  `TmdbRepository.season` pide `/tv/{id}/season/{n}`, y el selector de episodios
-  solo carga la temporada abierta, cacheada por temporada en el ViewModel
-  (`DetailUiState.episodeDetails`, con la temporada como clave) y por payload en
-  `TmdbMetadataRepository`, así moverse entre temporadas cuesta una petición por
-  cada una y los ids de episodio que abren los streams siguen siendo los del
-  addon. El parser sigue leyendo `overview`/`description`, `runtime` y `rating`
-  de un video cuando un addon los manda fuera de esquema; ese texto se usa
-  primero porque ya está y es final, y TMDB rellena solo lo que falta. La nota es
-  la del público de TMDB, no la de IMDb: los addons no publican nota por
-  episodio, y a diferencia de la del hero aquí no hay a qué recurrir. Mientras la
-  temporada abierta está en vuelo, el rail pinta
-  tarjetas del tamaño de una real y vacías (`EpisodeCardSkeleton`, guiado por
-  `DetailUiState.seasonsLoading`) en vez del still y el título del addon, que
-  TMDB reemplazaría un momento después — la misma regla de un solo autor que el
-  resto de la página sigue con `hasLoaded`. Las tarjetas siguen siendo pulsables:
-  abrir los streams no depende de ese texto. Sin clave nadie espera, porque la
-  respuesta del addon ya es la final. La tarjeta también marca el estado de
+  tiene sinopsis, nota ni duración, así que la tarjeta lee esos datos del propio
+  video cuando el addon los manda fuera de esquema (`overview`/`description`,
+  `runtime`, `rating`) y omite la parte que el addon no mandó, así una duración
+  ausente nunca deja un separador colgando. Los ids de episodio que abren los
+  streams siguen siendo los del addon. La tarjeta también marca el estado de
   visionado: el `WatchedBadge` compartido cuando la cuenta marcó el episodio (o
   el título entero), y la barra de `LinearProgressIndicator` de la app en el
   borde inferior del still cuando la reproducción quedó a medias.
@@ -588,7 +561,7 @@ leer/escribir/borrar vive una sola vez.
 - **La página de detalle lista la metadata como una tabla.** La sección
   "Details" renderiza filas de etiqueta/valor — Released, Country, Status,
   Original language, Seasons, Episodes, Budget y Revenue — separadas por un
-  hairline y solo para las filas que una fuente rellenó de verdad. TMDB da el
+  hairline y solo para las filas que una fuente rellenó de verdad. Las fuentes dan el
   status en inglés, así que se mapea a un string localizado; budget y revenue son
   importes enteros en dólares. El cast y el crew reutilizan los roles de caption
   del catálogo (`PosterCaption`), con el personaje atenuado como el año de un
@@ -938,7 +911,7 @@ leer/escribir/borrar vive una sola vez.
   decodificación de la caja encogía el contenido a la porción del lienzo, así que
   un wordmark con padding se decodificaba por debajo del tamaño al que se dibuja
   y luego se escalaba hacia arriba, lo que se veía dentado. Deliberadamente no es
-  `Size.ORIGINAL`, porque muchos logos de TMDB son **SVG** — una serie de 2025
+  `Size.ORIGINAL`, porque muchos logos de título son **SVG** — una serie de 2025
   puede traer solo un SVG — y un SVG tiene un viewBox, no píxeles, así que
   `ORIGINAL` rasterizaría un wordmark de 107 unidades a 107px. La app depende de
   `coil-svg`; en escritorio ese decodificador se registra *antes* de
@@ -986,8 +959,8 @@ leer/escribir/borrar vive una sola vez.
   Un backdrop ancho es 16:9 y el billboard compacto es una portada alta, así que
   recortar uno dentro del otro deshace la composición; un póster neutral de
   idioma ya es vertical y no lleva título incrustado, así que el logo en vivo se
-  apoya sobre el arte en vez de sobre un recorte. El enriquecimiento de TMDB
-  aporta uno (`textlessPoster`, su póster con `iso_639_1 == null` de mayor
+  apoya sobre el arte en vez de sobre un recorte. Un proveedor puede aportar uno
+  (`textlessPoster`, su póster neutral de idioma de mayor
   resolución), y `heroArtwork` lo elige en ventana compacta, encajado entero en un
   marco que es exactamente el tamaño del póster (`1 / POSTER_ART_ASPECT`) — con
   caída al backdrop y luego al póster, ambos recortados — mientras el billboard
@@ -1001,11 +974,11 @@ leer/escribir/borrar vive una sola vez.
   recortar sus lados. El backdrop del detalle toma la misma decisión de póster
   sin texto en un teléfono, recortado para llenar, y ahí suelta el scrim de
   legibilidad de izquierda a derecha, así que el arte solo se oscurece abajo,
-  bajo el copy. Además espera a que el enriquecimiento se resuelva antes de
+  bajo el copy. Además espera a que la carga se resuelva antes de
   pintar, así que la decisión nunca se rehace en pantalla.
   El preloader de Home pasa por
   el mismo helper, así que siempre precarga la URL que la capa va a dibujar. El
-  set destacado se enriquece antes del pintado y Home mantiene su overlay de carga
+  set destacado se elige antes del pintado y Home mantiene su overlay de carga
   hasta que la imagen del primer slide está decodificada, así que el billboard
   nunca se ve con el fondo pelado.
 - **Tamaño de póster** es un único ajuste (`PosterSize`: default / large,
@@ -1233,9 +1206,8 @@ del composable (que se cancela al salir del reproductor, y eso hacía que la
 escritura se perdiera), y solo cuando esa escritura ha llegado se marca
 `PlaybackUpdates.closed`. Home observa esa marca y relee el progreso para repintar
 "Continue watching", así que un título dejado a medias aparece al instante en
-lugar de en la siguiente carga — con el mismo constructor que usa la carga,
-porque repintarlo sin el enriquecimiento de arte devolvía el arte ancho a un
-póster recortado. La marca es
+lugar de en la siguiente carga — con el mismo constructor que usa la carga, así
+que la fila no puede desviarse de ella. La marca es
 una señal aparte a propósito: `ProgressRepository.changes` se incrementa en cada
 guardado periódico (cada pocos segundos de reproducción), y una pantalla que
 estuviera suscrita a eso releería el progreso durante toda la película. La fila
@@ -1249,21 +1221,17 @@ sobre un scrim inferior suave, así el arte ocupa toda la tarjeta en vez de comp
 con un bloque de caption. La fila es sobre lo que está en progreso, no sobre lo
 que se guardó: un título que falta en la biblioteca se resuelve desde su metadata
 (`unsavedItem`), así que terminar un episodio de algo que nunca se añadió a la
-biblioteca igual lo pone en la fila. Un item de biblioteca guardado sin backdrop se dibujaría
-como un póster vertical recortado, así que `enrichContinue` busca su arte ancho en
-TMDB — solo para esos items, detrás del semáforo del billboard y de la regla de
-enriquecer-antes-de-pintar de esta pantalla, y cada una de esas búsquedas va con
-tope de tiempo (`ENRICH_TIMEOUT`) porque la fila se publica junto con el resto de
-Home: un addon o TMDB que se atasca deja una tarjeta sin enriquecer en vez de
-retener la pantalla. Pulsar una tarjeta reanuda la
+biblioteca igual lo pone en la fila. Un item de biblioteca guardado sin backdrop se dibuja
+como un póster vertical recortado, porque la tarjeta no tiene otra cosa que
+mostrar: Home ya no busca un arte ancho fuera de lo que devolvieron los addons.
+Pulsar una tarjeta reanuda la
 reproducción: `LastStream` (`StreamCacheRepository`, escrito en
 `last_streams.json` al elegir un stream) recuerda la URL con la que se reprodujo
 el título por última vez, con la identidad del propio playback —
 `WatchProgress.contentId` más el `videoId` del episodio, con un `videoId` en
 blanco tratado como ausente porque así guarda el backend el de una película —,
 porque el item de
-biblioteca puede llevar un id que los addons no responden (`tmdb:123` en un
-título abierto desde una recomendación de TMDB) mientras que el progreso guarda
+biblioteca puede llevar un id que los addons no responden mientras que el progreso guarda
 el resuelto. Ese mismo registro lleva el **nombre del episodio**: la fila de
 progreso no tiene columna para él (el esquema del backend no es nuestro), así que
 la tarjeta lo lee de ahí (`S1E3 · Like a Boy · 33 min left`) en vez de volver a
@@ -1406,14 +1374,13 @@ que cambian, no por esfuerzo.
   espere a una expiración, y single-flight para que una fila fría cueste una
   petición a TMDB en vez de una por cliente en espera, acotada y cacheando
   también las respuestas vacías. Las imágenes ya las cachea Coil (memoria +
-  disco); el lever es el tamaño pedido, que `TmdbMapper` ya fija (`w500` /
-  `w1280`).
+  disco); el lever es el tamaño pedido que el servidor pone en la URL.
 
   Hay dos cosas que diseñar. Los endpoints de lista de TMDB no devuelven
-  `imdb_id`, así que pulsar un elemento del catálogo necesita el lookup a
-  `/external_ids` antes de que los addons puedan resolver streams (la maquinaria
-  de `TmdbIdResolver` ya existe para la pantalla de detalle); sin caché el Home
-  pinta rápido pero cada pulsación paga un salto extra. Y hay que revisar los
+  `imdb_id`, así que pulsar un elemento del catálogo necesita que el servidor
+  mande el id de IMDb ya resuelto junto con la fila, o el cliente paga un salto
+  extra antes de que los addons puedan resolver streams; sin caché el Home
+  pinta rápido pero cada pulsación es más lenta. Y hay que revisar los
   términos de uso de TMDB en cuanto a tiempo de caché, uso comercial y una key
   compartida única, con el servidor añadiendo su propio rate limiting por
   cliente. La costura en el repo es `BackendKind` + `createBackend`; `CatalogRef`

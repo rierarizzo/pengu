@@ -9,8 +9,6 @@ import com.misgus.pengu.core.model.LibraryItem
 import com.misgus.pengu.core.model.MetaDetail
 import com.misgus.pengu.core.model.MetaPreview
 import com.misgus.pengu.core.model.Season
-import com.misgus.pengu.core.model.TmdbEpisode
-import com.misgus.pengu.core.model.TmdbTitle
 import com.misgus.pengu.core.model.WatchProgress
 import com.misgus.pengu.core.model.WatchedEntry
 import com.misgus.pengu.core.repository.AccountRepository
@@ -19,14 +17,12 @@ import com.misgus.pengu.core.repository.AddonInstallException
 import com.misgus.pengu.core.repository.AddonRepository
 import com.misgus.pengu.core.repository.CatalogRef
 import com.misgus.pengu.core.repository.CatalogRepository
+import com.misgus.pengu.core.repository.CatalogRow
 import com.misgus.pengu.core.repository.LibraryRepository
 import com.misgus.pengu.core.repository.MetadataRepository
 import com.misgus.pengu.core.repository.ProgressRepository
 import com.misgus.pengu.core.repository.SignInMethod
 import com.misgus.pengu.core.repository.SignInRequest
-import com.misgus.pengu.core.repository.TmdbLookup
-import com.misgus.pengu.core.repository.TmdbRepository
-import com.misgus.pengu.core.repository.TmdbVerifyResult
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -155,8 +151,19 @@ class FakeCatalogRepository(
     private val items: Map<String, List<MetaPreview>> = emptyMap(),
     /** Optional per-catalog gate a test completes to control when a row resolves. */
     private val gates: Map<String, CompletableDeferred<Unit>> = emptyMap(),
+    private val cached: List<CatalogRow> = emptyList(),
 ) : CatalogRepository {
+    /** Rows the ViewModel stored for the next cold start, if any. */
+    var written: List<CatalogRow>? = null
+        private set
+
     override suspend fun catalogs(): List<CatalogRef> = refs
+
+    override suspend fun cachedRows(): List<CatalogRow> = cached
+
+    override suspend fun cacheRows(rows: List<CatalogRow>) {
+        written = rows
+    }
 
     override suspend fun items(
         ref: CatalogRef,
@@ -213,40 +220,4 @@ class FakeAddonRepository(
     }
 
     override suspend fun manifest(url: String): AddonManifest? = manifests[url]
-}
-
-/** In-memory [TmdbRepository] for tests. */
-class FakeTmdbRepository(
-    private val titles: Map<String, TmdbTitle> = emptyMap(),
-    private val recommended: List<MetaPreview> = emptyList(),
-    private val seasons: Map<Int, List<TmdbEpisode>> = emptyMap(),
-    private val verified: TmdbVerifyResult = TmdbVerifyResult.VALID,
-    override val isConfigured: Boolean = true,
-    /** Optional gate a test completes to hold a lookup in flight. */
-    private val gate: CompletableDeferred<Unit>? = null,
-) : TmdbRepository {
-    /** Number of lookups, so a test can assert the disabled path makes none. */
-    var lookups: Int = 0
-        private set
-
-    /** Season numbers asked for, so a test can assert they are fetched once. */
-    val seasonsLoaded = mutableListOf<Int>()
-
-    override suspend fun lookup(request: TmdbLookup): TmdbTitle? {
-        lookups += 1
-        gate?.await()
-        return titles[request.contentId]
-    }
-
-    override suspend fun recommendations(request: TmdbLookup): List<MetaPreview> = recommended
-
-    override suspend fun season(
-        request: TmdbLookup,
-        seasonNumber: Int,
-    ): List<TmdbEpisode> {
-        seasonsLoaded += seasonNumber
-        return seasons[seasonNumber].orEmpty()
-    }
-
-    override suspend fun verify(apiKey: String): TmdbVerifyResult = verified
 }

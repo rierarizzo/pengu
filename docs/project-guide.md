@@ -19,8 +19,7 @@ app/androidApp   Composition root: Activity, ExoPlayer player (mediamp)
 app/player       Shared PlayerService adapter over mediamp (both roots use it)
 app/shared       Compose UI + ViewModels (the whole product UI)
 core             Pure domain: models, repository contracts, rules, constants
-data             Implementations: Stremio addons, Nuvio backend, local files,
-                 optional TMDB enrichment
+data             Implementations: Stremio addons, Nuvio backend, local files
 ```
 
 The one rule that matters:
@@ -65,7 +64,6 @@ inject in-memory fakes.
 | Change a repository contract | `core/.../core/repository/` |
 | Change how metadata/streams/subtitles are fetched | `data/.../data/addons/` |
 | Change HTTP caching, compression or DNS (cold-start speed) | `data/.../data/platform/` (`HttpDefaults.kt`, `Platform.jvm.kt`, `Platform.android.kt`) |
-| Change the optional TMDB enrichment (id resolution, artwork, recommendations) | `data/.../data/tmdb/`, `core/.../model/Tmdb.kt` |
 | Change the Nuvio backend behavior | `data/.../data/backend/` |
 | Change local/offline mode | `data/.../data/local/` and `data/.../data/store/` |
 | Add a backend | `data/.../data/BackendFactory.kt` (`BackendKind`, `createBackend`) |
@@ -127,8 +125,12 @@ These exist so the same concern is not re-implemented per screen:
   installed addon, enabled or not, so `AddonsSettings` can manage them while
   `all()` filters the disabled ones out. It is the local-first layer:
   `NuvioAddonRepository` answers from its snapshot and refreshes behind it, and
-  degrades to "nothing stored" when the file is missing or corrupt. The feed
-  itself is not persisted: Home always loads its catalogs.
+  degrades to "nothing stored" when the file is missing or corrupt.
+- **`HomeFeedStore`** (`data/store`, wired into `StremioCatalogRepository`) — the
+  rows of the last Home load, per profile, so a cold start paints the previous
+  feed instead of waiting for every addon's manifest and catalog. It is written
+  after a successful load and never by a failed or empty one; the network answer
+  replaces what is on screen a moment later.
 - **`VideoOutput`** (`core/player`) — typed marker for the player's platform
   output; `VideoSurfaceRenderer` (in `app/player`) extends it and draws the video
   as Compose content, whichever engine is wired in.

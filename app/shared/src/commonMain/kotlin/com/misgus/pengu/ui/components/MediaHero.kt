@@ -64,8 +64,8 @@ internal val LogoTransformations: List<Transformation> = listOf(LogoTrimTransfor
  *
  * Logos decode at this fixed box instead of the layout's, so the transparent
  * canvas and the trim cannot feed back into the requested size. It is not
- * [Size.ORIGINAL] either: an SVG logo has no pixels, only a viewBox, and TMDB
- * serves some of them at ~100 units wide, so `ORIGINAL` would rasterise the
+ * [Size.ORIGINAL] either: an SVG logo has no pixels, only a viewBox, and some
+ * providers serve them at ~100 units wide, so `ORIGINAL` would rasterise the
  * wordmark at 100px and the box (up to `AppLogoSize.maxWidth`) would upscale it.
  * The box keeps a very large source from allocating a huge bitmap: it is reduced
  * once at decode, and a source under it keeps every pixel.
@@ -156,7 +156,7 @@ fun MetadataRow(parts: List<String>) {
  * billboard shows them.
  *
  * [runtime] and [runtimeMinutes] are the two shapes a runtime arrives in: the
- * addons spell it themselves, while TMDB answers in minutes and the label is
+ * addons spell it themselves, or answer in minutes and the label is
  * built here so it stays localizable. [genres] is optional because a catalog
  * preview may not carry them; when absent the remaining parts keep their
  * relative order. Only the first genre is used — the line is a glance, not a

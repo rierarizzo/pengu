@@ -22,14 +22,6 @@ enum class AppTypeface {
     INTER,
 }
 
-/** Language TMDB returns titles, synopses and logos in. */
-enum class TmdbLanguage {
-    /** Follow the operating system's locale. */
-    SYSTEM,
-    ENGLISH,
-    SPANISH,
-}
-
 /** Where the Home billboard draws its featured titles from. */
 enum class HeroSource {
     /** Every loaded catalog row, mixed and ranked by the app. */
@@ -120,10 +112,6 @@ data class AppSettings(
      * At most [MAX_HERO_CATALOGS]; empty means the same as [HeroSource.SMART].
      */
     val heroCatalogKeys: List<String> = emptyList(),
-    /** TMDB API key (v3) or read access token (v4); empty disables the enrichment. */
-    val tmdbApiKey: String = "",
-    /** Language TMDB answers in; [TmdbLanguage.SYSTEM] follows the OS locale. */
-    val tmdbLanguage: TmdbLanguage = TmdbLanguage.SYSTEM,
     /**
      * HDR tone-mapping curve the desktop player uses to bring HDR into the SDR
      * window. Desktop only: the Android player has no equivalent knob.
@@ -196,10 +184,6 @@ interface SettingsRepository {
     /** Replaces the picked catalogs; only the first [MAX_HERO_CATALOGS] are kept. */
     suspend fun setHeroCatalogKeys(keys: List<String>)
 
-    suspend fun setTmdbApiKey(apiKey: String)
-
-    suspend fun setTmdbLanguage(language: TmdbLanguage)
-
     suspend fun setToneMapping(mapping: ToneMapping)
 
     suspend fun setDeband(enabled: Boolean)
@@ -253,10 +237,6 @@ class InMemorySettingsRepository(
 
     override suspend fun setHeroCatalogKeys(keys: List<String>) =
         update { it.copy(heroCatalogKeys = keys.distinct().take(MAX_HERO_CATALOGS)) }
-
-    override suspend fun setTmdbApiKey(apiKey: String) = update { it.copy(tmdbApiKey = apiKey.trim()) }
-
-    override suspend fun setTmdbLanguage(language: TmdbLanguage) = update { it.copy(tmdbLanguage = language) }
 
     override suspend fun setToneMapping(mapping: ToneMapping) = update { it.copy(toneMapping = mapping) }
 

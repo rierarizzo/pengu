@@ -33,14 +33,6 @@ expect fun createAddonHttpClient(): HttpClient
 /** Name of the subdirectory holding cached HTTP responses. */
 internal const val HTTP_CACHE_DIR = "http"
 
-/**
- * BCP-47 tag of the current system locale, e.g. `es-ES`.
- *
- * Used to pick the language TMDB answers in; the app falls back to English when
- * the locale cannot be read.
- */
-expect fun systemLanguageTag(): String
-
 /** `%APPDATA%\Pengu` on Windows, XDG config elsewhere. */
 expect fun configDirectory(): String
 

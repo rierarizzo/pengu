@@ -84,7 +84,7 @@ fun DetailScreen(
     val services = LocalAppServices.current
     val viewModel: DetailViewModel =
         viewModel(key = "detail-${item.contentId}") {
-            DetailViewModel(services.metadata, services.tmdb, item)
+            DetailViewModel(services.metadata, item)
         }
     LaunchedEffect(item.contentId) { viewModel.load() }
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -231,7 +231,6 @@ fun DetailScreen(
                     state = state,
                     item = item,
                     openStreams = openStreams,
-                    onLoadSeason = viewModel::loadSeason,
                     onOpenDetail = onOpenDetail,
                 )
             }
@@ -267,8 +266,8 @@ private fun DetailBackdrop(
     val compact = LocalWindowSize.current == WindowSize.COMPACT
     // A phone crops a wide backdrop too aggressively, so it prefers the
     // language-neutral poster; the wide billboard keeps the backdrop. Nothing is
-    // painted before the load lands, so the page never shows the addon's image
-    // and then swaps it for TMDB's.
+    // painted before the load lands, so the page never shows the library item's
+    // image and then swaps it for the metadata's.
     val artwork =
         when {
             !state.hasLoaded -> null

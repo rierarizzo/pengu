@@ -17,8 +17,6 @@ import com.misgus.pengu.app.shared.generated.resources.settings_group_advanced
 import com.misgus.pengu.app.shared.generated.resources.settings_group_general
 import com.misgus.pengu.app.shared.generated.resources.settings_home
 import com.misgus.pengu.app.shared.generated.resources.settings_home_subtitle
-import com.misgus.pengu.app.shared.generated.resources.settings_metadata
-import com.misgus.pengu.app.shared.generated.resources.settings_metadata_subtitle
 import com.misgus.pengu.app.shared.generated.resources.settings_playback
 import com.misgus.pengu.app.shared.generated.resources.settings_playback_subtitle
 import org.jetbrains.compose.resources.StringResource
@@ -42,7 +40,7 @@ enum class SettingsGroup(
  * row read the same vocabulary without borrowing a glyph.
  *
  * A page never nests a [SettingsCategory]: a finer choice (the manual billboard
- * catalogs, the TMDB key) is a control inside the page, not another level.
+ * catalogs) is a control inside the page, not another level.
  */
 enum class SettingsCategory(
     val label: StringResource,
@@ -67,11 +65,6 @@ enum class SettingsCategory(
     ADDONS(
         label = Res.string.settings_addons,
         subtitle = Res.string.settings_addons_subtitle,
-        group = SettingsGroup.GENERAL,
-    ),
-    METADATA(
-        label = Res.string.settings_metadata,
-        subtitle = Res.string.settings_metadata_subtitle,
         group = SettingsGroup.GENERAL,
     ),
     ACCOUNT(

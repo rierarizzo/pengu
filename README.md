@@ -25,7 +25,7 @@ against the same shared code; each composition root picks its player engine.
 | Playback | mediamp (mpv on desktop, ExoPlayer on Android), isolated behind `PlayerService` |
 | Accounts/sync | Nuvio API (Supabase) |
 | Sources | Stremio addons (HTTP/JSON) |
-| Metadata | Stremio addons, optionally enriched with TMDB |
+| Metadata | Stremio addons (enrichment is the backend's job) |
 
 ## Modules
 
@@ -52,12 +52,11 @@ decision record.
 - Desktop: `./gradlew :app:desktopApp:run`
 - Android: `./gradlew :app:androidApp:assembleDebug`
 
-Metadata comes from the Stremio addons. Setting a TMDB API key in
-Settings → Metadata enables the optional enrichment: missing artwork, synopses
-and cast are filled in, and the "You may also like" row is built from TMDB's
-recommendations (the addon's own list is the fallback when there is no key).
-The phone billboard also prefers TMDB's language-neutral (textless) poster over
-the wide backdrop, which a narrow screen crops too aggressively.
+Metadata comes from the Stremio addons. The client carries no third-party API key:
+any enrichment (missing artwork, synopses, cast, "You may also like") is the
+backend's job, so nothing on a screen depends on a key the user has to paste.
+The phone billboard still prefers a language-neutral (textless) poster when a
+source sends one, over the wide backdrop a narrow screen crops too aggressively.
 
 Development shortcuts (environment variables, read for the run only):
 

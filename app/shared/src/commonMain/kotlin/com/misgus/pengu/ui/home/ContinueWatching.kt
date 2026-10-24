@@ -55,10 +55,10 @@ import kotlin.time.Duration
  *
  * It comes from the progress row, not from the library item: progress is written
  * with the id playback was reported with (the resolved IMDb id, and the episode's
- * own id for a series), while the library keeps the id the title was saved with —
- * `tmdb:123` for a title opened from a TMDB recommendation, which the addons do
- * not answer. `null` means the row cannot address a stream at all (a series
- * without its episode id), so the card falls back to the detail page.
+ * own id for a series), while the library keeps the id the title was saved with,
+ * which the addons may not answer. `null` means the row cannot address a stream
+ * at all (a series without its episode id), so the card falls back to the detail
+ * page.
  */
 internal fun resumePlayId(progress: WatchProgress): String? {
     // The backend records "no episode" as an empty string, not `null`.

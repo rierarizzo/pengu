@@ -6,7 +6,10 @@ import com.misgus.pengu.core.model.MetaPreview
 import com.misgus.pengu.core.repository.AddonRepository
 import com.misgus.pengu.core.repository.CatalogRef
 import com.misgus.pengu.core.repository.CatalogRepository
+import com.misgus.pengu.core.repository.CatalogRow
 import com.misgus.pengu.core.util.runCatchingCancellable
+import com.misgus.pengu.data.store.HomeFeedStore
+import com.misgus.pengu.data.store.NoopHomeFeedStore
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -20,7 +23,18 @@ import kotlinx.coroutines.coroutineScope
 class StremioCatalogRepository internal constructor(
     private val addons: AddonRepository,
     private val clients: AddonClientPool,
+    private val feed: HomeFeedStore = NoopHomeFeedStore(),
 ) : CatalogRepository {
+    override suspend fun cachedRows(): List<CatalogRow> =
+        addons.profileKey
+            ?.let { key -> runCatchingCancellable { feed.read(key) }.getOrNull() }
+            .orEmpty()
+
+    override suspend fun cacheRows(rows: List<CatalogRow>) {
+        val key = addons.profileKey ?: return
+        runCatchingCancellable { feed.write(key, rows) }
+    }
+
     override suspend fun catalogs(): List<CatalogRef> {
         val installed: List<Addon> = runCatchingCancellable { addons.all() }.getOrDefault(emptyList())
         // Resolve the clients up front (single-threaded) so the manifest fetches

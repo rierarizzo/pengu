@@ -72,6 +72,12 @@ class NuvioAddonRepository(
 
     override val canManage: Boolean = true
 
+    /** The cached addon list and the Home feed are keyed by the same profile uuid. */
+    override val profileKey: String?
+        get() =
+            account.state.value.activeProfile
+                ?.id
+
     override suspend fun all(): List<Addon> = installed().filter { it.enabled }
 
     override suspend fun installed(): List<Addon> {

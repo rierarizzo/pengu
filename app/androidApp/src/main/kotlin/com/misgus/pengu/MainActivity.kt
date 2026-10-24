@@ -13,12 +13,12 @@ import com.misgus.pengu.data.platform.createAddonHttpClient
 import com.misgus.pengu.data.platform.createHttpClient
 import com.misgus.pengu.data.platform.initPlatform
 import com.misgus.pengu.data.store.AppPaths
+import com.misgus.pengu.data.store.FileHomeFeedStore
 import com.misgus.pengu.data.store.FileSessionStore
 import com.misgus.pengu.data.store.FileStreamCache
 import com.misgus.pengu.data.store.FileWatchedSeriesCache
 import com.misgus.pengu.data.store.JsonMapStore
 import com.misgus.pengu.data.store.JsonSettingsRepository
-import com.misgus.pengu.data.tmdb.TmdbMetadataRepository
 import com.misgus.pengu.player.MediampPlayerService
 import com.misgus.pengu.ui.PenguApp
 import com.misgus.pengu.ui.services.AppServices
@@ -69,7 +69,7 @@ class MainActivity : ComponentActivity() {
             )
         val addons = backend.addons
         val settings = JsonSettingsRepository(JsonMapStore(AppPaths.settingsFile, pretty = true))
-        val stremio = StremioAddonRepositories(addons, addonHttpClient)
+        val stremio = StremioAddonRepositories(addons, addonHttpClient, FileHomeFeedStore())
         val services =
             AppServices(
                 account = backend.account,
@@ -80,7 +80,6 @@ class MainActivity : ComponentActivity() {
                 streams = stremio.streams,
                 catalogs = stremio.catalogs,
                 subtitles = stremio.subtitles,
-                tmdb = TmdbMetadataRepository(httpClient, settings),
                 player = player,
                 window = NoopWindowController(),
                 addons = addons,

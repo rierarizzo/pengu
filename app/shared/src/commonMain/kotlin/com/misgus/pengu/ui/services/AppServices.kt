@@ -13,7 +13,6 @@ import com.misgus.pengu.core.repository.SettingsRepository
 import com.misgus.pengu.core.repository.StreamCacheRepository
 import com.misgus.pengu.core.repository.StreamRepository
 import com.misgus.pengu.core.repository.SubtitleRepository
-import com.misgus.pengu.core.repository.TmdbRepository
 import com.misgus.pengu.core.watched.WatchedBadgeResolver
 import com.misgus.pengu.core.watched.WatchedSeriesCache
 import com.misgus.pengu.ui.shell.AppChrome
@@ -52,11 +51,6 @@ class AppServices(
     val window: WindowController,
     /** Subtitle tracks exposed by Stremio addons. */
     val subtitles: SubtitleRepository,
-    /**
-     * Optional TMDB enrichment (artwork, text, cast) used by the detail screen
-     * and the home billboard. A no-op unless an API key is set in Settings.
-     */
-    val tmdb: TmdbRepository,
     /** Remembered per-series "fully watched" results. */
     val watchedCache: WatchedSeriesCache,
     /**

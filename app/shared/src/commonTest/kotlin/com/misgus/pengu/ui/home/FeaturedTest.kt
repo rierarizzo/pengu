@@ -4,6 +4,7 @@ import com.misgus.pengu.core.model.ContentType
 import com.misgus.pengu.core.model.ContentTypes
 import com.misgus.pengu.core.model.MetaPreview
 import com.misgus.pengu.core.repository.CatalogRef
+import com.misgus.pengu.core.repository.CatalogRow
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -26,7 +27,7 @@ class FeaturedTest {
     private fun row(
         id: String,
         items: List<MetaPreview>,
-    ) = HomeRow(ref(id), id, items)
+    ) = CatalogRow(ref(id), id, items)
 
     @Test
     fun `takes from every row and mixes movies and series`() {

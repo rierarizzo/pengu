@@ -8,16 +8,9 @@ import com.misgus.pengu.core.model.MetaDetail
 import com.misgus.pengu.core.model.MetaPerson
 import com.misgus.pengu.core.model.MetaPreview
 import com.misgus.pengu.core.model.MetaVideo
-import com.misgus.pengu.core.model.TmdbEpisode
-import com.misgus.pengu.core.model.TmdbTitle
 import com.misgus.pengu.core.model.releaseYear
-import com.misgus.pengu.core.model.withTmdbPriority
 import com.misgus.pengu.core.repository.MetadataRepository
-import com.misgus.pengu.core.repository.TmdbLookup
-import com.misgus.pengu.core.repository.TmdbRepository
 import com.misgus.pengu.core.util.runCatchingCancellable
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -40,25 +33,16 @@ data class CrewMember(
 data class DetailUiState(
     val isLoading: Boolean = false,
     /**
-     * Whether the merge with every source has landed.
+     * Whether the load has landed.
      *
-     * Nothing on the page paints before it: the state is published once, after
-     * the addon and TMDB both answered, so no section shows a value that the
-     * enrichment replaces a moment later — the phone goes straight from nothing
-     * to the textless poster, and the cast row, the crew, the details table and
-     * the episode cards are final the first time they are drawn.
+     * Nothing on the page paints before it, so no section shows the library
+     * item's copy and then the metadata's a moment later.
      */
     val hasLoaded: Boolean = false,
     val error: Throwable? = null,
     val isSeries: Boolean = false,
     val name: String = "",
-    /**
-     * The id streams are requested with.
-     *
-     * Normally the library item's id, but a title opened from a TMDB
-     * recommendation carries a `tmdb:` id the addons may not know, so the
-     * resolved IMDb id takes over once TMDB supplies it.
-     */
+    /** The id streams are requested with: [LibraryItem.contentId]. */
     val contentId: String = "",
     val poster: String? = null,
     val background: String? = null,
@@ -71,7 +55,7 @@ data class DetailUiState(
     val genres: List<String> = emptyList(),
     /** Runtime as the addon spells it (`1 h 37 min`). */
     val runtime: String? = null,
-    /** Runtime in minutes, from TMDB; the UI formats it with the locale's strings. */
+    /** Runtime in minutes, when the addon sends a number; the UI formats it with the locale's strings. */
     val runtimeMinutes: Int? = null,
     val released: String? = null,
     val country: String? = null,
@@ -84,22 +68,6 @@ data class DetailUiState(
     val cast: List<MetaPerson> = emptyList(),
     val crew: List<CrewMember> = emptyList(),
     val episodes: List<MetaVideo> = emptyList(),
-    /**
-     * TMDB's copy for a season's episodes, keyed by season number.
-     *
-     * Only the season the picker has open is fetched (see
-     * [DetailViewModel.loadSeason]), so the page pays one extra request per
-     * season the user actually looks at, never for the whole series.
-     */
-    val episodeDetails: Map<Int, List<TmdbEpisode>> = emptyMap(),
-    /**
-     * Seasons whose episode copy is in flight.
-     *
-     * The picker paints their cards only once they hold the copy that will not
-     * change afterwards, so a card never shows the addon's still and title and
-     * then swaps them — the same rule the page follows through [hasLoaded].
-     */
-    val seasonsLoading: Set<Int> = emptySet(),
     val similar: List<MetaPreview> = emptyList(),
     val year: Int? = null,
 )
@@ -108,154 +76,45 @@ data class DetailUiState(
  * Loads the metadata for one [LibraryItem] and merges it with what the library
  * already knows.
  *
- * The library item is the immediate fallback for the fields a source may not
- * fill, while [load] waits for the addon and TMDB together and publishes the
- * page once: a section is never drawn from one source and then redrawn from
- * another.
+ * The library item is the immediate fallback for the fields the addon may not
+ * fill, and [load] publishes the page once: a section is never drawn from the
+ * library and then redrawn from the addon.
  */
 class DetailViewModel(
     private val metadata: MetadataRepository,
-    private val tmdb: TmdbRepository,
     val item: LibraryItem,
 ) : ViewModel() {
     private val _state = MutableStateFlow(initialState())
     val state: StateFlow<DetailUiState> = _state.asStateFlow()
 
-    /** Seasons whose episode copy was asked for, so a picker is not refetched. */
-    private val requestedSeasons = mutableSetOf<Int>()
-
     fun load(force: Boolean = false) {
         if (_state.value.isLoading || (_state.value.hasLoaded && !force)) return
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
-            val request = tmdbRequest()
-            // The addon and TMDB are independent, so they run together, and the
-            // page is published once, after both.
-            val (addonMeta, tmdbTitle, error) =
-                coroutineScope {
-                    val metaDeferred = async { runCatchingCancellable { metadata.detail(item.contentType, item.contentId) } }
-                    val tmdbDeferred =
-                        if (tmdb.isConfigured) {
-                            async { runCatchingCancellable { tmdb.lookup(request) } }
-                        } else {
-                            null
-                        }
-                    val metaResult = metaDeferred.await()
-                    Triple(metaResult.getOrNull(), tmdbDeferred?.await()?.getOrNull(), metaResult.exceptionOrNull())
-                }
-            // A TMDB-only hit (a recommendation) carries an id the addons may
-            // not resolve, so the metadata is retried through the IMDb id TMDB
-            // knows; that id then drives the streams, which every addon accepts.
-            val resolved = retryViaImdb(addonMeta, tmdbTitle)
-            val contentId = streamContentId(addonMeta, resolved, tmdbTitle)
-            _state.value =
-                merge(
-                    resolved,
-                    tmdb = tmdbTitle,
-                    contentId = contentId,
-                    error = error,
-                )
-            loadSimilar(resolved, tmdbTitle, request, contentId)
+            val result = runCatchingCancellable { metadata.detail(item.contentType, item.contentId) }
+            val meta = result.getOrNull()
+            _state.value = merge(meta, error = result.exceptionOrNull())
+            loadSimilar(meta)
         }
     }
 
-    /**
-     * Loads TMDB's copy for [seasonNumber]'s episodes: the addon's videos carry
-     * no synopsis, score or runtime. Called for the season the picker opens and
-     * on every change, so a series with many seasons never fetches them all.
-     */
-    fun loadSeason(seasonNumber: Int) {
-        if (!tmdb.isConfigured || seasonNumber in requestedSeasons) return
-        requestedSeasons += seasonNumber
-        _state.update { it.copy(seasonsLoading = it.seasonsLoading + seasonNumber) }
-        viewModelScope.launch {
-            val episodes = runCatchingCancellable { tmdb.season(tmdbRequest(), seasonNumber) }.getOrNull()
-            if (episodes == null) {
-                // A failed lookup stays retryable: the next visit asks again.
-                requestedSeasons -= seasonNumber
-            }
-            _state.update {
-                it.copy(
-                    seasonsLoading = it.seasonsLoading - seasonNumber,
-                    episodeDetails = if (episodes == null) it.episodeDetails else it.episodeDetails + (seasonNumber to episodes),
-                )
-            }
-        }
-    }
-
-    /**
-     * Retries the addon metadata with TMDB's IMDb id when the original content
-     * id did not resolve (a `tmdb:` recommendation, an id only one addon knows).
-     */
-    private suspend fun retryViaImdb(
-        addonMeta: MetaDetail?,
-        tmdbTitle: TmdbTitle?,
-    ): MetaDetail? {
-        if (addonMeta != null) return addonMeta
-        val imdbId = tmdbTitle?.imdbId ?: return null
-        if (imdbId == item.contentId) return null
-        return runCatchingCancellable { metadata.detail(item.contentType, imdbId) }.getOrNull()
-    }
-
-    /**
-     * The id streams are requested with: the original id when the addons already
-     * answered it, otherwise TMDB's IMDb id when there is one.
-     */
-    private fun streamContentId(
-        addonMeta: MetaDetail?,
-        resolved: MetaDetail?,
-        tmdbTitle: TmdbTitle?,
-    ): String {
-        val imdbId = tmdbTitle?.imdbId
-        return when {
-            resolved == null -> item.contentId
-            addonMeta != null && addonMeta.id == item.contentId -> item.contentId
-            imdbId != null -> imdbId
-            else -> item.contentId
-        }
-    }
-
-    /**
-     * Fills [DetailUiState.similar] with TMDB recommendations, falling back to
-     * the addon's "similar" catalog when there is no key or TMDB has nothing.
-     */
-    private suspend fun loadSimilar(
-        addonMeta: MetaDetail?,
-        tmdbTitle: TmdbTitle?,
-        request: TmdbLookup,
-        contentId: String,
-    ) {
-        val genre = tmdbTitle?.genres?.firstOrNull() ?: addonMeta?.genres?.firstOrNull()
-        val recommended =
-            if (tmdb.isConfigured) {
-                runCatchingCancellable { tmdb.recommendations(request) }.getOrDefault(emptyList())
-            } else {
-                emptyList()
-            }
-        if (recommended.isNotEmpty()) {
-            _state.update { it.copy(similar = recommended) }
-            return
-        }
+    /** Fills [DetailUiState.similar] from the addon's "similar" catalog. */
+    private suspend fun loadSimilar(meta: MetaDetail?) {
         val similar =
             runCatchingCancellable {
                 metadata.similar(
                     type = item.contentType,
-                    id = contentId,
-                    genre = genre,
+                    id = item.contentId,
+                    genre = meta?.genres?.firstOrNull(),
                 )
             }.getOrDefault(emptyList())
         _state.update { it.copy(similar = similar) }
     }
 
     private fun merge(
-        addonMeta: MetaDetail?,
-        tmdb: TmdbTitle?,
-        contentId: String,
+        meta: MetaDetail?,
         error: Throwable?,
     ): DetailUiState {
-        // TMDB first: the page shows one author for its artwork and copy, never
-        // the addon's image replaced by TMDB's a moment later.
-        val meta = addonMeta.withTmdbPriority(tmdb)
         val cast = meta?.cast ?: emptyList()
         val crew = buildCrew(meta)
         val year = releaseYear(meta?.releaseInfo ?: item.releaseInfo)
@@ -264,7 +123,7 @@ class DetailViewModel(
             hasLoaded = true,
             error = error,
             isSeries = item.contentType == ContentTypes.SERIES,
-            contentId = contentId,
+            contentId = item.contentId,
             name = nonEmpty(meta?.name) ?: item.name,
             poster = nonEmpty(meta?.poster) ?: item.poster,
             background = nonEmpty(meta?.background) ?: item.background,
@@ -287,8 +146,6 @@ class DetailViewModel(
             cast = cast,
             crew = crew,
             episodes = meta?.videos?.filter { it.season != null } ?: emptyList(),
-            episodeDetails = _state.value.episodeDetails,
-            seasonsLoading = _state.value.seasonsLoading,
             similar = _state.value.similar,
             year = year,
         )
@@ -311,14 +168,6 @@ class DetailViewModel(
             year = year,
         )
     }
-
-    private fun tmdbRequest(): TmdbLookup =
-        TmdbLookup(
-            type = item.contentType,
-            contentId = item.contentId,
-            name = item.name,
-            year = item.year,
-        )
 
     private fun buildCrew(meta: MetaDetail?): List<CrewMember> {
         if (meta == null) return emptyList()

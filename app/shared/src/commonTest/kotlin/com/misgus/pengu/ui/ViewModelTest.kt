@@ -7,13 +7,12 @@ import com.misgus.pengu.core.model.LibraryItem
 import com.misgus.pengu.core.model.MetaDetail
 import com.misgus.pengu.core.model.MetaPreview
 import com.misgus.pengu.core.model.Season
-import com.misgus.pengu.core.model.TmdbMediaType
-import com.misgus.pengu.core.model.TmdbTitle
 import com.misgus.pengu.core.model.WatchProgress
 import com.misgus.pengu.core.repository.AccountState
 import com.misgus.pengu.core.repository.AppSettings
 import com.misgus.pengu.core.repository.CatalogRef
 import com.misgus.pengu.core.repository.CatalogRepository
+import com.misgus.pengu.core.repository.CatalogRow
 import com.misgus.pengu.core.repository.HeroSource
 import com.misgus.pengu.core.repository.InMemorySettingsRepository
 import com.misgus.pengu.core.repository.SettingsRepository
@@ -26,7 +25,6 @@ import com.misgus.pengu.ui.support.FakeCatalogRepository
 import com.misgus.pengu.ui.support.FakeLibraryRepository
 import com.misgus.pengu.ui.support.FakeMetadataRepository
 import com.misgus.pengu.ui.support.FakeProgressRepository
-import com.misgus.pengu.ui.support.FakeTmdbRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -148,6 +146,69 @@ class HomeViewModelTest {
         }
 
     @Test
+    fun paintsTheCachedFeedBeforeTheCatalogsAnswer() =
+        runTest(dispatcher) {
+            val ref =
+                CatalogRef(
+                    addonName = "Addon",
+                    addonBaseUrl = "https://addon",
+                    type = ContentType("movie"),
+                    id = "top",
+                    name = "Top",
+                )
+            val cachedItem = MetaPreview(id = "cached", type = ContentType("movie"), name = "Cached")
+            val freshItem = MetaPreview(id = "fresh", type = ContentType("movie"), name = "Fresh")
+            val gate = CompletableDeferred<Unit>()
+            val catalogs =
+                FakeCatalogRepository(
+                    refs = listOf(ref),
+                    items = mapOf(ref.key to listOf(freshItem)),
+                    gates = mapOf(ref.key to gate),
+                    cached = listOf(CatalogRow(ref, ref.name, listOf(cachedItem))),
+                )
+            val viewModel =
+                HomeViewModel(
+                    account = FakeAccountRepository(),
+                    catalogs = catalogs,
+                    library = FakeLibraryRepository(),
+                    progress = FakeProgressRepository(),
+                    metadata = FakeMetadataRepository(),
+                    badges = WatchedBadgeResolver(FakeProgressRepository(), FakeMetadataRepository()),
+                )
+            viewModel.load()
+            advanceUntilIdle()
+
+            // The addon has not answered, so the row on screen is the stored one.
+            assertEquals(
+                listOf("cached"),
+                viewModel.state.value.rows
+                    .single()
+                    .items
+                    .map { it.id },
+            )
+            assertTrue(viewModel.state.value.isLoading)
+
+            gate.complete(Unit)
+            advanceUntilIdle()
+
+            assertEquals(
+                listOf("fresh"),
+                viewModel.state.value.rows
+                    .single()
+                    .items
+                    .map { it.id },
+            )
+            // And what the next cold start paints is the fresh feed, not the stale one.
+            assertEquals(
+                listOf("fresh"),
+                catalogs.written
+                    ?.single()
+                    ?.items
+                    ?.map { it.id },
+            )
+        }
+
+    @Test
     fun keepsARowForEveryBrowsableCatalog() =
         runTest(dispatcher) {
             val refs =
@@ -241,93 +302,10 @@ class HomeViewModelTest {
         }
 
     @Test
-    fun fillsTheFeaturedArtworkFromTmdb() =
-        runTest(dispatcher) {
-            val ref =
-                CatalogRef(
-                    addonName = "Addon",
-                    addonBaseUrl = "https://addon",
-                    type = ContentType("movie"),
-                    id = "top",
-                    name = "Top",
-                )
-            val preview = MetaPreview(id = "tt1", type = ContentType("movie"), name = "Movie")
-            val tmdb =
-                TmdbTitle(
-                    tmdbId = 1,
-                    mediaType = TmdbMediaType.MOVIE,
-                    title = "Movie",
-                    backdrop = "https://img/backdrop.jpg",
-                    textlessPoster = "https://img/textless.jpg",
-                )
-            val repository = FakeTmdbRepository(titles = mapOf("tt1" to tmdb))
-            val viewModel =
-                HomeViewModel(
-                    account = FakeAccountRepository(),
-                    catalogs = FakeCatalogRepository(listOf(ref), mapOf(ref.key to listOf(preview))),
-                    library = FakeLibraryRepository(),
-                    progress = FakeProgressRepository(),
-                    metadata = FakeMetadataRepository(),
-                    badges = WatchedBadgeResolver(FakeProgressRepository(), FakeMetadataRepository()),
-                    tmdb = repository,
-                )
-            viewModel.load()
-            advanceUntilIdle()
-
-            val featured =
-                viewModel.state.value.featured
-                    .single()
-            assertEquals("https://img/backdrop.jpg", featured.background)
-            assertEquals("https://img/textless.jpg", featured.textlessPoster)
-        }
-
-    @Test
-    fun doesNotQueryTmdbWhenItIsNotConfigured() =
-        runTest(dispatcher) {
-            val ref =
-                CatalogRef(
-                    addonName = "Addon",
-                    addonBaseUrl = "https://addon",
-                    type = ContentType("movie"),
-                    id = "top",
-                    name = "Top",
-                )
-            val preview = MetaPreview(id = "tt1", type = ContentType("movie"), name = "Movie")
-            val repository = FakeTmdbRepository(isConfigured = false)
-            val viewModel =
-                HomeViewModel(
-                    account = FakeAccountRepository(),
-                    catalogs = FakeCatalogRepository(listOf(ref), mapOf(ref.key to listOf(preview))),
-                    library = FakeLibraryRepository(),
-                    progress = FakeProgressRepository(),
-                    metadata = FakeMetadataRepository(),
-                    badges = WatchedBadgeResolver(FakeProgressRepository(), FakeMetadataRepository()),
-                    tmdb = repository,
-                )
-            viewModel.load()
-            advanceUntilIdle()
-
-            assertEquals(0, repository.lookups)
-        }
-
-    @Test
     fun repaintsContinueWatchingWhenAPlaybackCloses() =
         runTest(dispatcher) {
             val progress = FakeProgressRepository()
             val updates = PlaybackUpdates()
-            val tmdb =
-                FakeTmdbRepository(
-                    titles =
-                        mapOf(
-                            "m1" to
-                                TmdbTitle(
-                                    tmdbId = 1,
-                                    mediaType = TmdbMediaType.MOVIE,
-                                    title = "Movie",
-                                    backdrop = "https://img/backdrop.jpg",
-                                ),
-                        ),
-                )
             val viewModel =
                 HomeViewModel(
                     account = FakeAccountRepository(),
@@ -336,7 +314,6 @@ class HomeViewModelTest {
                     progress = progress,
                     metadata = FakeMetadataRepository(),
                     badges = WatchedBadgeResolver(progress, FakeMetadataRepository()),
-                    tmdb = tmdb,
                     playbackUpdates = updates,
                 )
             viewModel.load()
@@ -360,9 +337,6 @@ class HomeViewModelTest {
 
             val row = viewModel.state.value.continueWatching
             assertEquals(listOf("m1"), row.map { it.item.contentId })
-            // The repaint runs the same builder as the load, so the card keeps
-            // its wide artwork instead of falling back to the stored poster.
-            assertEquals("https://img/backdrop.jpg", row.first().item.background)
         }
 
     @Test
@@ -456,45 +430,6 @@ class HomeViewModelTest {
 
             val row = viewModel.state.value.continueWatching
             assertTrue(row.isEmpty())
-        }
-
-    @Test
-    fun givesContinueWatchingTheWideArtworkItDraws() =
-        runTest(dispatcher) {
-            val progress = FakeProgressRepository(progress = listOf(watchProgress("m1", lastWatched = 1)))
-            val tmdb =
-                FakeTmdbRepository(
-                    titles =
-                        mapOf(
-                            "m1" to
-                                TmdbTitle(
-                                    tmdbId = 603,
-                                    mediaType = TmdbMediaType.MOVIE,
-                                    title = "Movie",
-                                    backdrop = "https://img/backdrop.jpg",
-                                ),
-                        ),
-                )
-            val viewModel =
-                HomeViewModel(
-                    account = FakeAccountRepository(),
-                    catalogs = FakeCatalogRepository(),
-                    // No backdrop stored with the library item: a 16:9 card would
-                    // crop its portrait poster.
-                    library = FakeLibraryRepository(listOf(item("m1", "movie"))),
-                    progress = progress,
-                    metadata = FakeMetadataRepository(),
-                    badges = WatchedBadgeResolver(progress, FakeMetadataRepository()),
-                    tmdb = tmdb,
-                )
-            viewModel.load()
-            advanceUntilIdle()
-
-            val row = viewModel.state.value.continueWatching
-            assertEquals(1, row.size)
-            val entry = row.first()
-            assertEquals("https://img/backdrop.jpg", entry.item.background)
-            assertEquals(1, tmdb.lookups)
         }
 
     @Test

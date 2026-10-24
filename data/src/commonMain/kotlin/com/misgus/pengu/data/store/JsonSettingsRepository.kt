@@ -7,7 +7,6 @@ import com.misgus.pengu.core.repository.MAX_HERO_CATALOGS
 import com.misgus.pengu.core.repository.PosterSize
 import com.misgus.pengu.core.repository.SettingsRepository
 import com.misgus.pengu.core.repository.StreamUrlCache
-import com.misgus.pengu.core.repository.TmdbLanguage
 import com.misgus.pengu.core.repository.ToneMapping
 import com.misgus.pengu.data.boolOrNull
 import com.misgus.pengu.data.intOrNull
@@ -40,8 +39,6 @@ import kotlinx.serialization.json.JsonPrimitive
  *   "catalog.showType": true,
  *   "hero.source": "smart",
  *   "hero.catalogs": ["https://addon|movie|top"],
- *   "metadata.tmdbApiKey": "",
- *   "metadata.tmdbLanguage": "system",
  *   "player.toneMapping": "auto",
  *   "player.deband": false,
  *   "player.hardwareDecoding": true
@@ -95,10 +92,6 @@ class JsonSettingsRepository(
     override suspend fun setHeroCatalogKeys(keys: List<String>) =
         update { it.copy(heroCatalogKeys = keys.distinct().take(MAX_HERO_CATALOGS)) }
 
-    override suspend fun setTmdbApiKey(apiKey: String) = update { it.copy(tmdbApiKey = apiKey.trim()) }
-
-    override suspend fun setTmdbLanguage(language: TmdbLanguage) = update { it.copy(tmdbLanguage = language) }
-
     override suspend fun setToneMapping(mapping: ToneMapping) = update { it.copy(toneMapping = mapping) }
 
     override suspend fun setDeband(enabled: Boolean) = update { it.copy(deband = enabled) }
@@ -131,8 +124,6 @@ class JsonSettingsRepository(
         data[KEY_SHOW_CATALOG_TYPE] = JsonPrimitive(settings.showCatalogType)
         data[KEY_HERO_SOURCE] = JsonPrimitive(settings.heroSource.name.lowercase())
         data[KEY_HERO_CATALOGS] = JsonArray(settings.heroCatalogKeys.take(MAX_HERO_CATALOGS).map(::JsonPrimitive))
-        data[KEY_TMDB_API_KEY] = JsonPrimitive(settings.tmdbApiKey)
-        data[KEY_TMDB_LANGUAGE] = JsonPrimitive(settings.tmdbLanguage.name.lowercase())
         data[KEY_TONE_MAPPING] = JsonPrimitive(settings.toneMapping.name.lowercase())
         data[KEY_DEBAND] = JsonPrimitive(settings.deband)
         data[KEY_HARDWARE_DECODING] = JsonPrimitive(settings.hardwareDecoding)
@@ -157,8 +148,6 @@ class JsonSettingsRepository(
             // A file edited by hand can carry more keys than the UI allows, and
             // an array of non-strings is simply ignored.
             heroCatalogKeys = this[KEY_HERO_CATALOGS].stringList().distinct().take(MAX_HERO_CATALOGS),
-            tmdbApiKey = this[KEY_TMDB_API_KEY].stringOrNull() ?: "",
-            tmdbLanguage = this[KEY_TMDB_LANGUAGE].stringOrNull().toTmdbLanguage() ?: TmdbLanguage.SYSTEM,
             toneMapping = this[KEY_TONE_MAPPING].stringOrNull().toToneMapping() ?: ToneMapping.AUTO,
             deband = this[KEY_DEBAND].boolOrNull() ?: false,
             hardwareDecoding = this[KEY_HARDWARE_DECODING].boolOrNull() ?: true,
@@ -174,8 +163,6 @@ class JsonSettingsRepository(
         }
 
     private fun String?.toAppTypeface(): AppTypeface? = AppTypeface.entries.firstOrNull { it.name.equals(this, ignoreCase = true) }
-
-    private fun String?.toTmdbLanguage(): TmdbLanguage? = TmdbLanguage.entries.firstOrNull { it.name.equals(this, ignoreCase = true) }
 
     private fun String?.toHeroSource(): HeroSource? = HeroSource.entries.firstOrNull { it.name.equals(this, ignoreCase = true) }
 
@@ -203,8 +190,6 @@ class JsonSettingsRepository(
         const val KEY_SHOW_CATALOG_TYPE = "catalog.showType"
         const val KEY_HERO_SOURCE = "hero.source"
         const val KEY_HERO_CATALOGS = "hero.catalogs"
-        const val KEY_TMDB_API_KEY = "metadata.tmdbApiKey"
-        const val KEY_TMDB_LANGUAGE = "metadata.tmdbLanguage"
         const val KEY_TONE_MAPPING = "player.toneMapping"
         const val KEY_DEBAND = "player.deband"
         const val KEY_HARDWARE_DECODING = "player.hardwareDecoding"

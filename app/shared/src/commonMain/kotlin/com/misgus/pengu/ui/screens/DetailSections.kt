@@ -49,7 +49,6 @@ import com.misgus.pengu.core.model.MetaPreview
 import com.misgus.pengu.core.model.MetaVideo
 import com.misgus.pengu.core.model.ProgressThresholds
 import com.misgus.pengu.core.model.Season
-import com.misgus.pengu.core.model.TmdbEpisode
 import com.misgus.pengu.core.model.WatchProgress
 import com.misgus.pengu.core.model.WatchedEntry
 import com.misgus.pengu.core.util.runCatchingCancellable
@@ -61,13 +60,11 @@ import com.misgus.pengu.ui.components.MediaActions
 import com.misgus.pengu.ui.components.PosterCard
 import com.misgus.pengu.ui.components.PosterImage
 import com.misgus.pengu.ui.components.RemoteImage
-import com.misgus.pengu.ui.components.SkeletonBox
 import com.misgus.pengu.ui.components.WatchedBadge
 import com.misgus.pengu.ui.components.clickableSurface
 import com.misgus.pengu.ui.components.motionBorder
 import com.misgus.pengu.ui.components.ratingText
 import com.misgus.pengu.ui.components.rememberInteraction
-import com.misgus.pengu.ui.components.rememberShimmerProgress
 import com.misgus.pengu.ui.components.runtimeLabel
 import com.misgus.pengu.ui.components.sectionHeading
 import com.misgus.pengu.ui.services.LocalAppServices
@@ -247,9 +244,6 @@ internal fun SimilarRow(
 internal fun EpisodesSection(
     contentId: String,
     videos: List<MetaVideo>,
-    episodeDetails: Map<Int, List<TmdbEpisode>>,
-    seasonsLoading: Set<Int>,
-    onLoadSeason: (Int) -> Unit,
     onPlayEpisode: (MetaVideo) -> Unit,
 ) {
     val seasons = remember(videos) { orderSeasons(videos.mapNotNull { it.season }.distinct()) }
@@ -261,22 +255,11 @@ internal fun EpisodesSection(
         remember(videos, season) {
             videos.filter { it.season == season }.sortedBy { it.episode?.number ?: it.number ?: 0 }
         }
-    // TMDB's copy of the open season, indexed by episode number so a card finds
-    // its own row in one lookup.
-    val details =
-        remember(episodeDetails, season) {
-            episodeDetails[season.number].orEmpty().associateBy { it.episodeNumber }
-        }
-    // Cards are painted once, with the copy that stays: while the open season is
-    // in flight they hold a placeholder the size of a card instead of the addon's
-    // still and title, which TMDB would replace a moment later.
-    val loading = season.number in seasonsLoading
     val episodesState = rememberLazyListState()
     // A season change swaps the list under the same rail; without this the rail
     // would keep the previous season's offset and open S2 at the episode S1 was
     // left on.
     LaunchedEffect(season) {
-        onLoadSeason(season.number)
         episodesState.scrollToItem(0)
     }
 
@@ -316,8 +299,6 @@ internal fun EpisodesSection(
                 val key = episodeKey(video.season, video.episode)
                 EpisodeCard(
                     video = video,
-                    detail = details[video.episode?.number ?: video.number],
-                    loading = loading,
                     // A progress bar and a watched badge say the same thing twice,
                     // so the bar is dropped once an episode counts as watched.
                     watched = watchState.isWatched(key),
@@ -392,20 +373,12 @@ private const val EPISODE_SYNOPSIS_LINES = 3
 @Composable
 private fun EpisodeCard(
     video: MetaVideo,
-    detail: TmdbEpisode?,
-    loading: Boolean,
     watched: Boolean,
     progress: Float?,
     onTap: () -> Unit,
 ) {
-    // The card is still clickable while it loads: opening the streams does not
-    // depend on the copy TMDB is about to send.
-    if (loading) {
-        EpisodeCardSkeleton(onTap)
-        return
-    }
     val number = video.episode ?: video.number
-    val title = detail?.name ?: video.title ?: stringResource(Res.string.detail_episode, number?.toString() ?: "").trim()
+    val title = video.title ?: stringResource(Res.string.detail_episode, number?.toString() ?: "").trim()
     val interaction = rememberInteraction()
     val borderColor =
         animateColorAsState(
@@ -421,7 +394,7 @@ private fun EpisodeCard(
                 .motionBorder(color = { borderColor.value }, width = AppSizes.borderWidth, cornerRadius = AppCorner.small)
                 .clip(MaterialTheme.shapes.small),
         ) {
-            PosterImage(detail?.still ?: video.thumbnail, Modifier.fillMaxSize())
+            PosterImage(video.thumbnail, Modifier.fillMaxSize())
             progress?.let { fraction ->
                 CardProgressBar(fraction, Modifier.align(Alignment.BottomCenter))
             }
@@ -435,7 +408,7 @@ private fun EpisodeCard(
             style = PosterCaption.title(),
             active = interaction.active,
         )
-        val meta = episodeMetaParts(video, detail)
+        val meta = episodeMetaParts(video)
         if (meta.isNotEmpty()) {
             Text(
                 meta.joinToString(" · "),
@@ -445,9 +418,8 @@ private fun EpisodeCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        // The addon's own copy is used when it sends one: it is already there and
-        // it is the final value, so nothing has to be swapped in later.
-        (detail?.overview ?: video.description)?.let {
+        // The addon's own copy, when it sends one.
+        video.description?.let {
             Spacer(Modifier.height(AppSpacing.xxs))
             Text(
                 it,
@@ -466,52 +438,16 @@ private fun EpisodeCard(
 /**
  * Score, runtime and air date of an episode, in the order a card reads them.
  *
- * Each part is the addon's when it sent one and TMDB's otherwise, and it is
- * dropped when neither has a value, so a missing runtime never leaves a dangling
- * separator. The score is the addon's IMDb one when present; TMDB only carries an
- * audience score.
+ * Each part is dropped when the addon sends no value, so a missing runtime never
+ * leaves a dangling separator.
  */
 @Composable
-private fun episodeMetaParts(
-    video: MetaVideo,
-    detail: TmdbEpisode?,
-): List<String> =
+private fun episodeMetaParts(video: MetaVideo): List<String> =
     buildList {
-        val rating = detail?.rating ?: video.rating
-        rating?.let { add(stringResource(Res.string.media_rating, ratingText(it))) }
-        (detail?.runtimeMinutes ?: video.runtimeMinutes)?.let { add(runtimeLabel(it)) }
-        formatReleaseDate(detail?.airDate ?: video.released)?.let { add(it) }
+        video.rating?.let { add(stringResource(Res.string.media_rating, ratingText(it))) }
+        video.runtimeMinutes?.let { add(runtimeLabel(it)) }
+        formatReleaseDate(video.released)?.let { add(it) }
     }
-
-/**
- * The shape of a card with no copy in it yet, at the size a loaded one takes.
- *
- * Heights match the text roles the real card uses, so the rail does not jump
- * when the season lands.
- */
-@Composable
-private fun EpisodeCardSkeleton(onTap: () -> Unit) {
-    val interaction = rememberInteraction()
-    val progress = rememberShimmerProgress()
-    Column(modifier = Modifier.width(EpisodeCardWidth).clickableSurface(interaction, onTap, indication = null)) {
-        Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f)) {
-            SkeletonBox(progress, Modifier.fillMaxSize())
-        }
-        Spacer(Modifier.height(AppSpacing.sm))
-        SkeletonBox(progress, Modifier.fillMaxWidth(0.7f).height(TITLE_LINE))
-        Spacer(Modifier.height(AppSpacing.xs))
-        SkeletonBox(progress, Modifier.fillMaxWidth(0.45f).height(META_LINE))
-        Spacer(Modifier.height(AppSpacing.xs))
-        SkeletonBox(progress, Modifier.fillMaxWidth().height(SYNOPSIS_LINE))
-        Spacer(Modifier.height(AppSpacing.xxs))
-        SkeletonBox(progress, Modifier.fillMaxWidth(0.85f).height(SYNOPSIS_LINE))
-    }
-}
-
-/** Line heights the placeholder reserves: one title, one meta, two synopsis lines. */
-private val TITLE_LINE = 20.dp
-private val META_LINE = 16.dp
-private val SYNOPSIS_LINE = 18.dp
 
 /** Watched episodes and resumable progress of one title, as the cards show them. */
 internal data class EpisodeWatchState(

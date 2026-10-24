@@ -30,12 +30,12 @@ import com.misgus.pengu.data.createBackend
 import com.misgus.pengu.data.platform.createAddonHttpClient
 import com.misgus.pengu.data.platform.createHttpClient
 import com.misgus.pengu.data.store.AppPaths
+import com.misgus.pengu.data.store.FileHomeFeedStore
 import com.misgus.pengu.data.store.FileSessionStore
 import com.misgus.pengu.data.store.FileStreamCache
 import com.misgus.pengu.data.store.FileWatchedSeriesCache
 import com.misgus.pengu.data.store.JsonMapStore
 import com.misgus.pengu.data.store.JsonSettingsRepository
-import com.misgus.pengu.data.tmdb.TmdbMetadataRepository
 import com.misgus.pengu.imaging.configureImageLoader
 import com.misgus.pengu.player.MediampPlayerService
 import com.misgus.pengu.ui.PenguApp
@@ -77,7 +77,7 @@ fun main(args: Array<String>) {
 
     // One addon list shared by every Stremio repository.
     val addons = backend.addons
-    val stremio = StremioAddonRepositories(addons, addonHttpClient)
+    val stremio = StremioAddonRepositories(addons, addonHttpClient, FileHomeFeedStore())
     val settings = JsonSettingsRepository(JsonMapStore(AppPaths.settingsFile, pretty = true))
     // The window is created before the composition's own settings load runs, so
     // the remembered geometry is read here once; the app then reads the same
@@ -121,7 +121,6 @@ fun main(args: Array<String>) {
                     streams = stremio.streams,
                     catalogs = stremio.catalogs,
                     subtitles = stremio.subtitles,
-                    tmdb = TmdbMetadataRepository(httpClient, settings),
                     watchedCache = watchedCache,
                     streamCache = FileStreamCache(),
                     player = player,
