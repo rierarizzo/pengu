@@ -669,8 +669,10 @@ so the atomic read/write/delete logic lives once.
   `bodySecondary`, `caption`, `label`, plus the hero and button roles —
   so no call site picks a Material slot directly and a title, a section heading
   and a row never drift apart. Two levels are deliberate: `sectionTitle`
-  (`titleLarge` stepped to 18sp, 16sp on a phone) heads a screen section, while
-  `cardTitle` and `itemTitle` (`titleMedium`) head a card or an interactive row.
+  (`titleLarge` stepped to 20sp Bold, 18sp Bold on a phone) heads a screen
+  section, while `cardTitle` and `itemTitle` (`titleMedium`) head a card or an
+  interactive row. The section heading carries its weight in Bold because the
+  default Normal weight read as too thin above a poster rail.
   `PosterCaption` steps `titleSmall` / `bodySmall` up 1sp with the meta
   weight at Medium.
 - **Localisation.** Every user-facing string lives in
@@ -818,7 +820,10 @@ so the atomic read/write/delete logic lives once.
   control keeps the arrow, since it cannot be clicked.
   Poster tiles opt out of that state layer
   (`indication = null`) and signal hover with the scale/border animation
-  instead, so a hovered poster is not greyed. Settings panels use the Material
+  instead, so a hovered poster is not greyed. That scale overflows the tile's
+  own bounds, so a scrolling poster grid keeps a small top inset
+  (`AppSpacing.sm`): without it the container clip eats the first row's top
+  border. Settings panels use the Material
   `Card`. A small component layer in `ui/components` keeps the Material defaults
   off the screen: `ActionButton` picks its container, content and disabled
   colours from an `ActionButtonStyle` weight (Filled on the inverse surface,

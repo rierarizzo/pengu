@@ -710,9 +710,11 @@ leer/escribir/borrar vive una sola vez.
   `bodySecondary`, `caption`, `label`, más los roles de hero y botón —
   así que ningún punto de llamada elige un slot de Material directamente y un
   título, un encabezado de sección y una fila no se desvían entre sí. Dos niveles
-  son deliberados: `sectionTitle` (`titleLarge` bajado a 18sp, 16sp en teléfono)
-  encabeza una sección de pantalla, mientras que `cardTitle` e `itemTitle`
-  (`titleMedium`) encabezan una tarjeta o una fila interactiva.
+  son deliberados: `sectionTitle` (`titleLarge` bajado a 20sp Bold, 18sp Bold
+  en teléfono) encabeza una sección de pantalla, mientras que `cardTitle` e
+  `itemTitle` (`titleMedium`) encabezan una tarjeta o una fila interactiva. El
+  encabezado de sección lleva su jerarquía en Bold porque el peso Normal por
+  defecto se leía demasiado fino sobre una fila de pósters.
   `PosterCaption` sube `titleSmall` / `bodySmall` 1sp con el peso de meta en
   Medium.
 - **Localización.** Cada cadena visible al usuario vive en
@@ -871,7 +873,10 @@ leer/escribir/borrar vive una sola vez.
   los addons) lo aplican por su cuenta. Un control deshabilitado conserva la
   flecha, ya que no se puede clickear. Los tiles de póster renuncian a esa
   capa de estado (`indication = null`) y señalan el hover con la animación de
-  escala/borde, para que un póster con hover no se agrisé. Los paneles de ajustes
+  escala/borde, para que un póster con hover no se agrisé. Esa escala crece más
+  allá de los límites del tile, así que un grid de pósters con scroll deja un
+  pequeño inset superior (`AppSpacing.sm`): sin él el clip del contenedor se
+  come el borde superior de la primera fila. Los paneles de ajustes
   usan el `Card` de Material. Una pequeña capa de componentes en `ui/components`
   mantiene los defaults de Material fuera de la pantalla: `ActionButton` elige su
   contenedor, contenido y colores deshabilitados de un peso `ActionButtonStyle`

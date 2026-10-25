@@ -79,14 +79,16 @@ object AppType {
      * sections all read it, so two sections never differ in size. Stepped down
      * from `titleLarge` (22sp) so a catalog or section name reads as a row
      * header rather than a page title while staying above [cardTitle]; a phone
-     * steps it down one more point (16sp) where the layout is tighter.
+     * goes one step further (18sp) where the layout is tighter. It reads
+     * Bold: the default Normal weight looked thin against a poster rail, so the
+     * row header carries its hierarchy in weight as well as in size.
      */
     @Composable
     fun sectionTitle(): TextStyle =
         if (LocalWindowSize.current == WindowSize.COMPACT) {
-            MaterialTheme.typography.titleLarge.copy(fontSize = 16.sp, lineHeight = 22.sp)
+            MaterialTheme.typography.titleLarge.copy(fontSize = 18.sp, lineHeight = 24.sp, fontWeight = FontWeight.Bold)
         } else {
-            MaterialTheme.typography.titleLarge.copy(fontSize = 18.sp, lineHeight = 24.sp)
+            MaterialTheme.typography.titleLarge.copy(fontSize = 20.sp, lineHeight = 26.sp, fontWeight = FontWeight.Bold)
         }
 
     /**
