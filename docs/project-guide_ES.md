@@ -258,6 +258,25 @@ Al añadir un ViewModel, añade un `Fake<Repo>` en `ui/support/Fakes.kt` si no
 existe, y contrólalo con `StandardTestDispatcher` + `advanceUntilIdle()` (ver
 `DiscoverViewModelTest`).
 
+### Imagen de escritorio
+
+```bash
+./gradlew :app:desktopApp:createDistributable   # app image, sin shrinking
+./gradlew :app:desktopApp:createReleaseDistributable   # app image con ProGuard
+```
+
+`createDistributable` empaqueta los jars tal como se compilan y solo recorta el
+runtime (`createRuntimeImage`). La imagen release pasa antes por ProGuard, con las
+reglas de `app/desktopApp/proguard-desktop.pro` encima de las de Compose. Esas
+reglas no son opcionales, y cada una responde a un fallo que solo aparece en esta
+imagen: el optimizador de ProGuard reescribió un `inline` de Okio con una firma
+inválida y OkHttp murió con `VerifyError` en su primera conexión
+(`-dontoptimize`), el shrinker eliminó las entradas de `ServiceLoader` por las que
+se encuentran Coil y Ktor, y JNA, mediamp y logback solo son alcanzables por
+reflexión. Una regla que falte rompe la ejecución de ProGuard o la app al
+arrancar, así que tras tocarlas reconstruye y arranca la app: el fallo se ve en
+el primer frame, sin nada en la UI que diga por qué.
+
 ---
 
 ## 8. Recetas de extensión

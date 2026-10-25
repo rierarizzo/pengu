@@ -41,6 +41,12 @@ compose.desktop {
     application {
         mainClass = "com.misgus.pengu.MainKt"
 
+        // `createReleaseDistributable` runs ProGuard; without these rules the
+        // optional integrations its dependencies reference fail the run.
+        buildTypes.release.proguard {
+            configurationFiles.from(project.file("proguard-desktop.pro"))
+        }
+
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "com.misgus.pengu"

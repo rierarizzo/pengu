@@ -251,6 +251,25 @@ When adding a ViewModel, add a `Fake<Repo>` in `ui/support/Fakes.kt` if one does
 not exist, and drive it with `StandardTestDispatcher` + `advanceUntilIdle()`
 (see `DiscoverViewModelTest`).
 
+### Desktop image
+
+```bash
+./gradlew :app:desktopApp:createDistributable   # app image, no shrinking
+./gradlew :app:desktopApp:createReleaseDistributable   # ProGuard-shrunk image
+```
+
+`createDistributable` ships the jars as compiled and only trims the runtime
+(`createRuntimeImage`). The release image runs ProGuard first, with the rules in
+`app/desktopApp/proguard-desktop.pro` on top of Compose's defaults. Those rules
+are not optional, and each one answers a failure that only shows in this image:
+ProGuard's optimizer rewrote an Okio `inline` into an invalid signature and OkHttp
+died with a `VerifyError` on its first connection (`-dontoptimize`), its shrinker
+dropped the service-loader entries Coil and Ktor are found through, and JNA,
+mediamp and logback are only reachable reflectively. A missing rule fails either
+the ProGuard run or the app at startup, so after touching them rebuild and start
+the app: the failure shows up on the first frame, with nothing in the UI to say
+why.
+
 ---
 
 ## 8. Extension recipes
