@@ -21,10 +21,12 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.misgus.pengu.app.shared.generated.resources.Res
 import com.misgus.pengu.app.shared.generated.resources.action_clear
+import com.misgus.pengu.app.shared.generated.resources.discover_title
 import com.misgus.pengu.app.shared.generated.resources.search_failed_title
 import com.misgus.pengu.app.shared.generated.resources.search_no_results_title
 import com.misgus.pengu.app.shared.generated.resources.search_nothing_matched
 import com.misgus.pengu.app.shared.generated.resources.search_placeholder
+import com.misgus.pengu.app.shared.generated.resources.search_title
 import com.misgus.pengu.core.model.LibraryItem
 import com.misgus.pengu.core.model.MetaPreview
 import com.misgus.pengu.core.model.isLandscape
@@ -34,6 +36,7 @@ import com.misgus.pengu.ui.components.MediaActions
 import com.misgus.pengu.ui.components.Message
 import com.misgus.pengu.ui.components.PosterCard
 import com.misgus.pengu.ui.components.SectionHeader
+import com.misgus.pengu.ui.components.SectionTitle
 import com.misgus.pengu.ui.components.toUserMessage
 import com.misgus.pengu.ui.discover.DiscoverFeed
 import com.misgus.pengu.ui.discover.DiscoverViewModel
@@ -47,6 +50,7 @@ import com.misgus.pengu.ui.theme.LocalWindowSize
 import com.misgus.pengu.ui.theme.cellWidth
 import com.misgus.pengu.ui.theme.gridSpacing
 import com.misgus.pengu.ui.theme.landscapeCardWidth
+import com.misgus.pengu.ui.theme.motionItem
 import com.misgus.pengu.ui.theme.posterCardHeight
 import com.misgus.pengu.ui.theme.screenPadding
 import org.jetbrains.compose.resources.stringResource
@@ -73,6 +77,13 @@ fun SearchScreen(
     LaunchedEffect(Unit) { discoverViewModel.load() }
 
     Column(Modifier.fillMaxSize()) {
+        // The title names what is underneath: the discover feed while the query
+        // is empty, the search results once there is one, like Nuvio.
+        SectionTitle(
+            stringResource(
+                if (state.query.isBlank()) Res.string.discover_title else Res.string.search_title,
+            ),
+        )
         SearchField(query = state.query, onQueryChange = viewModel::onQueryChange)
         Box(Modifier.weight(1f)) {
             if (state.query.isBlank()) {
@@ -114,7 +125,6 @@ private fun SearchField(
                 .padding(
                     start = LocalWindowSize.current.screenPadding,
                     end = LocalWindowSize.current.screenPadding,
-                    top = LocalWindowSize.current.screenPadding,
                     bottom = AppSpacing.md,
                 ),
     )
@@ -189,6 +199,7 @@ private fun ResultsRail(
                 width = if (item.isLandscape) wideWidth else cardWidth,
                 hideLabels = hideLabels,
                 landscape = item.isLandscape,
+                modifier = motionItem(),
                 onTap = { onOpenDetail(libraryItem) },
                 actions =
                     MediaActions(

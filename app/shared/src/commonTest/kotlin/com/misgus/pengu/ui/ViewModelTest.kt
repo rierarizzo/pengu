@@ -209,6 +209,61 @@ class HomeViewModelTest {
         }
 
     @Test
+    fun keepsTheBillboardOnScreenWhenTheRefreshArrives() =
+        runTest(dispatcher) {
+            val ref =
+                CatalogRef(
+                    addonName = "Addon",
+                    addonBaseUrl = "https://addon",
+                    type = ContentType("movie"),
+                    id = "top",
+                    name = "Top",
+                )
+            var items =
+                listOf(
+                    MetaPreview(id = "a", type = ContentType("movie"), name = "A"),
+                    MetaPreview(id = "b", type = ContentType("movie"), name = "B"),
+                )
+            val catalogs =
+                object : CatalogRepository {
+                    override suspend fun catalogs(): List<CatalogRef> = listOf(ref)
+
+                    override suspend fun items(
+                        ref: CatalogRef,
+                        extra: Map<String, String>?,
+                    ): List<MetaPreview> = items
+                }
+            val viewModel =
+                HomeViewModel(
+                    account = FakeAccountRepository(),
+                    catalogs = catalogs,
+                    library = FakeLibraryRepository(),
+                    progress = FakeProgressRepository(),
+                    metadata = FakeMetadataRepository(),
+                    badges = WatchedBadgeResolver(FakeProgressRepository(), FakeMetadataRepository()),
+                )
+            viewModel.load()
+            advanceUntilIdle()
+            val shown =
+                viewModel.state.value.featured
+                    .map { it.id }
+            assertTrue(shown.isNotEmpty())
+
+            // The feed is refreshed behind the screen, with one of the slides gone.
+            items = listOf(MetaPreview(id = "b", type = ContentType("movie"), name = "B"))
+            viewModel.load(force = true)
+            advanceUntilIdle()
+
+            // The hero the user is looking at stays; only the one that left the
+            // feed is dropped, so the billboard does not change under them.
+            assertEquals(
+                listOf("b"),
+                viewModel.state.value.featured
+                    .map { it.id },
+            )
+        }
+
+    @Test
     fun keepsARowForEveryBrowsableCatalog() =
         runTest(dispatcher) {
             val refs =

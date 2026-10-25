@@ -44,7 +44,8 @@ import org.jetbrains.compose.resources.stringResource
  * leaving the artwork alone. [caption] is the card's second line (a release
  * info or a year), and [progress] is a watch fraction that draws the progress
  * bar for a started title. [actions] adds the right-click / long-press menu;
- * without it the card is tap-only.
+ * without it the card is tap-only. [modifier] lets a lazy list animate the card
+ * in place (`animateItem`), so a refreshed feed does not snap.
  */
 @Composable
 fun PosterCard(
@@ -58,6 +59,7 @@ fun PosterCard(
     width: Dp? = null,
     onTap: () -> Unit,
     actions: MediaActions? = null,
+    modifier: Modifier = Modifier,
 ) {
     val interaction = rememberInteraction()
     val actionsState = rememberMediaActionsState()
@@ -82,7 +84,7 @@ fun PosterCard(
 
     Column(
         modifier =
-            Modifier
+            modifier
                 .then(if (width != null) Modifier.width(width) else Modifier)
                 .then(
                     if (actions != null) {

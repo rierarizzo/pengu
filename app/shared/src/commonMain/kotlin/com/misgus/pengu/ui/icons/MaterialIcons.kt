@@ -11,9 +11,12 @@ import androidx.compose.ui.unit.dp
  *
  * The whole UI uses these glyphs; call sites size them with
  * [com.misgus.pengu.ui.theme.AppIconSize]. `scripts/gen_icons.mjs` regenerates
- * the file from the `@material-symbols/svg-400` package. Only the glyphs the UI
- * uses are kept, and each pair (a filled and an outline glyph, e.g. check circle
- * and its outline) mirrors the solid/outline split the UI had before.
+ * the file from the `@material-symbols/svg-400` package, except `Search`,
+ * which comes from the 700-weight package: it is the one glyph with no filled
+ * variant, so the heavier outline is what makes it match the filled ones. Only
+ * the glyphs the UI uses are kept, and each pair (a filled and an outline glyph,
+ * e.g. check circle and its outline) mirrors the solid/outline split the UI had
+ * before.
  */
 object MaterialIcons {
     val Home: ImageVector by lazy { material("Home", HOME) }
@@ -89,10 +92,10 @@ private const val HOME =
         "-150v-220q0-12.75-8.62-21.38Q542.75-400 530-400H430q-12.75 0-21.37 8.62Q400-382.75 400-370v220q0 12.75-8.62 21" +
         ".37Q382.75-120 370-120H220q-24.75 0-42.37-17.63Q160-155.25 160-180Z"
 private const val SEARCH =
-    "M378-329q-108.16 0-183.08-75Q120-479 120-585t75-181q75-75 181.5-75t181 75Q632-691 632-584.85 632-542 618-502q-" +
-        "14 40-42 75l242 240q9 8.56 9 21.78T818-143q-9 9-22.22 9-13.22 0-21.78-9L533-384q-30 26-69.96 40.5Q423.08-329 3" +
-        "78-329Zm-1-60q81.25 0 138.13-57.5Q572-504 572-585t-56.87-138.5Q458.25-781 377-781q-82.08 0-139.54 57.5Q180-666" +
-        " 180-585t57.46 138.5Q294.92-389 377-389Z"
+    "M372-312q-115.16 0-195.08-80Q97-472 97-585t80-193q80-80 193.5-80t193 80Q643-698 643-584.85q0 44.85-12.5 83.35Q" +
+        "618-463 593-429l236 234q14 14.56 14 34.28T829-127q-15 15-34.72 15T761-127L526-361q-29 23-68.46 36-39.46 13-85." +
+        "54 13Zm-1-94q75.25 0 126.63-52Q549-510 549-585t-51.37-127Q446.25-764 371-764q-75.08 0-127.54 52Q191-660 191-58" +
+        "5t52.46 127q52.46 52 127.54 52Z"
 private const val BOOKMARK =
     "m480-240-196 84q-30 13-57-5t-27-50v-574q0-24 18-42t42-18h440q24 0 42 18t18 42v574q0 32-27 50t-57 5l-196-84Z"
 private const val SETTINGS =

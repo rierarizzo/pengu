@@ -1,5 +1,5 @@
 // Regenerates ui/icons/MaterialIcons.kt from the Material Symbols Rounded set
-// (Apache-2.0, Google), published as @material-symbols/svg-400 on npm. Run:
+// (Apache-2.0, Google), published as @material-symbols/svg-<weight> on npm. Run:
 //   node scripts/gen_icons.mjs > app/shared/src/commonMain/kotlin/com/misgus/pengu/ui/icons/MaterialIcons.kt
 //
 // The package ships one SVG per glyph, on a 960x960 grid whose origin sits at
@@ -7,7 +7,13 @@
 // inside a group translated by +960.
 
 const VERSION = "0.48.0";
-const BASE = `https://cdn.jsdelivr.net/npm/@material-symbols/svg-400@${VERSION}/rounded`;
+const PACKAGE = (weight) => `https://cdn.jsdelivr.net/npm/@material-symbols/svg-${weight}@${VERSION}/rounded`;
+
+// Glyphs fetched from the weight-700 package instead of the 400 one. `search` is
+// the only glyph in the set with no `-fill` variant (the package ships it with
+// the outline path under both names), so at 400 it read lighter than the filled
+// glyphs around it; the heavier weight is what makes it match them.
+const HEAVY = new Set(["search"]);
 
 // [Kotlin name, package file name, autoMirror]
 const icons = [
@@ -57,7 +63,8 @@ const constName = (kotlin) =>
 const paths = new Map();
 for (const [, file] of icons) {
   if (paths.has(file)) continue;
-  const response = await fetch(`${BASE}/${file}.svg`);
+  const weight = HEAVY.has(file) ? 700 : 400;
+  const response = await fetch(`${PACKAGE(weight)}/${file}.svg`);
   if (!response.ok) throw new Error(`${file}: HTTP ${response.status}`);
   const svg = await response.text();
   if (!svg.includes('viewBox="0 -960 960 960"')) {
@@ -81,9 +88,12 @@ import androidx.compose.ui.unit.dp
  *
  * The whole UI uses these glyphs; call sites size them with
  * [com.misgus.pengu.ui.theme.AppIconSize]. \`scripts/gen_icons.mjs\` regenerates
- * the file from the \`@material-symbols/svg-400\` package. Only the glyphs the UI
- * uses are kept, and each pair (a filled and an outline glyph, e.g. check circle
- * and its outline) mirrors the solid/outline split the UI had before.
+ * the file from the \`@material-symbols/svg-400\` package, except \`Search\`,
+ * which comes from the 700-weight package: it is the one glyph with no filled
+ * variant, so the heavier outline is what makes it match the filled ones. Only
+ * the glyphs the UI uses are kept, and each pair (a filled and an outline glyph,
+ * e.g. check circle and its outline) mirrors the solid/outline split the UI had
+ * before.
  */
 object MaterialIcons {
 `;

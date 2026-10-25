@@ -4,15 +4,19 @@ import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.TweenSpec
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.lazy.LazyItemScope
+import androidx.compose.foundation.lazy.grid.LazyGridItemScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.IntOffset
 
 /**
  * Whether the app plays motion.
@@ -100,6 +104,39 @@ fun motionSpring(): AnimationSpec<Float> =
         spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium)
     } else {
         snap()
+    }
+
+/**
+ * `animateItem` bound to [LocalMotionEnabled], for a row and for a grid.
+ *
+ * A lazy list whose backing data is replaced (a feed refreshed behind what is on
+ * screen) fades and slides the items that entered or moved instead of snapping
+ * them, and stays a cut when the user turned motion off.
+ */
+@Composable
+fun LazyItemScope.motionItem(): Modifier {
+    val specs = motionItemSpecs()
+    return Modifier.animateItem(specs.first, specs.second, specs.third)
+}
+
+@Composable
+fun LazyGridItemScope.motionItem(): Modifier {
+    val specs = motionItemSpecs()
+    return Modifier.animateItem(specs.first, specs.second, specs.third)
+}
+
+/** The fade-in, placement and fade-out specs of an animated list item, or all
+ * `null` when motion is off. */
+@Composable
+private fun motionItemSpecs() =
+    if (LocalMotionEnabled.current) {
+        Triple<FiniteAnimationSpec<Float>?, FiniteAnimationSpec<IntOffset>?, FiniteAnimationSpec<Float>?>(
+            motionTween(),
+            motionTween(),
+            motionTween(),
+        )
+    } else {
+        Triple(null, null, null)
     }
 
 /**

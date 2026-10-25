@@ -241,6 +241,32 @@ fun SectionHeader(
     }
 }
 
+/**
+ * Title of a section, the one Settings already puts on its pages.
+ *
+ * It sits at the top of the section, inside the screen padding, and scrolls with
+ * nothing: Home has none because the billboard is its header. Same style and
+ * spacing everywhere so two sections cannot drift.
+ */
+@Composable
+fun SectionTitle(
+    title: String,
+    modifier: Modifier = Modifier,
+) {
+    val screenPadding = LocalWindowSize.current.screenPadding
+    Text(
+        text = title,
+        style = AppType.screenTitle(),
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(start = screenPadding, end = screenPadding, top = screenPadding, bottom = AppSpacing.md)
+                .sectionHeading(),
+    )
+}
+
 /** Sampling for photographic artwork: mipmapped bilinear avoids downscale aliasing. */
 val ArtworkFilterQuality = FilterQuality.Medium
 

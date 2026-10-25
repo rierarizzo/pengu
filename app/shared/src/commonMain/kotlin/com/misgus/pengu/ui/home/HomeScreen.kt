@@ -68,6 +68,7 @@ import com.misgus.pengu.ui.theme.WindowSize
 import com.misgus.pengu.ui.theme.cellWidth
 import com.misgus.pengu.ui.theme.gridSpacing
 import com.misgus.pengu.ui.theme.landscapeCardWidth
+import com.misgus.pengu.ui.theme.motionItem
 import com.misgus.pengu.ui.theme.posterCardHeight
 import com.misgus.pengu.ui.theme.safeTopInset
 import com.misgus.pengu.ui.theme.screenPadding
@@ -376,7 +377,7 @@ private fun HomeContent(
                             contentPadding = PaddingValues(horizontal = windowSize.screenPadding),
                             horizontalArrangement = Arrangement.spacedBy(windowSize.gridSpacing),
                         ) {
-                            items(row.items) { item ->
+                            items(row.items, key = { "${it.type}:${it.id}" }) { item ->
                                 PosterCard(
                                     name = item.name,
                                     poster = item.poster,
@@ -385,6 +386,7 @@ private fun HomeContent(
                                     landscape = item.isLandscape,
                                     watched = item.id in state.watchedIds,
                                     hideLabels = hideLabels,
+                                    modifier = motionItem(),
                                     onTap = { onOpenPreview(item) },
                                     actions =
                                         MediaActions(

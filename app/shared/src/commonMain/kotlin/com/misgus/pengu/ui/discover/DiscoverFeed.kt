@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -32,6 +33,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.misgus.pengu.app.shared.generated.resources.Res
 import com.misgus.pengu.app.shared.generated.resources.discover_context
 import com.misgus.pengu.app.shared.generated.resources.discover_empty_message
@@ -52,15 +54,17 @@ import com.misgus.pengu.ui.components.toUserMessage
 import com.misgus.pengu.ui.icons.MaterialIcons
 import com.misgus.pengu.ui.theme.AppSpacing
 import com.misgus.pengu.ui.theme.AppType
+import com.misgus.pengu.ui.theme.LocalWindowHeight
 import com.misgus.pengu.ui.theme.LocalWindowSize
 import com.misgus.pengu.ui.theme.gridCells
 import com.misgus.pengu.ui.theme.gridSpacing
+import com.misgus.pengu.ui.theme.motionItem
 import com.misgus.pengu.ui.theme.screenPadding
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * The discover feed: one catalog at a time, chosen with the pickers above the
- * grid, exactly like Nuvio.
+ * The discover feed: one catalog at a time, chosen with the pickers that scroll
+ * away with the grid, exactly like Nuvio.
  *
  * Only the catalogs the addons open for browsing are offered — a search-only
  * catalog is not here, and one that needs an extra only its addon knows is not
@@ -83,53 +87,22 @@ fun DiscoverFeed(
     modifier: Modifier = Modifier,
 ) {
     val windowSize = LocalWindowSize.current
-    Column(modifier.fillMaxSize()) {
-        // The pickers sit above the scroll like the search field does, so they keep
-        // their place while the grid moves and the spacing below them is explicit
-        // instead of the grid's own content padding.
-        if (state.types.isNotEmpty()) {
-            DiscoverFilters(
-                state = state,
-                onSelectType = onSelectType,
-                onSelectCatalog = onSelectCatalog,
-                onSelectGenre = onSelectGenre,
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(
-                            start = windowSize.screenPadding,
-                            end = windowSize.screenPadding,
-                            bottom = AppSpacing.md,
-                        ),
-            )
-        }
-        Box(Modifier.weight(1f)) {
-            when {
-                // Nothing painted yet, or the first page of a new selection on its way.
-                state.items.isEmpty() && (state.isLoading || !state.hasLoaded) -> SkeletonPosterGrid(hideLabels)
-                state.error != null && state.items.isEmpty() ->
-                    Message(
-                        icon = MaterialIcons.Error,
-                        title = stringResource(Res.string.discover_error_title),
-                        message = stringResource(state.error.toUserMessage()),
-                    )
-                // No browsable catalog at all (every enabled addon is search-only), or
-                // the chosen catalog answered nothing.
-                state.items.isEmpty() ->
-                    Message(
-                        icon = MaterialIcons.Compass,
-                        title = stringResource(Res.string.discover_empty_title),
-                        message = stringResource(Res.string.discover_empty_message),
-                    )
-                else ->
-                    DiscoverGrid(
-                        state = state,
-                        hideLabels = hideLabels,
-                        onOpenDetail = onOpenDetail,
-                        onLoadMore = onLoadMore,
-                    )
-            }
-        }
+    // The pickers are the first cell of the grid, so they scroll away with it, the
+    // way Nuvio's do. Before the catalogs are read there is nothing to pick from,
+    // so the first load keeps the plain skeleton.
+    if (!state.hasLoaded) {
+        SkeletonPosterGrid(hideLabels, modifier)
+    } else {
+        DiscoverGrid(
+            state = state,
+            hideLabels = hideLabels,
+            onOpenDetail = onOpenDetail,
+            onSelectType = onSelectType,
+            onSelectCatalog = onSelectCatalog,
+            onSelectGenre = onSelectGenre,
+            onLoadMore = onLoadMore,
+            modifier = modifier,
+        )
     }
 }
 
@@ -138,10 +111,17 @@ private fun DiscoverGrid(
     state: DiscoverUiState,
     hideLabels: Boolean,
     onOpenDetail: (LibraryItem) -> Unit,
+    onSelectType: (ContentType) -> Unit,
+    onSelectCatalog: (String) -> Unit,
+    onSelectGenre: (String?) -> Unit,
     onLoadMore: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val gridState = rememberLazyGridState()
     val windowSize = LocalWindowSize.current
+    // A message cell cannot measure the viewport, so it takes this share of the
+    // window height and centres itself in it.
+    val messageBlockHeight = (LocalWindowHeight.current * 0.4f).coerceIn(200.dp, 400.dp)
     val items = state.items
     // `rememberUpdatedState` keeps the count current inside the derived state;
     // capturing `items` directly would freeze it at the first composition and
@@ -164,8 +144,7 @@ private fun DiscoverGrid(
     LazyVerticalGrid(
         state = gridState,
         columns = gridCells(windowSize),
-        modifier = Modifier.fillMaxSize(),
-        // No top inset: the pickers above already end with their own gap.
+        modifier = modifier.fillMaxSize(),
         contentPadding =
             PaddingValues(
                 start = windowSize.screenPadding,
@@ -175,21 +154,60 @@ private fun DiscoverGrid(
         verticalArrangement = Arrangement.spacedBy(windowSize.gridSpacing),
         horizontalArrangement = Arrangement.spacedBy(windowSize.gridSpacing),
     ) {
-        items(items, key = { "${it.type}:${it.id}" }) { item ->
-            val libraryItem = LibraryItem.fromPreview(item)
-            PosterCard(
-                name = item.name,
-                poster = item.poster,
-                caption = item.releaseInfo,
-                hideLabels = hideLabels,
-                landscape = item.isLandscape,
-                onTap = { onOpenDetail(libraryItem) },
-                actions =
-                    MediaActions(
-                        item = libraryItem,
-                        onMoreInfo = { onOpenDetail(libraryItem) },
-                    ),
-            )
+        if (state.types.isNotEmpty()) {
+            item(span = { GridItemSpan(maxLineSpan) }, key = "discover-filters") {
+                DiscoverFilters(
+                    state = state,
+                    onSelectType = onSelectType,
+                    onSelectCatalog = onSelectCatalog,
+                    onSelectGenre = onSelectGenre,
+                    // The grid's own item spacing follows this cell, so only the
+                    // part that reaches a `md` gap is added here.
+                    modifier = Modifier.padding(bottom = AppSpacing.md - windowSize.gridSpacing),
+                )
+            }
+        }
+        when {
+            state.items.isEmpty() && state.error != null ->
+                item(span = { GridItemSpan(maxLineSpan) }, key = "discover-error") {
+                    Box(Modifier.fillMaxWidth().height(messageBlockHeight), Alignment.Center) {
+                        Message(
+                            icon = MaterialIcons.Error,
+                            title = stringResource(Res.string.discover_error_title),
+                            message = stringResource(state.error.toUserMessage()),
+                        )
+                    }
+                }
+            // No browsable catalog at all (every enabled addon is search-only), or
+            // the chosen catalog answered nothing.
+            state.items.isEmpty() && !state.isLoading ->
+                item(span = { GridItemSpan(maxLineSpan) }, key = "discover-empty") {
+                    Box(Modifier.fillMaxWidth().height(messageBlockHeight), Alignment.Center) {
+                        Message(
+                            icon = MaterialIcons.Compass,
+                            title = stringResource(Res.string.discover_empty_title),
+                            message = stringResource(Res.string.discover_empty_message),
+                        )
+                    }
+                }
+            else ->
+                items(items, key = { "${it.type}:${it.id}" }) { item ->
+                    val libraryItem = LibraryItem.fromPreview(item)
+                    PosterCard(
+                        name = item.name,
+                        poster = item.poster,
+                        caption = item.releaseInfo,
+                        hideLabels = hideLabels,
+                        landscape = item.isLandscape,
+                        modifier = motionItem(),
+                        onTap = { onOpenDetail(libraryItem) },
+                        actions =
+                            MediaActions(
+                                item = libraryItem,
+                                onMoreInfo = { onOpenDetail(libraryItem) },
+                            ),
+                    )
+                }
         }
         if (state.isLoading || state.isLoadingMore) {
             item(span = { GridItemSpan(maxLineSpan) }, key = "discover-loading") {

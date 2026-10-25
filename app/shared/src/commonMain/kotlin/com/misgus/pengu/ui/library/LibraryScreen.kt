@@ -2,6 +2,7 @@ package com.misgus.pengu.ui.library
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -17,10 +18,12 @@ import com.misgus.pengu.app.shared.generated.resources.Res
 import com.misgus.pengu.app.shared.generated.resources.empty_nothing_to_show
 import com.misgus.pengu.app.shared.generated.resources.library_empty_message
 import com.misgus.pengu.app.shared.generated.resources.library_error_title
+import com.misgus.pengu.app.shared.generated.resources.library_title
 import com.misgus.pengu.core.model.LibraryItem
 import com.misgus.pengu.ui.components.MediaActions
 import com.misgus.pengu.ui.components.Message
 import com.misgus.pengu.ui.components.PosterCard
+import com.misgus.pengu.ui.components.SectionTitle
 import com.misgus.pengu.ui.components.SkeletonPosterGrid
 import com.misgus.pengu.ui.components.SyncingIndicator
 import com.misgus.pengu.ui.components.toUserMessage
@@ -47,11 +50,15 @@ fun LibraryScreen(
     val settings by settingsRepository.state.collectAsStateWithLifecycle()
 
     Box(Modifier.fillMaxSize()) {
-        LibraryContent(
-            state = state,
-            hideLabels = settings.hideLabels,
-            onOpen = { navigator.push(ContentRoute.Detail(it, knownSaved = true)) },
-        )
+        Column(Modifier.fillMaxSize()) {
+            SectionTitle(stringResource(Res.string.library_title))
+            LibraryContent(
+                state = state,
+                hideLabels = settings.hideLabels,
+                onOpen = { navigator.push(ContentRoute.Detail(it, knownSaved = true)) },
+                modifier = Modifier.weight(1f),
+            )
+        }
         if (state.isSyncingWatched) {
             Box(Modifier.align(Alignment.TopEnd).padding(AppSpacing.xl)) {
                 SyncingIndicator()
@@ -65,10 +72,13 @@ private fun LibraryContent(
     state: LibraryUiState,
     hideLabels: Boolean,
     onOpen: (LibraryItem) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val windowSize = LocalWindowSize.current
     when {
-        state.isLoading && !state.hasLoaded -> SkeletonPosterGrid(hideLabels)
+        // Not read yet counts as loading: the empty message must not flash for a
+        // frame before the first request starts.
+        !state.hasLoaded && state.error == null -> SkeletonPosterGrid(hideLabels, modifier)
         state.error != null && !state.hasLoaded ->
             Message(
                 icon = MaterialIcons.Error,
@@ -86,8 +96,14 @@ private fun LibraryContent(
             // reaches the window edges, so the last row is never clipped.
             LazyVerticalGrid(
                 columns = gridCells(windowSize),
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(windowSize.screenPadding),
+                modifier = modifier.fillMaxSize(),
+                // No top inset: the title above already ends with its own gap.
+                contentPadding =
+                    PaddingValues(
+                        start = windowSize.screenPadding,
+                        end = windowSize.screenPadding,
+                        bottom = windowSize.screenPadding,
+                    ),
                 verticalArrangement = Arrangement.spacedBy(windowSize.gridSpacing),
                 horizontalArrangement = Arrangement.spacedBy(windowSize.gridSpacing),
             ) {

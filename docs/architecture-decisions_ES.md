@@ -289,8 +289,13 @@ leer/escribir/borrar vive una sola vez.
   luego su catálogo — la caché HTTP de addons no ayuda ahí, porque la mayoría no
   declara frescura — y un addon lento retiene la pantalla entera. Una carga
   fallida o vacía nunca sobrescribe el feed guardado, así que el siguiente
-  arranque sigue teniendo algo que pintar. El historial de reproducción no se
-  cachea: leerlo es barato y tiene que estar al día.
+  arranque sigue teniendo algo que pintar. El cambio cuando llega la respuesta de
+  red no es un corte: el billboard se mantiene mientras siga siendo parte del
+  feed (`featuredFor`, solo se reemplaza la slide que se fue) y los raíles funden
+  y deslizan sus cards con `motionItem()` (`animateItem` atado a
+  `LocalMotionEnabled`), así un refresco por detrás no reordena la pantalla de
+  golpe. El historial de reproducción no se cachea: leerlo es barato y tiene que
+  estar al día.
 - **Los addons se administran desde Ajustes.** `AddonRepository` expone
   `installed()`, `install`, `setEnabled`, `remove`, `reorder` y `canManage`
   junto a la lectura de contenido. `NuvioAddonRepository` valida la URL pegada
@@ -370,6 +375,20 @@ leer/escribir/borrar vive una sola vez.
   principal, lo que disparaba el hook de carga desde el constructor de la
   superclase antes de que existiera el estado de la subclase. Forzar un dispatch
   hace que la primera emisión espere a que termine la construcción.
+- **Cada sección salvo Home abre con su título.** `SectionTitle`
+  (`ui/components`) dibuja el mismo texto que Settings ya usaba en sus páginas:
+  `AppType.screenTitle()` con la semántica de encabezado, dentro del padding de
+  pantalla y con un margen `md` debajo. Library muestra "Library"; Search muestra
+  "Discover" mientras la consulta está vacía y "Search" cuando hay una, nombrando
+  lo que hay debajo. Home no tiene título porque el billboard es su cabecera, y
+  la pantalla de catálogo mantiene la suya con el addon como subtítulo.
+- **Una sección que aún no se ha leído se dibuja como cargando, nunca como
+  vacía.** `hasLoaded` arranca en `false` y la petición no empieza hasta un frame
+  después, así que una pantalla que basaba su mensaje de vacío en
+  `items.isEmpty()` mostraba "nada que mostrar" antes del primer pintado. Library
+  y la pantalla de catálogo basan el skeleton en `!hasLoaded` (Home ya lo hacía),
+  y volver a una sección mantiene los datos porque los ViewModels de sección
+  viven en el store raíz.
 - **Los tokens de diseño son datos, no código.** `theme/Tokens.kt` contiene las
   paletas (`BrandPalette` / `CoffeePalette`), el espaciado, los tamaños, los alphas y
   los scrims; `theme/AppTheme.kt`
@@ -384,7 +403,10 @@ leer/escribir/borrar vive una sola vez.
   SVG oficial mediante `PathParser`; `scripts/gen_icons.mjs` regenera el fichero
   desde el paquete `@material-symbols/svg-400`. Rounded es el estilo que usan los
   glifos Material de Nuvio, y sus esquinas suavizadas encajan en el lenguaje de
-  iconos plano y de solo tinte de la app sin retocar glifo a glifo. Los glifos
+  iconos plano y de solo tinte de la app sin retocar glifo a glifo. `Search` es el
+  único glifo que viene del paquete de peso 700: no tiene variante rellena (el
+  paquete 400 trae el mismo path de contorno bajo ambos nombres), así que a 400
+  se leía más ligero que los glifos rellenos junto a los que va. Los glifos
   viven en un grid de 960x960 cuyo eje y va de -960 a 0, así que cada vector se
   construye dentro de un grupo trasladado +960 mientras los sitios de uso lo
   siguen dimensionando a 24dp. La flecha de volver y los
@@ -799,9 +821,10 @@ leer/escribir/borrar vive una sola vez.
   elimina ese raíl, no la pantalla. Los resultados no se fusionan, ni se
   deduplican, ni se parten por tipo: ese era el formato anterior
   Movies / Series / Other, que escondía qué addon aportaba qué.
-- **Discover es un catálogo a la vez.** Sobre la rejilla hay tres selectores —
+- **Discover es un catálogo a la vez.** Tres selectores encabezan la rejilla —
   tipo, catálogo y género — y la rejilla pagina solo el catálogo elegido con
-  `skip`. La lista de tipos sale de los catálogos que los addons abren para
+  `skip`. Son la primera celda de la rejilla, así que se van con el scroll como
+  en Nuvio, en vez de quedarse fijos mientras los pósters se mueven debajo. La lista de tipos sale de los catálogos que los addons abren para
   navegar, la de catálogos son los de ese tipo, y las opciones de género salen
   del extra `genre` del catálogo elegido (un género obligatorio se elige por el
   usuario y se envía siempre). Solo se ofrecen catálogos navegables: uno cuyos

@@ -272,8 +272,13 @@ so the atomic read/write/delete logic lives once.
   every addon has answered its manifest and then its catalog — the addon HTTP
   cache does not help there, because most addons declare no freshness — and one
   slow addon holds the whole screen. A failed or empty load never overwrites the
-  stored feed, so the next start still has something to paint. The watch history
-  is not cached: progress reads are cheap and must stay current.
+  stored feed, so the next start still has something to paint. The swap when the
+  network answer lands is not a cut: the billboard stays while it is still part
+  of the feed (`featuredFor`, only a slide that left it is replaced) and the
+  rails fade and slide their cards with `motionItem()` (`animateItem` bound to
+  `LocalMotionEnabled`), so a refresh behind the screen does not rearrange it
+  abruptly. The watch history is not cached: progress reads are cheap and must
+  stay current.
 - **Addons are managed from Settings.** `AddonRepository` exposes
   `installed()`, `install`, `setEnabled`, `remove`, `reorder` and `canManage`
   next to the content read. `NuvioAddonRepository` validates a pasted URL by
@@ -348,6 +353,19 @@ so the atomic read/write/delete logic lives once.
   ViewModel is built on the main thread, which fired the load hook from the base
   constructor before the subclass state existed. Forcing a dispatch makes the
   first emission wait until construction has finished.
+- **Every section but Home opens with its title.** `SectionTitle`
+  (`ui/components`) draws the same text Settings already used on its pages:
+  `AppType.screenTitle()` with the heading semantics, inside the screen padding
+  and a `md` gap below. Library shows "Library"; Search shows "Discover" while
+  the query is empty and "Search" once there is one, naming what is under the
+  title. Home has no title because the billboard is its header, and the catalog
+  screen keeps its own header with the addon as a subtitle.
+- **A section that has not been read yet renders as loading, never as empty.**
+  `hasLoaded` starts `false` and the request only starts a frame later, so a
+  screen that keyed its empty message on `items.isEmpty()` flashed "nothing to
+  show" before the first paint. Library and the catalog screen key the skeleton
+  on `!hasLoaded` (Home already did), and a revisit keeps the data because the
+  section ViewModels live in the root store.
 - **Design tokens are data, not code.** `theme/Tokens.kt` holds the palettes
   (`BrandPalette` / `CoffeePalette`), spacing, sizes, alphas and scrims;
   `theme/AppTheme.kt` holds only the Material
@@ -361,7 +379,10 @@ so the atomic read/write/delete logic lives once.
   `PathParser`; `scripts/gen_icons.mjs` regenerates the file from the
   `@material-symbols/svg-400` package. Rounded is the style Nuvio's own Material
   glyphs use, and its softened corners sit the icons in the app's flat,
-  tint-only language without a per-glyph edit. The glyphs live on a 960x960
+  tint-only language without a per-glyph edit. `Search` is the one glyph fetched
+  from the weight-700 package: it has no filled variant (the 400 package ships
+  the outline path under both names), so at 400 it read lighter than the filled
+  glyphs it sits next to. The glyphs live on a 960x960
   grid whose y axis runs from -960 to 0, so each vector is built inside a group
   translated by +960 while call sites still size it at 24dp. The back arrow and
   the sign-in/out glyphs carry `autoMirror = true`,
@@ -749,8 +770,10 @@ so the atomic read/write/delete logic lives once.
   answers nothing has no rail; a failure drops that rail instead of the screen.
   The results are not merged, deduped or split by type: that was the old
   Movies / Series / Other layout, and it hid which addon produced what.
-- **Discover is one catalog at a time.** Three pickers sit above the grid — type,
+- **Discover is one catalog at a time.** Three pickers head the grid — type,
   catalog and genre — and the grid pages only the chosen catalog with `skip`.
+  They are the grid's first cell, so they scroll away with it like Nuvio's,
+  instead of staying pinned while the posters move underneath.
   The type list comes from the catalogs the addons open for browsing, the catalog
   list is the ones of that type, and the genre options come from the chosen
   catalog's `genre` extra (a required genre is picked for the user and always

@@ -306,9 +306,10 @@ class HomeViewModel(
             libraryByContent = watching.library.associateBy { it.contentId }
         }
         val progress = watching?.progress.orEmpty()
-        // Picked before the paint, so the hero appears once and is not rearranged
-        // under the user.
-        val featured = if (rows.isEmpty()) emptyList() else pickBillboard(rows)
+        // The billboard is settled before the paint, so the hero appears once and
+        // is not rearranged under the user; a refresh behind the cached feed keeps
+        // the one already on screen.
+        val featured = if (rows.isEmpty()) emptyList() else featuredFor(rows)
         val continueWatching = continueEntries(progress)
         _state.update {
             it.copy(
@@ -515,6 +516,23 @@ class HomeViewModel(
             val featured = pickBillboard(rows, exclude = current)
             _state.update { it.copy(featured = featured) }
         }
+    }
+
+    /**
+     * The billboard to show for [rows]: the one on screen while it is still part
+     * of the feed, with its data refreshed, or a fresh pick when nothing is shown
+     * or the hero left the feed.
+     *
+     * A refresh behind the cached feed used to re-pick the hero, so the picture
+     * the user was looking at changed abruptly a second after Home appeared. Only
+     * a hero that is really gone is replaced; picking another source in Settings
+     * still goes through [repickFeatured] on purpose.
+     */
+    private fun featuredFor(rows: List<CatalogRow>): List<MetaPreview> {
+        val shown = _state.value.featured
+        if (shown.isEmpty()) return pickBillboard(rows)
+        val byId = rows.flatMap { it.items }.associateBy { it.type to it.id }
+        return shown.mapNotNull { byId[it.type to it.id] }.ifEmpty { pickBillboard(rows) }
     }
 
     /**

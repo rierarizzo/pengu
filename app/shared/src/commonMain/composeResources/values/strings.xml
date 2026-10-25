@@ -62,10 +62,12 @@
     <string name="error_try_again_later">Try again later.</string>
 
     <!-- Library -->
+    <string name="library_title">Library</string>
     <string name="library_error_title">Could not load the library</string>
     <string name="library_empty_message">Your library is empty.</string>
 
     <!-- Discover -->
+    <string name="discover_title">Discover</string>
     <string name="discover_error_title">Could not load Discover</string>
     <string name="discover_empty_title">Nothing to discover</string>
     <string name="discover_empty_message">Install a metadata addon with catalogs to fill this section.</string>
@@ -79,6 +81,7 @@
     <string name="catalog_empty_message">This catalog is empty.</string>
 
     <!-- Search -->
+    <string name="search_title">Search</string>
     <string name="search_placeholder">Search movies and series</string>
     <string name="search_failed_title">Search failed</string>
     <string name="search_no_results_title">No results</string>

@@ -134,7 +134,9 @@ private fun CatalogContent(
 ) {
     val windowSize = LocalWindowSize.current
     when {
-        state.isLoading && !state.hasLoaded -> SkeletonPosterGrid(hideLabels)
+        // Not read yet counts as loading: the empty message must not flash for a
+        // frame before the first request starts.
+        !state.hasLoaded && state.error == null -> SkeletonPosterGrid(hideLabels)
         state.error != null && !state.hasLoaded ->
             Message(
                 icon = MaterialIcons.Error,
