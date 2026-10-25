@@ -47,6 +47,7 @@ import com.misgus.pengu.ui.components.rememberInteraction
 import com.misgus.pengu.ui.icons.MaterialIcons
 import com.misgus.pengu.ui.theme.AppAlpha
 import com.misgus.pengu.ui.theme.AppColors
+import com.misgus.pengu.ui.theme.AppIconSize
 import com.misgus.pengu.ui.theme.AppMotion
 import com.misgus.pengu.ui.theme.AppScrim
 import com.misgus.pengu.ui.theme.AppSpacing
@@ -161,6 +162,7 @@ private fun TopBar(
             contentDescription = stringResource(Res.string.action_back),
             onClick = onBack,
             tint = AppColors.playerControl,
+            iconSize = PLAYER_ICON_SIZE,
         )
         Spacer(Modifier.width(AppSpacing.xs))
         Column(Modifier.weight(1f)) {
@@ -201,7 +203,10 @@ private fun BottomBar(
         modifier =
             modifier
                 .fillMaxWidth()
+                // The scrim starts above the bar, so the fade begins over the video
+                // instead of reading as a dark strip glued under the controls.
                 .background(AppScrim.playerBottom)
+                .padding(top = AppSpacing.lg)
                 .navigationBarsPadding(),
     ) {
         PlayerSeekBar(
@@ -225,18 +230,21 @@ private fun BottomBar(
                     },
                 onClick = onPlayPause,
                 tint = AppColors.playerControl,
+                iconSize = PLAYER_ICON_SIZE,
             )
             AppIconButton(
                 icon = MaterialIcons.Replay10,
                 contentDescription = stringResource(Res.string.player_back_10),
                 onClick = { onSeekBy(SEEK_BACK) },
                 tint = AppColors.playerControl,
+                iconSize = PLAYER_ICON_SIZE,
             )
             AppIconButton(
                 icon = MaterialIcons.Forward10,
                 contentDescription = stringResource(Res.string.player_forward_10),
                 onClick = { onSeekBy(SEEK_FORWARD) },
                 tint = AppColors.playerControl,
+                iconSize = PLAYER_ICON_SIZE,
             )
             VolumeControl(
                 volume = state.volume,
@@ -257,12 +265,14 @@ private fun BottomBar(
                 onClick = onSubtitles,
                 selected = state.subtitlesOn,
                 tint = AppColors.playerControl,
+                iconSize = PLAYER_ICON_SIZE,
             )
             AppIconButton(
                 icon = MaterialIcons.GraphicEq,
                 contentDescription = stringResource(Res.string.player_audio),
                 onClick = onAudio,
                 tint = AppColors.playerControl,
+                iconSize = PLAYER_ICON_SIZE,
             )
             onToggleFullscreen?.let { toggle ->
                 AppIconButton(
@@ -270,6 +280,7 @@ private fun BottomBar(
                     contentDescription = stringResource(Res.string.player_fullscreen),
                     onClick = toggle,
                     tint = AppColors.playerControl,
+                    iconSize = PLAYER_ICON_SIZE,
                 )
             }
         }
@@ -306,6 +317,7 @@ private fun VolumeControl(
             contentDescription = stringResource(if (muted) Res.string.player_unmute else Res.string.player_mute),
             onClick = onToggleMute,
             tint = AppColors.playerControl,
+            iconSize = PLAYER_ICON_SIZE,
         )
         AnimatedVisibility(
             visible = interaction.hovered,
@@ -346,3 +358,6 @@ internal fun formatPlayerTime(value: Duration): String {
 }
 
 private val VOLUME_SLIDER_WIDTH = 96.dp
+
+/** Player glyphs read one step above the in-row default, over the video. */
+private val PLAYER_ICON_SIZE = AppIconSize.lg

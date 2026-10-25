@@ -1182,7 +1182,11 @@ a que se suelte, y su timecode no rellena los minutos con cero
 (`0:03 / 56:01`). El glifo de volumen sigue el nivel y hace de mute, y el control
 deslizante de volumen solo se expande mientras se pasa el puntero por el grupo,
 así que la fila conserva el ritmo de un solo icono de la referencia en desktop;
-el teclado mantiene el volumen en las flechas y el mute en `M`. El icono de
+el teclado sigue las convenciones de un reproductor de escritorio: `Espacio`,
+`K` o `Enter` reproducen/pausan, `←`/`→`/`J`/`L` saltan diez segundos (un
+minuto con `Shift`), `↑`/`↓` mueven el volumen, `M` silencia, `C` alterna los
+subtítulos, `N` pasa al siguiente episodio, `0`–`9` saltan a ese porcentaje,
+`F` alterna pantalla completa y `Esc`/`Retroceso` vuelven atrás. El icono de
 subtítulos se tiñe de ámbar cuando hay una pista seleccionada. Los controles se
 desvanecen durante la reproducción y no se componen mientras están ocultos, así
 que un overlay invisible nunca se come un clic. Los glifos del reproductor
@@ -1325,6 +1329,25 @@ píxeles; la barra de título simplemente sale de la composición mientras dura 
 fullscreen. Los demás targets de desktop todavía usan los workarounds de
 `Floating`/exclusivo, que pueden eliminarse cuando adopten también el marco
 custom.
+
+`WindowController` también lleva las dos cosas que un vídeo necesita del SO.
+`setCursorHidden` cambia a un cursor AWT en blanco mientras el overlay está
+oculto, así que el puntero sigue a los controles en vez de flotar sobre la
+película; `setScreenAwake` mantiene `SetThreadExecutionState(ES_DISPLAY_REQUIRED)`
+en Windows mientras el reproductor está compuesto — la llamada está atada al
+thread, así que ambos extremos corren en el thread de composición — para que un
+largometraje no se lea como inactividad y el monitor no se apague. Android no
+necesita ninguno de los dos: la ventana del reproductor lleva
+`FLAG_KEEP_SCREEN_ON` mientras `PlayerWindowMode` está compuesto.
+
+El idioma de entrada sigue a la plataforma: en desktop un clic sobre el vídeo
+alterna la reproducción y mover el puntero muestra el overlay; en un teléfono
+un toque muestra el overlay y el siguiente lo oculta. Ese target queda debajo de
+los controles, así que un clic en un botón sigue siendo del botón. El scrim
+inferior es un gradiente que arranca transparente por encima de la barra — `AppScrim.playerBottom`
+sobre un overhang `lg` — así que los controles nunca quedan sobre una franja
+oscura plana, y los glifos del reproductor leen un escalón de icono por encima
+del default de fila.
 
 La reproducción en segundo plano no está cableada todavía, así que
 `MainActivity.onStop` pausa el reproductor salvo que el stop sea un cambio de

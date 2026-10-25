@@ -36,6 +36,23 @@ interface WindowController {
     val screenWorkAreaHeight: Dp
 
     fun setFullScreen(value: Boolean)
+
+    /**
+     * Hides the mouse pointer, or shows it again.
+     *
+     * The player hides it while its overlay is hidden, the way every video
+     * player does. A target with no pointer to hide leaves this a no-op.
+     */
+    fun setCursorHidden(hidden: Boolean) = Unit
+
+    /**
+     * Keeps the display and the system awake, or lets them idle again.
+     *
+     * The player holds this for as long as it is on screen: otherwise a film is
+     * long enough for the OS to treat it as inactivity and blank the monitor. A
+     * target whose OS does not idle out leaves this a no-op.
+     */
+    fun setScreenAwake(awake: Boolean) = Unit
 }
 
 /** [WindowController] that does nothing; used by previews and tests. */

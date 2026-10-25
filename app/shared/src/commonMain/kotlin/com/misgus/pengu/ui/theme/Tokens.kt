@@ -600,11 +600,11 @@ object AppScrim {
             1f to Color.Transparent,
         )
 
-    /** Bottom control scrim over the player: dark under the seek bar, deeper under the row. */
+    /** Bottom control scrim over the player: clear at the top, dark under the control row. */
     val playerBottom: Brush =
         Brush.verticalGradient(
-            0f to Color.Black.copy(alpha = AppAlpha.PLAYER_SCRIM * 0.45f),
-            0.35f to Color.Black.copy(alpha = AppAlpha.PLAYER_SCRIM * 0.7f),
+            0f to Color.Transparent,
+            0.45f to Color.Black.copy(alpha = AppAlpha.PLAYER_SCRIM * 0.6f),
             1f to Color.Black.copy(alpha = AppAlpha.PLAYER_SCRIM),
         )
 

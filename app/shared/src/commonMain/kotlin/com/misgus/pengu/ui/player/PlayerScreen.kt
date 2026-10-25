@@ -2,6 +2,7 @@ package com.misgus.pengu.ui.player
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
@@ -12,6 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,10 +21,12 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.misgus.pengu.app.shared.generated.resources.Res
@@ -40,6 +44,7 @@ import com.misgus.pengu.core.player.PlaybackTarget
 import com.misgus.pengu.core.repository.LastStream
 import com.misgus.pengu.core.util.runCatchingCancellable
 import com.misgus.pengu.ui.platform.PlayerWindowMode
+import com.misgus.pengu.ui.platform.isDesktop
 import com.misgus.pengu.ui.services.AppServices
 import com.misgus.pengu.ui.services.LocalAppServices
 import com.misgus.pengu.ui.shell.LocalSnackbarHost
@@ -74,6 +79,7 @@ fun PlayerScreen(
     val state by player.state.collectAsStateWithLifecycle()
     val reporter = remember(target) { PlaybackProgressReporter(services.progress, services.settings, target) }
     val focusRequester = remember { FocusRequester() }
+    val scope = rememberCoroutineScope()
 
     // The player owns the screen on Android (landscape + immersive); desktop
     // keeps its windowed, decorated frame.
@@ -86,6 +92,14 @@ fun PlayerScreen(
     var showAudioMenu by remember { mutableStateOf(false) }
     // Volume to restore when mute is toggled back on.
     var volumeBeforeMute by remember { mutableStateOf(100.0) }
+    // Subtitle `C` turns back on; kept here so it does not reopen the menu.
+    var lastSubtitleId by remember { mutableStateOf<String?>(null) }
+    // Addon subtitles as the menu lists them, resolved here because their label
+    // is a composable call and the `C` shortcut is not.
+    val addonTracks =
+        addonSubtitles.map { subtitle ->
+            addonSubtitleTrack(subtitle, subtitleSubtitleTitle(subtitle))
+        }
 
     // The pre-roll owns the wait while the engine opens the stream: it paints the
     // title's artwork, decides when there is a frame worth revealing and hands the
@@ -136,6 +150,19 @@ fun PlayerScreen(
     DisposableEffect(Unit) {
         onDispose { window.setFullScreen(false) }
     }
+
+    // The player owns the screen: the OS must not idle the display out during a
+    // film, and the pointer follows the overlay. Both are no-ops on a touch
+    // screen, where the display flag lives in the Android window instead.
+    DisposableEffect(window) {
+        window.setScreenAwake(true)
+        onDispose {
+            window.setScreenAwake(false)
+            window.setCursorHidden(false)
+        }
+    }
+
+    LaunchedEffect(controlsVisible) { window.setCursorHidden(!controlsVisible) }
 
     LaunchedEffect(target) {
         reporter.resumePosition()?.let { position ->
@@ -198,6 +225,30 @@ fun PlayerScreen(
         revealControls()
     }
 
+    // `C`: off remembers the track so the next press restores that one instead of
+    // the first in the list.
+    val toggleSubtitles = {
+        val current = state.selectedSubtitleId
+        if (current != null) {
+            lastSubtitleId = current
+            player.selectSubtitleTrack(null)
+        } else {
+            val tracks = state.subtitleTracks + addonTracks
+            (tracks.firstOrNull { it.id == lastSubtitleId } ?: tracks.firstOrNull())
+                ?.let(player::selectSubtitleTrack)
+        }
+        revealControls()
+    }
+
+    // `N` resolves the next episode the same way autoplay does, so a series can
+    // be continued without waiting for the end or turning autoplay on.
+    val playNext = {
+        if (target.videoId != null) {
+            scope.launch { playNextIfPossible(target, services)?.let(onPlayNext) }
+        }
+        revealControls()
+    }
+
     val heading = playerHeading(target)
 
     Box(
@@ -208,13 +259,16 @@ fun PlayerScreen(
                 .focusRequester(focusRequester)
                 .focusable()
                 .pointerInput(Unit) {
-                    // Any pointer activity reveals the controls, which then
-                    // auto-hide again after the inactivity delay.
+                    // Moving the pointer reveals the controls, which then auto-hide
+                    // again. A press is left to the surface below: on a desktop it
+                    // toggles playback, on a phone it toggles the overlay.
                     awaitPointerEventScope {
                         while (true) {
-                            awaitPointerEvent(PointerEventPass.Initial)
-                            lastInteraction = lastInteraction + 1
-                            controlsVisible = true
+                            val event = awaitPointerEvent(PointerEventPass.Initial)
+                            if (event.type == PointerEventType.Move) {
+                                lastInteraction = lastInteraction + 1
+                                controlsVisible = true
+                            }
                         }
                     }
                 }.onPreviewKeyEvent { event ->
@@ -224,18 +278,23 @@ fun PlayerScreen(
                         revealControls()
                         return@onPreviewKeyEvent true
                     }
+                    // Shift turns an arrow seek into a long skip, the way every
+                    // desktop player reads it.
+                    val seekBack = if (event.isShiftPressed) SEEK_BACK_LONG else SEEK_BACK
+                    val seekForward = if (event.isShiftPressed) SEEK_FORWARD_LONG else SEEK_FORWARD
                     when (event.key) {
-                        Key.Spacebar, Key.K -> {
+                        Key.Spacebar, Key.K, Key.Enter, Key.NumPadEnter, Key.DirectionCenter, Key.MediaPlayPause -> {
                             player.playOrPause()
+                            revealControls()
                             true
                         }
                         Key.DirectionLeft, Key.J -> {
-                            player.seekBy(SEEK_BACK)
+                            player.seekBy(seekBack)
                             revealControls()
                             true
                         }
                         Key.DirectionRight, Key.L -> {
-                            player.seekBy(SEEK_FORWARD)
+                            player.seekBy(seekForward)
                             revealControls()
                             true
                         }
@@ -253,6 +312,14 @@ fun PlayerScreen(
                             toggleMute()
                             true
                         }
+                        Key.C -> {
+                            toggleSubtitles()
+                            true
+                        }
+                        Key.N, Key.MediaNext -> {
+                            playNext()
+                            true
+                        }
                         Key.F -> {
                             if (window.supportsFullScreen) {
                                 window.setFullScreen(!window.isFullScreen.value)
@@ -261,7 +328,7 @@ fun PlayerScreen(
                                 false
                             }
                         }
-                        Key.Escape -> {
+                        Key.Escape, Key.Backspace -> {
                             onBack()
                             true
                         }
@@ -272,6 +339,27 @@ fun PlayerScreen(
         LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
         VideoSurface(player, Modifier.fillMaxSize())
+        // The video is the click target. A desktop click is the play/pause
+        // toggle; a phone tap shows the overlay and the next tap hides it. It
+        // sits under the controls, so a click on a button still belongs to it.
+        Box(
+            Modifier.fillMaxSize().pointerInput(Unit) {
+                detectTapGestures {
+                    when {
+                        isDesktop -> {
+                            player.playOrPause()
+                            lastInteraction = lastInteraction + 1
+                            controlsVisible = true
+                        }
+                        controlsVisible -> controlsVisible = false
+                        else -> {
+                            lastInteraction = lastInteraction + 1
+                            controlsVisible = true
+                        }
+                    }
+                }
+            },
+        )
         if (showBuffering) {
             CircularProgressIndicator(Modifier.align(Alignment.Center))
         }
@@ -361,14 +449,7 @@ fun PlayerScreen(
                         )
                     }
                     addonSubtitles.forEach { subtitle ->
-                        val track =
-                            MediaTrack(
-                                id = subtitle.url,
-                                title = subtitleSubtitleTitle(subtitle),
-                                language = subtitle.langCode ?: subtitle.lang,
-                                uri = subtitle.url,
-                                isExternal = true,
-                            )
+                        val track = addonSubtitleTrack(subtitle, subtitleSubtitleTitle(subtitle))
                         add(
                             TrackRow(
                                 label = subtitleTrackLabel(subtitle),
@@ -396,6 +477,19 @@ fun PlayerScreen(
         )
     }
 }
+
+/** The track an addon's subtitle row plays: its URL is the track id. */
+private fun addonSubtitleTrack(
+    subtitle: Subtitle,
+    title: String,
+): MediaTrack =
+    MediaTrack(
+        id = subtitle.url,
+        title = title,
+        language = subtitle.langCode ?: subtitle.lang,
+        uri = subtitle.url,
+        isExternal = true,
+    )
 
 /** Best-effort autoplay: finds the next episode and its first direct stream. */
 private suspend fun playNextIfPossible(

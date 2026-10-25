@@ -6,6 +6,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowState
 import com.misgus.pengu.ui.window.WindowController
+import com.misgus.pengu.window.ScreenAwake
 import com.misgus.pengu.window.WindowsWindowFrameProc
 import com.misgus.pengu.window.WindowsWindowFrameState
 import com.misgus.pengu.window.WindowsWindowUtils
@@ -13,8 +14,26 @@ import com.misgus.pengu.window.isWindowsOs
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.awt.Component
+import java.awt.Container
+import java.awt.Cursor
 import java.awt.GraphicsEnvironment
+import java.awt.Point
+import java.awt.Toolkit
+import java.awt.image.BufferedImage
 import javax.swing.SwingUtilities
+
+/** 1x1 transparent pointer: the player swaps it in while its overlay is hidden. */
+private val blankCursor: Cursor by lazy {
+    Toolkit
+        .getDefaultToolkit()
+        .createCustomCursor(BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB), Point(0, 0), "blank")
+}
+
+private fun Component.setCursorRecursively(cursor: Cursor) {
+    this.cursor = cursor
+    (this as? Container)?.components?.forEach { it.setCursorRecursively(cursor) }
+}
 
 /**
  * [WindowController] backed by a Compose Desktop [WindowState].
@@ -124,4 +143,13 @@ class ComposeWindowController(
         }
         _isFullScreen.value = value
     }
+
+    override fun setCursorHidden(hidden: Boolean) {
+        // The Compose scene is a child component and owns the cursor the pointer
+        // sees, so the frame alone is not enough on every desktop target.
+        val native = window ?: return
+        native.setCursorRecursively(if (hidden) blankCursor else Cursor.getDefaultCursor())
+    }
+
+    override fun setScreenAwake(awake: Boolean) = ScreenAwake.set(awake)
 }

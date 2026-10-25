@@ -1099,7 +1099,10 @@ the drag without waiting for the release, and its timecode leaves the minutes
 unpadded (`0:03 / 56:01`). The volume glyph follows the level and doubles as the
 mute toggle, and the inline volume slider only expands while the group is
 hovered, so the row keeps the reference's one-icon rhythm on desktop; the
-keyboard keeps volume on the arrow keys and mute on `M`. Subtitles turn amber
+keyboard follows the desktop-player conventions — `Space`/`K`/`Enter`
+play-pause, `←`/`→`/`J`/`L` seek ten seconds (a minute with `Shift`), volume on
+`↑`/`↓`, `M` mute, `C` subtitles, `N` the next episode, `0`–`9` a jump to that
+percentage, `F` fullscreen and `Esc`/`Backspace` back. Subtitles turn amber
 while a track is selected. The controls fade out during playback and are not
 composed while hidden, so an invisible overlay never catches a click. The
 player glyphs stay white on black; only the seek and volume accents read
@@ -1232,6 +1235,24 @@ fullscreen, no maximize dance and no pixel nudge; the title bar simply leaves th
 composition while fullscreen. The other desktop targets still use the
 `Floating`/exclusive workarounds, which can be removed once they move to the
 custom frame too.
+
+`WindowController` also carries the two things a video needs from the OS.
+`setCursorHidden` swaps in a blank AWT cursor while the overlay is hidden, so the
+pointer follows the controls instead of floating over the film;
+`setScreenAwake` holds `SetThreadExecutionState(ES_DISPLAY_REQUIRED)` on Windows
+for as long as the player is composed — the flag is thread-bound, so both ends
+run on the composition thread — so a feature-length video is not read as
+inactivity and the monitor does not blank. Android needs neither: the player's
+window carries `FLAG_KEEP_SCREEN_ON` while `PlayerWindowMode` is composed.
+
+The input idiom follows the platform: on a desktop a click on the video
+toggles playback and moving the pointer reveals the overlay; on a phone a tap
+shows the overlay and the next tap hides it. That target sits under the
+controls, so a click on a button still belongs to the button. The bottom scrim
+is a gradient that starts
+clear above the bar — `AppScrim.playerBottom` over a `lg` overhang — so the
+controls never sit on a flat dark strip, and the player glyphs read one icon step
+above the in-row default.
 
 Background playback is not wired yet, so `MainActivity.onStop` pauses the player
 unless the stop is a configuration change; that callback is the seam where a
