@@ -97,11 +97,13 @@ private fun LibraryContent(
             LazyVerticalGrid(
                 columns = gridCells(windowSize),
                 modifier = modifier.fillMaxSize(),
-                // No top inset: the title above already ends with its own gap.
+                // Top slack only: the grid clips to its viewport, so the hover
+                // scale of the first row would lose its border without it.
                 contentPadding =
                     PaddingValues(
                         start = windowSize.screenPadding,
                         end = windowSize.screenPadding,
+                        top = AppSpacing.hoverSlack,
                         bottom = windowSize.screenPadding,
                     ),
                 verticalArrangement = Arrangement.spacedBy(windowSize.gridSpacing),

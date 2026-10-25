@@ -100,14 +100,17 @@ internal fun PeopleRow(
         LazyRow(
             // Just tall enough for the avatar plus its two caption lines, so the
             // section leaves no dead space under it.
-            modifier = Modifier.height(88.dp + PosterCaption.blockHeight()),
+            modifier = Modifier.height(PeopleAvatarSize + PosterCaption.blockHeight()),
             contentPadding = PaddingValues(horizontal = windowSize.screenPadding),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(windowSize.gridSpacing),
         ) {
             items(people) { person -> PersonCard(person) }
         }
     }
 }
+
+/** Avatar of a cast or crew member; also the height the people rail reserves. */
+private val PeopleAvatarSize = 88.dp
 
 @Composable
 private fun PersonCard(person: MetaPerson) {
@@ -117,7 +120,11 @@ private fun PersonCard(person: MetaPerson) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
-            modifier = Modifier.size(88.dp).clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.surfaceContainerHigh),
+            modifier =
+                Modifier
+                    .size(PeopleAvatarSize)
+                    .clip(MaterialTheme.shapes.small)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh),
             contentAlignment = Alignment.Center,
         ) {
             val photo = person.photo
@@ -216,8 +223,10 @@ internal fun SimilarRow(
         Spacer(Modifier.height(AppSpacing.md))
         val cardWidth = posterSize.cellWidth(windowSize)
         LazyRow(
-            modifier = Modifier.height(posterCardHeight(cardWidth, settings.hideLabels)),
-            contentPadding = PaddingValues(horizontal = windowSize.screenPadding),
+            // Slack for the hover scale, which grows past the card and would be
+            // clipped by the rail's viewport.
+            modifier = Modifier.height(posterCardHeight(cardWidth, settings.hideLabels) + AppSpacing.hoverSlack * 2),
+            contentPadding = PaddingValues(horizontal = windowSize.screenPadding, vertical = AppSpacing.hoverSlack),
             horizontalArrangement = Arrangement.spacedBy(windowSize.gridSpacing),
         ) {
             items(items) { item ->
@@ -270,7 +279,7 @@ internal fun EpisodesSection(
             modifier = Modifier.padding(horizontal = windowSize.screenPadding).sectionHeading(),
         )
         if (seasons.size > 1) {
-            Spacer(Modifier.height(AppSpacing.sm))
+            Spacer(Modifier.height(AppSpacing.md))
             // The picker scrolls like the episode rail: a long run of seasons, or
             // a phone's narrow width, would otherwise crowd or clip the buttons.
             LazyRow(

@@ -55,6 +55,7 @@ import com.misgus.pengu.app.shared.generated.resources.status_syncing
 import com.misgus.pengu.app.shared.generated.resources.status_watched
 import com.misgus.pengu.ui.icons.MaterialIcons
 import com.misgus.pengu.ui.theme.AppColors
+import com.misgus.pengu.ui.theme.AppIconSize
 import com.misgus.pengu.ui.theme.AppSizes
 import com.misgus.pengu.ui.theme.AppSpacing
 import com.misgus.pengu.ui.theme.AppType
@@ -165,7 +166,12 @@ fun Message(
             modifier = Modifier.widthIn(max = AppSizes.messageMaxWidth),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(40.dp))
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(AppIconSize.xl),
+            )
             Spacer(Modifier.size(AppSpacing.md))
             Text(title, style = AppType.cardTitle(), modifier = Modifier.sectionHeading())
             if (!message.isNullOrEmpty()) {

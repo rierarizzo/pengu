@@ -373,8 +373,10 @@ private fun HomeContent(
                                 }
                             } ?: posterCardHeight(cardWidth, hideLabels)
                         LazyRow(
-                            modifier = Modifier.height(railHeight),
-                            contentPadding = PaddingValues(horizontal = windowSize.screenPadding),
+                            // Slack for the hover scale, which grows past the
+                            // card and would be clipped by the rail's viewport.
+                            modifier = Modifier.height(railHeight + AppSpacing.hoverSlack * 2),
+                            contentPadding = PaddingValues(horizontal = windowSize.screenPadding, vertical = AppSpacing.hoverSlack),
                             horizontalArrangement = Arrangement.spacedBy(windowSize.gridSpacing),
                         ) {
                             items(row.items, key = { "${it.type}:${it.id}" }) { item ->
@@ -458,7 +460,7 @@ private fun homeHeroHeight(): Dp {
  * It must stay clear of the paginator and the copy, which sit at the billboard's
  * bottom (the phone's paginator is only ~32dp above the edge).
  */
-private val HOME_CONTENT_LIFT = 32.dp
+private val HOME_CONTENT_LIFT = AppSpacing.xl
 
 /**
  * How long Home waits for the billboard artwork before showing the feed anyway.

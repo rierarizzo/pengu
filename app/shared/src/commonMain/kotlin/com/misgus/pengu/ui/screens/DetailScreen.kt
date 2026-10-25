@@ -252,7 +252,11 @@ fun DetailScreen(
                 icon = MaterialIcons.ArrowBack,
                 contentDescription = stringResource(Res.string.action_back),
                 onClick = onBack,
-                modifier = Modifier.align(Alignment.TopStart).statusBarsPadding().padding(AppSpacing.md),
+                modifier =
+                    Modifier
+                        .align(Alignment.TopStart)
+                        .statusBarsPadding()
+                        .padding(LocalWindowSize.current.screenPadding),
             )
         }
     }

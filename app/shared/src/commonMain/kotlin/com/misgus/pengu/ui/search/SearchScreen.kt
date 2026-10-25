@@ -154,14 +154,16 @@ private fun SearchResults(
                 title = stringResource(Res.string.search_no_results_title),
                 message = stringResource(Res.string.search_nothing_matched, state.query.trim()),
             )
-        else ->
+        else -> {
+            val screenPadding = LocalWindowSize.current.screenPadding
             LazyColumn(Modifier.fillMaxSize()) {
                 items(state.sections, key = { it.key }) { section ->
                     SectionHeader(section.title)
                     ResultsRail(section.items, posterSize, hideLabels, onOpenDetail)
                 }
-                item(key = "search-bottom") { Spacer(Modifier.height(AppSpacing.xl)) }
+                item(key = "search-bottom") { Spacer(Modifier.height(screenPadding)) }
             }
+        }
     }
 }
 
@@ -186,8 +188,10 @@ private fun ResultsRail(
             }
         } ?: posterCardHeight(cardWidth, hideLabels)
     LazyRow(
-        modifier = Modifier.height(railHeight),
-        contentPadding = PaddingValues(horizontal = windowSize.screenPadding),
+        // Slack for the hover scale, which grows past the card and would be
+        // clipped by the rail's viewport.
+        modifier = Modifier.height(railHeight + AppSpacing.hoverSlack * 2),
+        contentPadding = PaddingValues(horizontal = windowSize.screenPadding, vertical = AppSpacing.hoverSlack),
         horizontalArrangement = Arrangement.spacedBy(windowSize.gridSpacing),
     ) {
         items(previews, key = { "${it.type}:${it.id}" }) { item ->

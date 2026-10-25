@@ -821,9 +821,10 @@ so the atomic read/write/delete logic lives once.
   Poster tiles opt out of that state layer
   (`indication = null`) and signal hover with the scale/border animation
   instead, so a hovered poster is not greyed. That scale overflows the tile's
-  own bounds, so a scrolling poster grid keeps a small top inset
-  (`AppSpacing.sm`): without it the container clip eats the first row's top
-  border. Settings panels use the Material
+  own bounds, so every scrolling rail and poster grid reserves
+  `AppSpacing.hoverSlack` (8dp) around the poster — a rail in its height and
+  vertical padding, a grid on its top edge — because the container clip would
+  otherwise eat the first row's top border. Settings panels use the Material
   `Card`. A small component layer in `ui/components` keeps the Material defaults
   off the screen: `ActionButton` picks its container, content and disabled
   colours from an `ActionButtonStyle` weight (Filled on the inverse surface,
@@ -929,8 +930,10 @@ so the atomic read/write/delete logic lives once.
   hover and dialogs fade/scale in. Loading screens are skeletons driven by a
   single shimmer read in the draw phase: the poster grid derives its cell count
   from the viewport, so it never stops halfway down a wide window, and the
-  static gradient stops are built once instead of on every frame. Home shows a
-  full-screen loading indicator until every catalog and the watch history have
+  static gradient stops are built once instead of on every frame. It uses the
+  same insets as the real grid, so the load does not jump when the content
+  lands. Home shows a full-screen loading indicator until every catalog and the
+  watch history have
   answered and the billboard's first artwork is decoded, then paints the hero, the
   rows and "Continue watching" together. The detail hero does not paint the library fallback as if it were the final
   artwork: it reserves the logo's space without drawing a placeholder, and the

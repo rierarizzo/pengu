@@ -874,10 +874,12 @@ leer/escribir/borrar vive una sola vez.
   flecha, ya que no se puede clickear. Los tiles de póster renuncian a esa
   capa de estado (`indication = null`) y señalan el hover con la animación de
   escala/borde, para que un póster con hover no se agrisé. Esa escala crece más
-  allá de los límites del tile, así que un grid de pósters con scroll deja un
-  pequeño inset superior (`AppSpacing.sm`): sin él el clip del contenedor se
-  come el borde superior de la primera fila. Los paneles de ajustes
-  usan el `Card` de Material. Una pequeña capa de componentes en `ui/components`
+  allá de los límites del tile, así que cada rail y cada grid de pósters con
+  scroll reserva `AppSpacing.hoverSlack` (8dp) alrededor del póster — el rail en
+  su altura y padding vertical, el grid en su borde superior — porque el clip
+  del contenedor se comería el borde superior de la primera fila. Los paneles
+  de ajustes usan el `Card` de Material. Una pequeña capa de componentes en
+  `ui/components`
   mantiene los defaults de Material fuera de la pantalla: `ActionButton` elige su
   contenedor, contenido y colores deshabilitados de un peso `ActionButtonStyle`
   (Filled sobre la superficie inversa, Accent sobre el `primary`/`onPrimary`
@@ -995,8 +997,10 @@ leer/escribir/borrar vive una sola vez.
   movidos por un único shimmer leído en la fase de dibujo: la rejilla de pósters
   deriva su número de celdas del viewport, así que nunca se detiene a mitad de
   una ventana ancha, y los stops de degradado estáticos se construyen una vez en
-  vez de cada frame. Home muestra una pantalla de carga a pantalla completa hasta
-  que todos los catálogos y el historial de reproducción han respondido y el
+  vez de cada frame. Usa los mismos insets que la rejilla real, así que la carga
+  no salta cuando llega el contenido. Home muestra una pantalla de carga a
+  pantalla completa hasta que todos los catálogos y el historial de reproducción
+  han respondido y el
   artwork del primer slide del billboard está decodificado; luego pinta el hero,
   las filas y "Continuar viendo" juntos. El hero de detalle no pinta el fallback de la biblioteca como
   si fuera el artwork final: reserva el espacio del logo sin dibujar un

@@ -146,6 +146,15 @@ object AppSpacing {
     val md: Dp = 16.dp
     val lg: Dp = 24.dp
     val xl: Dp = 32.dp
+
+    /**
+     * Slack a scrolling rail or grid leaves above and below a poster.
+     *
+     * A hovered poster scales past its own bounds (`AppScale.HOVER`) and a lazy
+     * container clips to its viewport, so a rail reserves this on both sides and
+     * a grid on its top edge; without it the first row loses its top border.
+     */
+    val hoverSlack: Dp = sm
 }
 
 /**
@@ -368,6 +377,9 @@ object AppIconSize {
 
     /** Prominent controls over artwork. */
     val lg: Dp = 28.dp
+
+    /** Hero glyph of an empty, loading or error state. */
+    val xl: Dp = 40.dp
 
     /**
      * Navigation rail and bottom bar glyphs.

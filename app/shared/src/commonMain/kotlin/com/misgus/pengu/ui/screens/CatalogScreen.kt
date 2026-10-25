@@ -158,10 +158,10 @@ private fun CatalogContent(
                     PaddingValues(
                         start = windowSize.screenPadding,
                         end = windowSize.screenPadding,
-                        // Room for the hover scale: the card grows past its own
-                        // bounds and the grid clips to its viewport, so without a
-                        // top inset the first row loses its border.
-                        top = AppSpacing.sm,
+                        // Room for the hover scale: the grid clips to its
+                        // viewport, so without a top inset the first row loses
+                        // its border.
+                        top = AppSpacing.hoverSlack,
                         bottom = windowSize.screenPadding + safeBottomInset,
                     ),
                 verticalArrangement = Arrangement.spacedBy(windowSize.gridSpacing),

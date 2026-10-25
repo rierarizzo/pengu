@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
+import com.misgus.pengu.ui.theme.AppSpacing
 import com.misgus.pengu.ui.theme.LocalMotionEnabled
 import com.misgus.pengu.ui.theme.LocalWindowSize
 import com.misgus.pengu.ui.theme.gridColumnCount
@@ -72,11 +73,19 @@ fun SkeletonPosterGrid(
         // to know how tall a row is.
         val cell = (maxWidth - screenPadding * 2 - spacing * (columns - 1)) / columns
         val rowHeight = posterCardHeight(cell, hideLabels)
-        val rows = rowsThatFit(maxHeight, rowHeight, screenPadding, spacing)
+        val rows = rowsThatFit(maxHeight, rowHeight, AppSpacing.hoverSlack + screenPadding, spacing)
         LazyVerticalGrid(
             columns = GridCells.Fixed(columns),
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(windowSize.screenPadding),
+            contentPadding =
+                PaddingValues(
+                    start = screenPadding,
+                    end = screenPadding,
+                    // Same insets as the real grid it stands in for, so the
+                    // content does not jump when the load lands.
+                    top = AppSpacing.hoverSlack,
+                    bottom = screenPadding,
+                ),
             verticalArrangement = Arrangement.spacedBy(windowSize.gridSpacing),
             horizontalArrangement = Arrangement.spacedBy(windowSize.gridSpacing),
             userScrollEnabled = false,
@@ -90,14 +99,14 @@ fun SkeletonPosterGrid(
     }
 }
 
-/** How many [rowHeight] rows are needed to cover [height], including the spacing. */
+/** How many [rowHeight] rows are needed to cover [height] minus [insets], including the spacing. */
 private fun rowsThatFit(
     height: Dp,
     rowHeight: Dp,
-    screenPadding: Dp,
+    insets: Dp,
     spacing: Dp,
 ): Int {
-    val usable = height - screenPadding * 2 + spacing
+    val usable = height - insets + spacing
     return maxOf(1, ceil(usable / (rowHeight + spacing)).toInt())
 }
 
