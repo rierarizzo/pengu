@@ -19,6 +19,7 @@ import org.openani.mediamp.MediampPlayer
 import org.openani.mediamp.errorOrNull
 import org.openani.mediamp.features.Buffering
 import org.openani.mediamp.features.MediaMetadata
+import org.openani.mediamp.features.PlaybackSpeed
 import org.openani.mediamp.metadata.AudioTrack
 import org.openani.mediamp.metadata.SubtitleTrack
 import org.openani.mediamp.source.MediaExtraFiles
@@ -195,6 +196,10 @@ abstract class MediampPlayerAdapter protected constructor(
     /** Records (or clears) the external addon subtitle the UI should show as selected. */
     protected fun setExternalSubtitleId(id: String?) {
         externalSubtitleId = id
+    }
+
+    override fun setSpeed(speed: Float) {
+        onMain { player.features[PlaybackSpeed]?.set(speed.coerceIn(0.25f, 4f)) }
     }
 
     override fun stop() {

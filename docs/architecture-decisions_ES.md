@@ -561,12 +561,25 @@ leer/escribir/borrar vive una sola vez.
   El toggle de biblioteca de Home es optimista en `HomeViewModel` y se reconcilia
   con `LibraryRepository.changes`, así que un título añadido en cualquiera de las
   dos pantallas se ve como añadido en ambas.
+- **La biblioteca filtra y ordena en el sitio.** Unos chips sobre la rejilla
+  eligen el tipo (todo / películas / series), otro chip aparte quita los títulos
+  vistos por encima del tipo que sea — así "películas que no he visto" está a un
+  toque — y un menú `FilterChip` elige el orden (añadido recientemente, título,
+  año). Tipo y visto son dos ejes, no cuatro opciones, y las reglas son una
+  función pura (`visibleLibraryItems`) con su test, así que la rejilla no guarda
+  una segunda copia de la lista; la elección vive en memoria, como el
+  scroll de la rejilla. Un filtro que lo oculta todo lo dice en vez de parecer
+  una biblioteca vacía.
 - **El selector de temporadas del detalle se desplaza.** Los botones de temporada
   viven en su propio `LazyRow` bajo el encabezado de episodios, con el mismo
   padding que el rail de episodios, así una serie con muchas temporadas sigue
   siendo alcanzable en vez de amontonar la cabecera. El rail de episodios vuelve
   a su primera tarjeta al cambiar de temporada, así pasar de S1 a mitad de lista
-  no abre S2 en el mismo offset.
+  no abre S2 en el mismo offset. Un chip "Lista / Pósters" junto a los botones
+  de temporada cambia el rail por una columna densa de filas (número, título,
+  meta, check de visto), que es lo que pide una temporada de 24 episodios cuando
+  el artwork deja de caber. La elección dura la vida de la pantalla: es un modo
+  de lectura, no una preferencia.
 - **La tarjeta de un episodio es un still 16:9 más el texto que los addons no
   traen.** La tarjeta mide 320dp y lleva el still, el título, una línea separada
   por puntos (nota, duración, fecha de emisión) y hasta tres líneas de sinopsis
@@ -812,9 +825,11 @@ leer/escribir/borrar vive una sola vez.
   del póster sigue la misma regla.
 - **Search es dueña del feed de discover.** Tiene una búsqueda de texto libre en
   cada catálogo que declara el extra `search`, y — mientras la consulta está
-  vacía — el feed de discover debajo de la barra. El campo de búsqueda queda
+  vacía — el feed de discover debajo de la barra, con los últimos diez términos
+  como chips encima y un botón que los borra (`AppSettings.recentSearches`,
+  escrito solo por una búsqueda que realmente corrió). El campo queda
   fijado arriba con el mismo `screenPadding` que la primera fila de las demás
-  secciones y un margen `md` por debajo.
+  secciones y un margen `md` por debajo; `/` desde el shell le da el foco.
 - **La búsqueda responde con un raíl por catálogo.** Se pregunta en paralelo a
   todos los catálogos buscables con el mismo término, y cada uno que responde
   conserva su propio raíl (el nombre del catálogo como título y su addon debajo),
@@ -826,7 +841,11 @@ leer/escribir/borrar vive una sola vez.
 - **Discover es un catálogo a la vez.** Tres selectores encabezan la rejilla —
   tipo, catálogo y género — y la rejilla pagina solo el catálogo elegido con
   `skip`. Son la primera celda de la rejilla, así que se van con el scroll como
-  en Nuvio, en vez de quedarse fijos mientras los pósters se mueven debajo. La lista de tipos sale de los catálogos que los addons abren para
+  en Nuvio, en vez de quedarse fijos mientras los pósters se mueven debajo. El
+  tipo, catálogo y género elegidos (`discoverType` / `discoverCatalogKey` /
+  `discoverGenre`) se guardan en `settings.json`, así que el feed reabre donde se
+  dejó; un género que el catálogo ya no ofrece cae por la resolución de
+  `loadFirstPage`. La lista de tipos sale de los catálogos que los addons abren para
   navegar, la de catálogos son los de ese tipo, y las opciones de género salen
   del extra `genre` del catálogo elegido (un género obligatorio se elige por el
   usuario y se envía siempre). Solo se ofrecen catálogos navegables: uno cuyos
@@ -838,8 +857,8 @@ leer/escribir/borrar vive una sola vez.
   las reglas de Nuvio, así que las dos apps muestran los mismos catálogos en los
   mismos sitios. Esto reemplazó a una única rejilla mixta que intercalaba todos
   los catálogos, y que volvía invisibles las flags por catálogo que declara el
-  addon. La elección se mantiene durante la sesión; Discover no es una sección
-  propia.
+  addon. La elección sobrevive a la sesión dentro de `settings.json`; Discover no
+  es una sección propia.
 - **El tema** sigue Material 3 y es dato, no código. `BrandPalette`
   (`theme/Tokens.kt`) es una data class con los colores crudos de la app,
   publicada como la única `CoffeePalette`; `PenguTheme` la proporciona por
@@ -896,7 +915,15 @@ leer/escribir/borrar vive una sola vez.
   todo el control mientras se presiona; un flag `selected` vuelve ámbar los
   pesos de baja
   énfasis para el selector de temporadas, y un `trailingIcon` opcional añade un
-  glifo al final. `AppTextField` fija los campos de formulario a
+  glifo al final. `AppChip` es el único chip: una píldora de 32dp con su propio
+  padding `md`/`sm`, relleno ámbar cuando está seleccionada y outline cuando no,
+  sin ripple (el relleno y el borde llevan el estado), focus ring y la semántica
+  `selected`, así que los filtros de la biblioteca, el selector de temporadas, el
+toggle Lista/Pósters de episodios, las búsquedas recientes y las opciones de
+  ajustes leen como el mismo control en vez de como una fila de botones planos.
+  `FilterChip` lo envuelve con un `DropdownMenu` para un selector con más opciones
+  de las que cabe en una fila (tipo, catálogo y género de Discover, el orden de la
+  biblioteca). `AppTextField` fija los campos de formulario a
   `shapes.small` y un borde ámbar al enfocar, sin relleno propio, así que el
   campo lee la superficie sobre la que se coloca como el resto de controles
   planos, con una variante `AppSearchField` (lupa a la izquierda, acción de
@@ -1186,7 +1213,17 @@ el teclado sigue las convenciones de un reproductor de escritorio: `Espacio`,
 `K` o `Enter` reproducen/pausan, `←`/`→`/`J`/`L` saltan diez segundos (un
 minuto con `Shift`), `↑`/`↓` mueven el volumen, `M` silencia, `C` alterna los
 subtítulos, `N` pasa al siguiente episodio, `0`–`9` saltan a ese porcentaje,
-`F` alterna pantalla completa y `Esc`/`Retroceso` vuelven atrás. El icono de
+`F` alterna pantalla completa y `Esc`/`Retroceso` vuelven atrás. Los gestos
+espejan las teclas: un doble toque busca esos mismos diez segundos (mitad
+izquierda atrás, derecha adelante), un arrastre elige su eje en el primer
+movimiento — horizontal busca, hasta 90 s a todo el ancho, vertical mueve el
+volumen — y mantener pulsado reproduce a 2× hasta levantar el dedo. Todos
+informan por la misma píldora centrada, y un arrastre previsualiza el tiempo
+destino antes de confirmarlo al soltar. El control de velocidad de la fila cicla
+0.5/0.75/1/1.25/1.5/2×, y la tasa sobrevive al siguiente episodio porque el
+motor la conserva. Al terminar un episodio el siguiente se encola en vez de
+saltar: una tarjeta lo muestra con cuenta atrás de diez segundos y "Reproducir
+ahora" / "Cancelar". El icono de
 subtítulos se tiñe de ámbar cuando hay una pista seleccionada. Los controles se
 desvanecen durante la reproducción y no se componen mientras están ocultos, así
 que un overlay invisible nunca se come un clic. Los glifos del reproductor
@@ -1503,6 +1540,8 @@ que cambian, no por esfuerzo.
   plugin `androidx.baselineprofile` con una corrida de macrobenchmark en un
   dispositivo.
 - **Navegación con teclado / D-pad.** `Interaction.kt` cubre estados hover,
-  focus y pressed, y el reproductor tiene atajos, pero no hay recorrido de foco
+  focus y pressed, el reproductor tiene atajos, y el shell responde `Esc`
+  (desapila una ruta) y `/` (Search, con foco) desde cualquier pantalla, pero no
+  hay recorrido de foco
   por los raíles de Home ni modelo de navegación espacial. Un target de TV lo
   hace obligatorio en vez de deseable.

@@ -8,6 +8,8 @@ import com.misgus.pengu.core.model.MetaPreview
 import com.misgus.pengu.core.repository.AccountRepository
 import com.misgus.pengu.core.repository.CatalogRef
 import com.misgus.pengu.core.repository.CatalogRepository
+import com.misgus.pengu.core.repository.InMemorySettingsRepository
+import com.misgus.pengu.core.repository.SettingsRepository
 import com.misgus.pengu.core.util.runCatchingCancellable
 import com.misgus.pengu.ui.common.AccountScopedViewModel
 import kotlinx.coroutines.CancellationException
@@ -58,6 +60,7 @@ data class DiscoverUiState(
 class DiscoverViewModel(
     account: AccountRepository,
     private val catalogs: CatalogRepository,
+    private val settings: SettingsRepository = InMemorySettingsRepository(),
 ) : AccountScopedViewModel(account) {
     private val _state = MutableStateFlow(DiscoverUiState())
     val state: StateFlow<DiscoverUiState> = _state.asStateFlow()
@@ -98,6 +101,7 @@ class DiscoverViewModel(
                 selectedGenre = null,
             )
         }
+        persistSelection()
         restart()
     }
 
@@ -106,6 +110,7 @@ class DiscoverViewModel(
         if (key == _state.value.selectedCatalogKey) return
         if (_state.value.catalogs.none { it.key == key }) return
         _state.update { it.copy(selectedCatalogKey = key, selectedGenre = null) }
+        persistSelection()
         restart()
     }
 
@@ -113,6 +118,7 @@ class DiscoverViewModel(
     fun selectGenre(genre: String?) {
         if (genre == _state.value.selectedGenre) return
         _state.update { it.copy(selectedGenre = genre) }
+        persistSelection()
         restart()
     }
 
@@ -169,19 +175,37 @@ class DiscoverViewModel(
         val types = refs.map { it.type }.distinct().sortedBy(::typeRank)
         sources = refs
         val current = _state.value
-        val type = current.selectedType?.takeIf { it in types } ?: types.firstOrNull()
+        val saved = settings.state.value
+        val savedType = saved.discoverType?.let(::ContentType)?.takeIf { it in types }
+        val type = current.selectedType?.takeIf { it in types } ?: savedType ?: types.firstOrNull()
         val typeCatalogs = refs.filter { it.type == type }
-        val catalog = typeCatalogs.firstOrNull { it.key == current.selectedCatalogKey } ?: typeCatalogs.firstOrNull()
+        val wantedKey = current.selectedCatalogKey ?: saved.discoverCatalogKey
+        val catalog = typeCatalogs.firstOrNull { it.key == wantedKey } ?: typeCatalogs.firstOrNull()
         _state.update {
             it.copy(
                 types = types,
                 selectedType = type,
                 catalogs = typeCatalogs,
                 selectedCatalogKey = catalog?.key,
+                // `loadFirstPage` resolves it against the catalog's own options, so
+                // a genre the addon dropped falls back instead of breaking the feed.
+                selectedGenre = current.selectedGenre ?: saved.discoverGenre,
                 hasLoaded = true,
             )
         }
+        persistSelection()
         loadFirstPage()
+    }
+
+    /** Saves the pickers, so the feed reopens where it was left. */
+    private fun persistSelection() {
+        val current = _state.value
+        val type = current.selectedType ?: return
+        val catalogKey = current.selectedCatalogKey
+        val genre = current.selectedGenre
+        val saved = settings.state.value
+        if (saved.discoverType == type.value && saved.discoverCatalogKey == catalogKey && saved.discoverGenre == genre) return
+        viewModelScope.launch { settings.setDiscoverSelection(type.value, catalogKey, genre) }
     }
 
     /** Drops whatever is on screen and loads the first page of the selection. */

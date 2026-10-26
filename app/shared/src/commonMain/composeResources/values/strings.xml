@@ -63,6 +63,14 @@
 
     <!-- Library -->
     <string name="library_title">Library</string>
+    <string name="library_filter_all">All</string>
+    <string name="library_filter_movies">Movies</string>
+    <string name="library_filter_series">Series</string>
+    <string name="library_filter_unwatched">Unwatched</string>
+    <string name="library_filter_empty">Nothing in your library matches this filter.</string>
+    <string name="library_sort_recent">Recently added</string>
+    <string name="library_sort_title">Title</string>
+    <string name="library_sort_year">Year</string>
     <string name="library_error_title">Could not load the library</string>
     <string name="library_empty_message">Your library is empty.</string>
 
@@ -105,6 +113,10 @@
     <string name="player_subtitles">Subtitles</string>
     <string name="player_audio">Audio</string>
     <string name="player_fullscreen">Fullscreen</string>
+    <string name="player_speed">Playback speed</string>
+    <string name="player_up_next">Up next</string>
+    <string name="player_up_next_seconds">Playing in %1$d s</string>
+    <string name="player_play_now">Play now</string>
     <string name="player_track_off">Off</string>
     <string name="player_track_subtitle">Subtitle</string>
     <string name="player_track_ai">AI</string>
@@ -129,6 +141,8 @@
     <string name="detail_add_to_library">Add to library</string>
     <string name="detail_remove_from_library">Remove from library</string>
     <string name="detail_episodes">Episodes</string>
+    <string name="detail_view_list">List</string>
+    <string name="detail_view_posters">Posters</string>
     <string name="detail_you_may_also_like">You May Also Like</string>
     <string name="detail_cast">Cast</string>
     <string name="detail_crew">Crew</string>

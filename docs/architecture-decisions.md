@@ -526,11 +526,24 @@ so the atomic read/write/delete logic lives once.
   Home's library toggle is optimistic in `HomeViewModel` and reconciled through
   `LibraryRepository.changes`, so a title added on either screen shows as added
   on both.
+- **The library filters and sorts in place.** Chips above the grid pick the kind
+  (all / movies / series), a separate chip drops the watched titles on top of
+  whichever kind is chosen — so "movies I have not seen" is one tap away — and a
+  `FilterChip` menu picks the order (recently added, title, year). Kind and
+  watched are two axes, not four options, and the rules are a pure function
+  (`visibleLibraryItems`) with its own test, so the grid holds no second copy of
+  the list; the choice lives in memory, like the grid's scroll.
+  A filter that hides everything says so instead of looking like an empty
+  library.
 - **The detail episode picker scrolls.** The season buttons live in their own
   `LazyRow` under the "Episodes" heading, with the same padding as the episode
   rail, so a series with many seasons stays reachable instead of crowding the
   header. The episode rail resets to its first card on a season change, so
-  switching from S1 mid-list does not open S2 at the same offset.
+  switching from S1 mid-list does not open S2 at the same offset. A "List /
+  Posters" chip next to the season buttons swaps the rail for a dense column of
+  rows (number, title, meta, watched check), which is what a 24-episode season
+  wants when the artwork stops fitting on screen. The choice lives for the
+  screen's lifetime: it is a reading mode, not a preference.
 - **An episode card is a 16:9 still plus the copy the addons do not carry.** A
   card is 320dp wide with the still, the title, a dot-separated line (score,
   runtime, air date) and up to three lines of synopsis with two always reserved,
@@ -762,9 +775,11 @@ so the atomic read/write/delete logic lives once.
   rule.
 - **Search owns the discover feed.** It has a free-text search across every
   catalog that declares the `search` extra, and — while the query is empty — the
-  discover feed underneath the bar. The search field is
+  discover feed underneath the bar, with the last ten terms above it as chips
+  and a button that clears them (`AppSettings.recentSearches`, written only by a
+  search that actually ran). The field is
   pinned at the top with the same `screenPadding` as the other sections' first
-  row and a `md` gap below it.
+  row and a `md` gap below it; `/` from the shell focuses it.
 - **Search answers are one rail per catalog.** Every searchable catalog is asked
   in parallel with the same term, and each that answers keeps its own rail
   (catalog name as the title, its addon underneath), so the section says where a
@@ -775,7 +790,10 @@ so the atomic read/write/delete logic lives once.
 - **Discover is one catalog at a time.** Three pickers head the grid — type,
   catalog and genre — and the grid pages only the chosen catalog with `skip`.
   They are the grid's first cell, so they scroll away with it like Nuvio's,
-  instead of staying pinned while the posters move underneath.
+  instead of staying pinned while the posters move underneath. The picked type,
+  catalog and genre (`discoverType` / `discoverCatalogKey` / `discoverGenre`)
+  are kept in `settings.json`, so the feed reopens where it was left; a genre the
+  catalog no longer offers falls back through `loadFirstPage`'s own resolution.
   The type list comes from the catalogs the addons open for browsing, the catalog
   list is the ones of that type, and the genre options come from the chosen
   catalog's `genre` extra (a required genre is picked for the user and always
@@ -839,7 +857,15 @@ so the atomic read/write/delete logic lives once.
   inline — caps it to one ellipsised
   line, and steps the whole control down slightly while pressed; a `selected`
   flag turns the low-emphasis weights amber for the season picker, and an
-  optional `trailingIcon` adds a trailing glyph. `AppTextField` pins the form fields to `shapes.small` and an
+  optional `trailingIcon` adds a trailing glyph. `AppChip` is the one chip: a
+  32dp pill with its own `md`/`sm` padding, amber fill when selected and an
+  outline otherwise, no ripple (the fill and the border carry the state), a focus
+  ring and the `selected` semantics, so the library filters, the season picker,
+  the episode List/Posters toggle, the recent searches and the settings choices
+  all read as the same control instead of as a row of plain buttons.
+  `FilterChip` wraps it with a `DropdownMenu` for a picker with more options than
+  a row can hold (Discover's type, catalog and genre, the library's sort).
+  `AppTextField` pins the form fields to `shapes.small` and an
   amber-on-focus border, with no fill of its own, so the field reads the
   surface it is placed on like every other flat control, plus an
   `AppSearchField` variant (leading magnifier, clear action) for the Search
@@ -1103,7 +1129,15 @@ keyboard follows the desktop-player conventions — `Space`/`K`/`Enter`
 play-pause, `←`/`→`/`J`/`L` seek ten seconds (a minute with `Shift`), volume on
 `↑`/`↓`, `M` mute, `C` subtitles, `N` the next episode, `0`–`9` a jump to that
 percentage, `F` fullscreen and `Esc`/`Backspace` back. Subtitles turn amber
-while a track is selected. The controls fade out during playback and are not
+while a track is selected. Gestures mirror the keys: a double tap seeks by the
+same ten seconds (left half back, right forward), a drag picks its axis from the
+first movement — horizontal seeks, up to 90 s across the width, vertical moves
+the volume — and holding plays at 2× until the finger lifts. Every one of them
+reports through the same centered pill, and a drag previews the target time
+before it commits on release. The speed control in the row cycles
+0.5/0.75/1/1.25/1.5/2×, and the rate survives the next episode because the engine
+keeps it. When an episode ends the next one is queued rather than swapped: a card
+shows it with a ten-second countdown and "Play now" / "Cancel". The controls fade out during playback and are not
 composed while hidden, so an invisible overlay never catches a click. The
 player glyphs stay white on black; only the seek and volume accents read
 `colorScheme.primary`.
@@ -1397,6 +1431,7 @@ not a one-file change. They are grouped by the axis they change, not by effort.
   profile of its own yet: generating one needs the `androidx.baselineprofile`
   plugin with a macrobenchmark run on a device.
 - **Keyboard / D-pad navigation.** `Interaction.kt` covers hover, focus and
-  pressed states, and the player has shortcuts, but there is no focus traversal
+  pressed states, the player has shortcuts, and the shell answers `Esc` (pop a
+  route) and `/` (Search, with focus) from any screen, but there is no focus traversal
   across the Home rails and no spatial navigation model. A TV target makes this
   mandatory rather than nice to have.

@@ -42,6 +42,8 @@ import com.misgus.pengu.app.shared.generated.resources.player_seek
 import com.misgus.pengu.app.shared.generated.resources.player_subtitles
 import com.misgus.pengu.app.shared.generated.resources.player_unmute
 import com.misgus.pengu.app.shared.generated.resources.player_volume
+import com.misgus.pengu.ui.components.ActionButton
+import com.misgus.pengu.ui.components.ActionButtonStyle
 import com.misgus.pengu.ui.components.AppIconButton
 import com.misgus.pengu.ui.components.rememberInteraction
 import com.misgus.pengu.ui.icons.MaterialIcons
@@ -71,6 +73,8 @@ data class PlayerControlsState(
     val duration: Duration,
     val volume: Double,
     val subtitlesOn: Boolean,
+    /** Engine playback rate, `1.0` at normal speed. */
+    val playbackSpeed: Float = 1f,
     val visible: Boolean,
 )
 
@@ -90,6 +94,7 @@ fun PlayerControls(
     onVolumeChanged: (Double) -> Unit,
     onToggleMute: () -> Unit,
     onToggleFullscreen: (() -> Unit)?,
+    onCycleSpeed: () -> Unit,
     onSubtitles: () -> Unit,
     onAudio: () -> Unit,
     onBack: () -> Unit,
@@ -127,6 +132,7 @@ fun PlayerControls(
                     onVolumeChanged = onVolumeChanged,
                     onToggleMute = onToggleMute,
                     onToggleFullscreen = onToggleFullscreen,
+                    onCycleSpeed = onCycleSpeed,
                     onSubtitles = onSubtitles,
                     onAudio = onAudio,
                     modifier = Modifier.align(Alignment.BottomCenter),
@@ -195,6 +201,7 @@ private fun BottomBar(
     onVolumeChanged: (Double) -> Unit,
     onToggleMute: () -> Unit,
     onToggleFullscreen: (() -> Unit)?,
+    onCycleSpeed: () -> Unit,
     onSubtitles: () -> Unit,
     onAudio: () -> Unit,
     modifier: Modifier = Modifier,
@@ -259,6 +266,11 @@ private fun BottomBar(
                 maxLines = 1,
             )
             Spacer(Modifier.weight(1f))
+            ActionButton(
+                text = formatSpeed(state.playbackSpeed),
+                onClick = onCycleSpeed,
+                style = ActionButtonStyle.Text,
+            )
             AppIconButton(
                 icon = MaterialIcons.Subtitles,
                 contentDescription = stringResource(Res.string.player_subtitles),
@@ -356,6 +368,9 @@ internal fun formatPlayerTime(value: Duration): String {
         "$minutes:$secondsText"
     }
 }
+
+/** Rate as the speed control reads it: `1×`, `1.25×`. */
+internal fun formatSpeed(speed: Float): String = if (speed % 1f == 0f) "${speed.toInt()}×" else "$speed×"
 
 private val VOLUME_SLIDER_WIDTH = 96.dp
 

@@ -29,6 +29,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -126,7 +131,30 @@ fun AppShell() {
 
     LaunchedEffect(selected, navigator.current) { chrome.updateScrollCollapsed(false) }
 
-    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            // Global shortcuts. Preview runs before any focused child, so `Esc`
+            // works without a pointer and `/` jumps to the search field; the
+            // player keeps its own keys and is never popped from here.
+            .onPreviewKeyEvent { event ->
+                if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                val route = navigator.current
+                when {
+                    event.key == Key.Escape && route != null && route !is ContentRoute.Player -> {
+                        navigator.pop()
+                        true
+                    }
+                    event.key == Key.Slash && route == null && selected != AppSection.SEARCH -> {
+                        selectSection(AppSection.SEARCH)
+                        chrome.requestSearchFocus()
+                        true
+                    }
+                    else -> false
+                }
+            },
+    ) {
         // The window class is published at the root (PenguApp), so every
         // surface — including onboarding and the player — reads the same one.
         val windowSize = LocalWindowSize.current

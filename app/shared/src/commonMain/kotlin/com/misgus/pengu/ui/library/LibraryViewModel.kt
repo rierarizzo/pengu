@@ -29,6 +29,10 @@ data class LibraryUiState(
     val progressByContentId: Map<String, WatchProgress> = emptyMap(),
     val watchedIds: Set<String> = emptySet(),
     val isSyncingWatched: Boolean = false,
+    val filter: LibraryFilter = LibraryFilter.All,
+    /** Show only titles the watched badges do not mark; stacks on [filter]. */
+    val onlyUnwatched: Boolean = false,
+    val sort: LibrarySort = LibrarySort.Recent,
 )
 
 /**
@@ -49,6 +53,15 @@ class LibraryViewModel(
     private val watchedSync = WatchedBadgeSync(badges, account)
 
     override fun onAccountReady() = load(force = true)
+
+    /** Narrows the grid; kept in memory, like the grid's scroll. */
+    fun setFilter(filter: LibraryFilter) = _state.update { it.copy(filter = filter) }
+
+    /** Drops the watched titles, on top of whichever kind is picked. */
+    fun setOnlyUnwatched(enabled: Boolean) = _state.update { it.copy(onlyUnwatched = enabled) }
+
+    /** Reorders the grid. */
+    fun setSort(sort: LibrarySort) = _state.update { it.copy(sort = sort) }
 
     override fun onAccountCleared() = clear()
 

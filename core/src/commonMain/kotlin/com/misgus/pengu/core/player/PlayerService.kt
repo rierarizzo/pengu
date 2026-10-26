@@ -30,6 +30,8 @@ data class PlayerState(
     val playing: Boolean = false,
     val buffering: Boolean = false,
     val completed: Boolean = false,
+    /** Playback rate, `1.0` at normal speed. */
+    val playbackSpeed: Float = 1f,
     /** Volume, `0`–`100`. */
     val volume: Double = 100.0,
     /** Last engine error, or `null`. */
@@ -86,6 +88,15 @@ interface PlayerService {
     fun seekBy(offset: Duration)
 
     fun setVolume(volume: Double)
+
+    /**
+     * Sets the playback rate (`1.0` is normal speed).
+     *
+     * The engine keeps it across a source change, so an episode opened after
+     * another one plays at the rate the user picked; the UI reads the rate back
+     * from [PlayerState.playbackSpeed] instead of remembering its own.
+     */
+    fun setSpeed(speed: Float)
 
     fun selectAudioTrack(track: MediaTrack)
 

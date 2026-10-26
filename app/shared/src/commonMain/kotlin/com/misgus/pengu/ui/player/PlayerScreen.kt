@@ -2,14 +2,19 @@ package com.misgus.pengu.ui.player
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -17,6 +22,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.Key
@@ -28,6 +34,8 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntSize
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.misgus.pengu.app.shared.generated.resources.Res
 import com.misgus.pengu.app.shared.generated.resources.detail_episode_code
@@ -49,6 +57,8 @@ import com.misgus.pengu.ui.services.AppServices
 import com.misgus.pengu.ui.services.LocalAppServices
 import com.misgus.pengu.ui.shell.LocalSnackbarHost
 import com.misgus.pengu.ui.theme.AppColors
+import com.misgus.pengu.ui.theme.AppSpacing
+import com.misgus.pengu.ui.theme.AppType
 import com.misgus.pengu.ui.video.VideoSurface
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -56,6 +66,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
+import kotlin.math.roundToInt
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -87,6 +98,16 @@ fun PlayerScreen(
 
     var controlsVisible by remember { mutableStateOf(true) }
     var lastInteraction by remember { mutableLongStateOf(0L) }
+    // Edge-to-edge gesture feedback (seek target, volume level, held speed).
+    var gestureLabel by remember { mutableStateOf<String?>(null) }
+    var gestureTick by remember { mutableIntStateOf(0) }
+    var surfaceSize by remember { mutableStateOf(IntSize.Zero) }
+    var volumeAtDragStart by remember { mutableStateOf(100.0) }
+    var draggedAxis by remember { mutableStateOf<DragAxis?>(null) }
+    var speedBeforeHold by remember { mutableFloatStateOf(1f) }
+    // Episode queued when this one ends, and the countdown before it starts.
+    var nextTarget by remember { mutableStateOf<PlaybackTarget?>(null) }
+    var nextCountdown by remember { mutableIntStateOf(0) }
     var addonSubtitles by remember { mutableStateOf<List<Subtitle>>(emptyList()) }
     var showSubtitleMenu by remember { mutableStateOf(false) }
     var showAudioMenu by remember { mutableStateOf(false) }
@@ -188,10 +209,31 @@ fun PlayerScreen(
         player.state.collect { snapshot ->
             reporter.update(snapshot.position, snapshot.duration)
             if (!snapshot.playing || snapshot.completed) reporter.flush(force = true) else reporter.flush()
-            if (snapshot.completed && target.videoId != null && services.settings.state.value.autoPlayNext) {
-                playNextIfPossible(target, services)?.let(onPlayNext)
+            // The next episode is queued instead of swapped: the prompt below owns
+            // the countdown and the user can still cancel it.
+            if (snapshot.completed && target.videoId != null && services.settings.state.value.autoPlayNext && nextTarget == null) {
+                playNextIfPossible(target, services)?.let { nextTarget = it }
             }
         }
+    }
+
+    LaunchedEffect(nextTarget) {
+        val pending = nextTarget ?: return@LaunchedEffect
+        nextCountdown = NEXT_EPISODE_COUNTDOWN
+        while (nextCountdown > 0) {
+            delay(1.seconds)
+            nextCountdown -= 1
+        }
+        nextTarget = null
+        onPlayNext(pending)
+    }
+
+    // Every gesture restarts the feedback pill, even when it reports the same
+    // label twice in a row.
+    LaunchedEffect(gestureTick) {
+        if (gestureTick == 0) return@LaunchedEffect
+        delay(GESTURE_FEEDBACK)
+        gestureLabel = null
     }
 
     // Auto-hide the controls after 3 seconds of playback.
@@ -250,6 +292,21 @@ fun PlayerScreen(
     }
 
     val heading = playerHeading(target)
+
+    // One pill for every edge-to-edge gesture, so seek, volume and the held speed
+    // read the same way.
+    val showGesture: (String) -> Unit = { text ->
+        gestureLabel = text
+        gestureTick += 1
+    }
+    val applySpeed: (Float) -> Unit = { rate ->
+        player.setSpeed(rate)
+        revealControls()
+    }
+    val cycleSpeed = {
+        val index = SPEEDS.indexOfFirst { it >= state.playbackSpeed - 0.01f }
+        applySpeed(SPEEDS[(index + 1).mod(SPEEDS.size)])
+    }
 
     Box(
         modifier =
@@ -339,27 +396,65 @@ fun PlayerScreen(
         LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
         VideoSurface(player, Modifier.fillMaxSize())
-        // The video is the click target. A desktop click is the play/pause
-        // toggle; a phone tap shows the overlay and the next tap hides it. It
-        // sits under the controls, so a click on a button still belongs to it.
+        // The video is the gesture surface: a tap toggles, a double tap seeks, a
+        // hold plays at double speed and a drag seeks or moves the volume. It
+        // sits under the controls, so a tap on a button still belongs to it.
         Box(
-            Modifier.fillMaxSize().pointerInput(Unit) {
-                detectTapGestures {
-                    when {
-                        isDesktop -> {
-                            player.playOrPause()
-                            lastInteraction = lastInteraction + 1
-                            controlsVisible = true
+            Modifier
+                .fillMaxSize()
+                .onSizeChanged { surfaceSize = it }
+                .playerSurfaceGestures(
+                    enabled = controlsUnlocked,
+                    onTap = {
+                        when {
+                            isDesktop -> {
+                                player.playOrPause()
+                                revealControls()
+                            }
+                            controlsVisible -> controlsVisible = false
+                            else -> revealControls()
                         }
-                        controlsVisible -> controlsVisible = false
-                        else -> {
-                            lastInteraction = lastInteraction + 1
-                            controlsVisible = true
+                    },
+                    onDoubleTap = { offset ->
+                        val forward = offset.x >= surfaceSize.width / 2f
+                        player.seekBy(if (forward) SEEK_FORWARD else SEEK_BACK)
+                        showGesture(if (forward) "+${SEEK_FORWARD.inWholeSeconds} s" else "−${SEEK_BACK.inWholeSeconds} s")
+                    },
+                    onHoldStart = {
+                        speedBeforeHold = state.playbackSpeed
+                        player.setSpeed(HOLD_SPEED)
+                        showGesture("${HOLD_SPEED.toInt()}×")
+                    },
+                    onHoldEnd = {
+                        if (state.playbackSpeed != speedBeforeHold) player.setSpeed(speedBeforeHold)
+                    },
+                    onDrag = { axis, fraction, done ->
+                        // The volume base is captured when the drag picks its axis,
+                        // so a live update does not feed back into the next one.
+                        if (draggedAxis != axis) {
+                            draggedAxis = axis
+                            volumeAtDragStart = state.volume
                         }
-                    }
-                }
-            },
+                        when (axis) {
+                            DragAxis.Seek -> {
+                                val delta = (fraction * SEEK_DRAG_SPAN.inWholeSeconds).toLong().seconds
+                                val target = (state.position + delta).coerceIn(Duration.ZERO, state.duration.coerceAtLeast(Duration.ZERO))
+                                if (done) player.seek(target)
+                                showGesture(formatPlayerTime(target))
+                            }
+                            DragAxis.Volume -> {
+                                val level = (volumeAtDragStart + fraction * 100).coerceIn(0.0, 100.0)
+                                player.setVolume(level)
+                                showGesture("${level.roundToInt()}%")
+                            }
+                        }
+                        if (done) draggedAxis = null
+                    },
+                ),
         )
+        gestureLabel?.let { label ->
+            GesturePill(label, Modifier.align(Alignment.Center))
+        }
         if (showBuffering) {
             CircularProgressIndicator(Modifier.align(Alignment.Center))
         }
@@ -373,6 +468,7 @@ fun PlayerScreen(
                     duration = state.duration,
                     volume = state.volume,
                     subtitlesOn = state.selectedSubtitleId != null,
+                    playbackSpeed = state.playbackSpeed,
                     // The pre-roll owns the screen until it dissolves, so the
                     // controls enter after the reveal instead of with it.
                     visible = controlsVisible && controlsUnlocked,
@@ -403,7 +499,24 @@ fun PlayerScreen(
             onSubtitles = { showSubtitleMenu = true },
             onAudio = { showAudioMenu = true },
             onBack = onBack,
+            onCycleSpeed = cycleSpeed,
         )
+
+        nextTarget?.let { queued ->
+            NextEpisodePrompt(
+                label =
+                    playerHeading(queued).let { heading ->
+                        listOfNotNull(heading.title, heading.subtitle).joinToString(TITLE_SEPARATOR)
+                    },
+                secondsLeft = nextCountdown,
+                onPlayNow = {
+                    nextTarget = null
+                    onPlayNext(queued)
+                },
+                onCancel = { nextTarget = null },
+                modifier = Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(AppSpacing.lg),
+            )
+        }
 
         state.error?.let { error ->
             val message = stringResource(Res.string.player_error, error)
@@ -490,6 +603,24 @@ private fun addonSubtitleTrack(
         uri = subtitle.url,
         isExternal = true,
     )
+
+/** Centered pill with the feedback of the last edge gesture. */
+@Composable
+private fun GesturePill(
+    label: String,
+    modifier: Modifier = Modifier,
+) {
+    Text(
+        text = label,
+        style = AppType.cardTitle(),
+        color = AppColors.playerControl,
+        modifier =
+            modifier
+                .clip(MaterialTheme.shapes.medium)
+                .background(AppColors.mediaScrim)
+                .padding(horizontal = AppSpacing.md, vertical = AppSpacing.sm),
+    )
+}
 
 /** Best-effort autoplay: finds the next episode and its first direct stream. */
 private suspend fun playNextIfPossible(
@@ -587,6 +718,21 @@ private val BUFFERING_INDICATOR_DELAY = 300.milliseconds
 
 /** Volume change applied by the up/down arrow shortcuts, in percent. */
 private const val VOLUME_STEP = 5.0
+
+/** Playback rates the speed control cycles through. */
+private val SPEEDS = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f)
+
+/** Rate a held finger plays at, restored the moment it lifts. */
+private const val HOLD_SPEED = 2f
+
+/** Media a full-width horizontal drag covers, both ways. */
+private val SEEK_DRAG_SPAN = 90.seconds
+
+/** How long the queued next episode waits before it starts on its own. */
+private const val NEXT_EPISODE_COUNTDOWN = 10
+
+/** How long a gesture keeps its feedback pill on screen. */
+private val GESTURE_FEEDBACK = 750.milliseconds
 
 /**
  * Number-key seek targets: `0`…`9` jump to 0 %…90 % of the media, the

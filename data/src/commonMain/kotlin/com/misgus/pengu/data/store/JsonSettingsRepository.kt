@@ -98,6 +98,14 @@ class JsonSettingsRepository(
 
     override suspend fun setHardwareDecoding(enabled: Boolean) = update { it.copy(hardwareDecoding = enabled) }
 
+    override suspend fun setRecentSearches(searches: List<String>) = update { it.copy(recentSearches = searches) }
+
+    override suspend fun setDiscoverSelection(
+        type: String?,
+        catalogKey: String?,
+        genre: String?,
+    ) = update { it.copy(discoverType = type, discoverCatalogKey = catalogKey, discoverGenre = genre) }
+
     /** Writes first, then publishes, so a failed save leaves the UI unchanged. */
     private suspend fun update(transform: (AppSettings) -> AppSettings) =
         mutex.withLock {

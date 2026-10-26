@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,8 +17,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.misgus.pengu.app.shared.generated.resources.Res
 import com.misgus.pengu.app.shared.generated.resources.action_clear
@@ -31,6 +35,8 @@ import com.misgus.pengu.core.model.LibraryItem
 import com.misgus.pengu.core.model.MetaPreview
 import com.misgus.pengu.core.model.isLandscape
 import com.misgus.pengu.core.repository.PosterSize
+import com.misgus.pengu.ui.components.AppChip
+import com.misgus.pengu.ui.components.AppIconButton
 import com.misgus.pengu.ui.components.AppSearchField
 import com.misgus.pengu.ui.components.MediaActions
 import com.misgus.pengu.ui.components.Message
@@ -71,8 +77,18 @@ fun SearchScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val discoverState by discoverViewModel.state.collectAsStateWithLifecycle()
-    val settingsRepository = LocalAppServices.current.settings
+    val services = LocalAppServices.current
+    val settingsRepository = services.settings
     val settings by settingsRepository.state.collectAsStateWithLifecycle()
+    val chrome = services.chrome
+    // `/` arrives here as a counter rather than a callback: see `AppChrome`.
+    val searchFocus = remember { FocusRequester() }
+    LaunchedEffect(chrome.searchFocusRequest) {
+        if (chrome.searchFocusRequest > 0) {
+            searchFocus.requestFocus()
+            chrome.consumeSearchFocus()
+        }
+    }
 
     LaunchedEffect(Unit) { discoverViewModel.load() }
 
@@ -84,19 +100,28 @@ fun SearchScreen(
                 if (state.query.isBlank()) Res.string.discover_title else Res.string.search_title,
             ),
         )
-        SearchField(query = state.query, onQueryChange = viewModel::onQueryChange)
+        SearchField(query = state.query, onQueryChange = viewModel::onQueryChange, focusRequester = searchFocus)
         Box(Modifier.weight(1f)) {
             if (state.query.isBlank()) {
-                DiscoverFeed(
-                    state = discoverState,
-                    hideLabels = settings.hideLabels,
-                    onOpenDetail = { navigator.push(ContentRoute.Detail(it)) },
-                    onSelectType = discoverViewModel::selectType,
-                    onSelectCatalog = discoverViewModel::selectCatalog,
-                    onSelectGenre = discoverViewModel::selectGenre,
-                    onLoadMore = discoverViewModel::loadMore,
-                    modifier = Modifier.fillMaxSize(),
-                )
+                Column(Modifier.fillMaxSize()) {
+                    if (settings.recentSearches.isNotEmpty()) {
+                        RecentSearches(
+                            queries = settings.recentSearches,
+                            onPick = viewModel::onQueryChange,
+                            onClear = viewModel::clearHistory,
+                        )
+                    }
+                    DiscoverFeed(
+                        state = discoverState,
+                        hideLabels = settings.hideLabels,
+                        onOpenDetail = { navigator.push(ContentRoute.Detail(it)) },
+                        onSelectType = discoverViewModel::selectType,
+                        onSelectCatalog = discoverViewModel::selectCatalog,
+                        onSelectGenre = discoverViewModel::selectGenre,
+                        onLoadMore = discoverViewModel::loadMore,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             } else {
                 SearchResults(
                     state = state,
@@ -109,10 +134,42 @@ fun SearchScreen(
     }
 }
 
+/** Recent searches as chips, offered while the field is empty. */
+@Composable
+private fun RecentSearches(
+    queries: List<String>,
+    onPick: (String) -> Unit,
+    onClear: () -> Unit,
+) {
+    val windowSize = LocalWindowSize.current
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(start = windowSize.screenPadding, end = AppSpacing.sm, bottom = AppSpacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        LazyRow(
+            modifier = Modifier.weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+        ) {
+            items(queries, key = { it }) { query ->
+                AppChip(
+                    text = query,
+                    onClick = { onPick(query) },
+                )
+            }
+        }
+        AppIconButton(
+            icon = MaterialIcons.Close,
+            contentDescription = stringResource(Res.string.action_clear),
+            onClick = onClear,
+        )
+    }
+}
+
 @Composable
 private fun SearchField(
     query: String,
     onQueryChange: (String) -> Unit,
+    focusRequester: FocusRequester,
 ) {
     AppSearchField(
         value = query,
@@ -121,6 +178,7 @@ private fun SearchField(
         clearDescription = stringResource(Res.string.action_clear),
         modifier =
             Modifier
+                .focusRequester(focusRequester)
                 .fillMaxWidth()
                 .padding(
                     start = LocalWindowSize.current.screenPadding,

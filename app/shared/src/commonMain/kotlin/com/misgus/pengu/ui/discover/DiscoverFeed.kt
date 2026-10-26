@@ -16,18 +16,13 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -45,6 +40,8 @@ import com.misgus.pengu.app.shared.generated.resources.discover_filter_type
 import com.misgus.pengu.core.model.ContentType
 import com.misgus.pengu.core.model.LibraryItem
 import com.misgus.pengu.core.model.isLandscape
+import com.misgus.pengu.ui.components.FilterChip
+import com.misgus.pengu.ui.components.FilterOption
 import com.misgus.pengu.ui.components.MediaActions
 import com.misgus.pengu.ui.components.Message
 import com.misgus.pengu.ui.components.PosterCard
@@ -237,14 +234,14 @@ private fun DiscoverFilters(
             modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
         ) {
-            FilterDropdown(
+            FilterChip(
                 label = state.selectedType?.let { typeLabel(it) } ?: stringResource(Res.string.discover_filter_type),
                 options = state.types.map { type -> FilterOption(type.value, typeLabel(type)) },
                 selectedKey = state.selectedType?.value,
                 enabled = true,
                 onSelected = { key -> state.types.firstOrNull { it.value == key }?.let(onSelectType) },
             )
-            FilterDropdown(
+            FilterChip(
                 label = state.selectedCatalog?.name ?: stringResource(Res.string.discover_filter_catalog),
                 options =
                     state.catalogs.map { catalog ->
@@ -256,7 +253,7 @@ private fun DiscoverFilters(
                 onSelected = onSelectCatalog,
             )
             if (state.genres.isNotEmpty()) {
-                FilterDropdown(
+                FilterChip(
                     label = state.selectedGenre ?: allGenres,
                     options =
                         buildList {
@@ -283,45 +280,3 @@ private fun DiscoverFilters(
 /** "Movies" / "Series", or the raw Stremio type when the app has no name for it. */
 @Composable
 private fun typeLabel(type: ContentType): String = contentTypeLabel(type)
-
-private data class FilterOption(
-    val key: String,
-    val label: String,
-)
-
-/** A chip that opens [options] in a menu. */
-@Composable
-private fun FilterDropdown(
-    label: String,
-    options: List<FilterOption>,
-    selectedKey: String?,
-    enabled: Boolean,
-    onSelected: (String) -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    Box {
-        AssistChip(
-            onClick = { expanded = true },
-            enabled = enabled,
-            label = { Text(label) },
-            trailingIcon = {
-                Icon(
-                    MaterialIcons.ChevronDown,
-                    contentDescription = null,
-                    modifier = Modifier.size(AppSpacing.md),
-                )
-            },
-        )
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(option.label) },
-                    onClick = {
-                        expanded = false
-                        if (option.key != selectedKey) onSelected(option.key)
-                    },
-                )
-            }
-        }
-    }
-}

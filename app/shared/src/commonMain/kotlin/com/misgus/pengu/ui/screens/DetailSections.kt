@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,6 +41,8 @@ import com.misgus.pengu.app.shared.generated.resources.detail_episode
 import com.misgus.pengu.app.shared.generated.resources.detail_episodes
 import com.misgus.pengu.app.shared.generated.resources.detail_season_short
 import com.misgus.pengu.app.shared.generated.resources.detail_specials
+import com.misgus.pengu.app.shared.generated.resources.detail_view_list
+import com.misgus.pengu.app.shared.generated.resources.detail_view_posters
 import com.misgus.pengu.app.shared.generated.resources.detail_you_may_also_like
 import com.misgus.pengu.app.shared.generated.resources.media_rating
 import com.misgus.pengu.core.model.Episode
@@ -52,8 +55,7 @@ import com.misgus.pengu.core.model.Season
 import com.misgus.pengu.core.model.WatchProgress
 import com.misgus.pengu.core.model.WatchedEntry
 import com.misgus.pengu.core.util.runCatchingCancellable
-import com.misgus.pengu.ui.components.ActionButton
-import com.misgus.pengu.ui.components.ActionButtonStyle
+import com.misgus.pengu.ui.components.AppChip
 import com.misgus.pengu.ui.components.CardProgressBar
 import com.misgus.pengu.ui.components.MarqueeText
 import com.misgus.pengu.ui.components.MediaActions
@@ -62,13 +64,16 @@ import com.misgus.pengu.ui.components.PosterImage
 import com.misgus.pengu.ui.components.RemoteImage
 import com.misgus.pengu.ui.components.WatchedBadge
 import com.misgus.pengu.ui.components.clickableSurface
+import com.misgus.pengu.ui.components.focusRing
 import com.misgus.pengu.ui.components.motionBorder
 import com.misgus.pengu.ui.components.ratingText
 import com.misgus.pengu.ui.components.rememberInteraction
 import com.misgus.pengu.ui.components.runtimeLabel
 import com.misgus.pengu.ui.components.sectionHeading
+import com.misgus.pengu.ui.icons.MaterialIcons
 import com.misgus.pengu.ui.services.LocalAppServices
 import com.misgus.pengu.ui.theme.AppCorner
+import com.misgus.pengu.ui.theme.AppIconSize
 import com.misgus.pengu.ui.theme.AppSizes
 import com.misgus.pengu.ui.theme.AppSpacing
 import com.misgus.pengu.ui.theme.AppType
@@ -260,6 +265,9 @@ internal fun EpisodesSection(
     val windowSize = LocalWindowSize.current
     val watchState = rememberEpisodeWatchState(contentId)
     var season by remember(seasons) { mutableStateOf(defaultSeason(seasons)) }
+    // List or artwork for the episodes of the selected season. In memory: the
+    // detail screen is rebuilt on every open.
+    var listMode by remember { mutableStateOf(false) }
     val episodes =
         remember(videos, season) {
             videos.filter { it.season == season }.sortedBy { it.episode?.number ?: it.number ?: 0 }
@@ -284,36 +292,114 @@ internal fun EpisodesSection(
             // a phone's narrow width, would otherwise crowd or clip the buttons.
             LazyRow(
                 contentPadding = PaddingValues(horizontal = windowSize.screenPadding),
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 items(seasons) { value ->
-                    ActionButton(
+                    AppChip(
                         text = seasonLabel(value),
                         onClick = { season = value },
-                        style = ActionButtonStyle.Text,
                         selected = value == season,
+                    )
+                }
+                item {
+                    // Two ways to read a season, as Nuvio offers: artwork or a
+                    // dense list for a long run of episodes.
+                    AppChip(
+                        text = stringResource(if (listMode) Res.string.detail_view_posters else Res.string.detail_view_list),
+                        onClick = { listMode = !listMode },
+                        leadingIcon = if (listMode) MaterialIcons.Movie else MaterialIcons.Compass,
                     )
                 }
             }
         }
         Spacer(Modifier.height(AppSpacing.md))
-        LazyRow(
-            state = episodesState,
-            // No fixed height: a card reserves its own synopsis lines, so the
-            // rail is as tall as the tallest one instead of guessing with a dp.
-            contentPadding = PaddingValues(horizontal = windowSize.screenPadding),
-            horizontalArrangement = Arrangement.spacedBy(windowSize.gridSpacing),
-        ) {
-            items(episodes) { video ->
-                val key = episodeKey(video.season, video.episode)
-                EpisodeCard(
-                    video = video,
-                    // A progress bar and a watched badge say the same thing twice,
-                    // so the bar is dropped once an episode counts as watched.
-                    watched = watchState.isWatched(key),
-                    progress = key?.let(watchState::fraction)?.takeUnless { watchState.isWatched(key) },
-                ) { onPlayEpisode(video) }
+        if (listMode) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = windowSize.screenPadding),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
+            ) {
+                episodes.forEach { video ->
+                    val key = episodeKey(video.season, video.episode)
+                    EpisodeRow(
+                        video = video,
+                        watched = key != null && watchState.isWatched(key),
+                    ) { onPlayEpisode(video) }
+                }
             }
+        } else {
+            LazyRow(
+                state = episodesState,
+                // No fixed height: a card reserves its own synopsis lines, so the
+                // rail is as tall as the tallest one instead of guessing with a dp.
+                contentPadding = PaddingValues(horizontal = windowSize.screenPadding),
+                horizontalArrangement = Arrangement.spacedBy(windowSize.gridSpacing),
+            ) {
+                items(episodes) { video ->
+                    val key = episodeKey(video.season, video.episode)
+                    EpisodeCard(
+                        video = video,
+                        // A progress bar and a watched badge say the same thing twice,
+                        // so the bar is dropped once an episode counts as watched.
+                        watched = watchState.isWatched(key),
+                        progress = key?.let(watchState::fraction)?.takeUnless { watchState.isWatched(key) },
+                    ) { onPlayEpisode(video) }
+                }
+            }
+        }
+    }
+}
+
+/** One episode as a list row: the compact view of a season. */
+@Composable
+private fun EpisodeRow(
+    video: MetaVideo,
+    watched: Boolean,
+    onTap: () -> Unit,
+) {
+    val interaction = rememberInteraction()
+    val number = video.episode ?: video.number
+    val title = video.title ?: stringResource(Res.string.detail_episode, number?.toString() ?: "").trim()
+    val meta = episodeMetaParts(video)
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .focusRing(interaction)
+                .clickableSurface(interaction, onTap, indication = null)
+                .padding(vertical = AppSpacing.sm, horizontal = AppSpacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = number?.toString() ?: "•",
+            style = AppType.caption(),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.width(AppSpacing.xl),
+        )
+        Column(Modifier.weight(1f)) {
+            Text(
+                title,
+                style = AppType.itemTitle(),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (meta.isNotEmpty()) {
+                Text(
+                    meta.joinToString(" · "),
+                    style = PosterCaption.meta(),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        if (watched) {
+            Icon(
+                imageVector = MaterialIcons.Check,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(AppIconSize.sm),
+            )
         }
     }
 }

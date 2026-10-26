@@ -6,6 +6,8 @@ import com.misgus.pengu.core.model.MetaPreview
 import com.misgus.pengu.core.repository.AccountRepository
 import com.misgus.pengu.core.repository.CatalogRef
 import com.misgus.pengu.core.repository.CatalogRepository
+import com.misgus.pengu.core.repository.InMemorySettingsRepository
+import com.misgus.pengu.core.repository.SettingsRepository
 import com.misgus.pengu.core.util.runCatchingCancellable
 import com.misgus.pengu.ui.common.AccountScopedViewModel
 import kotlinx.coroutines.CancellationException
@@ -55,6 +57,7 @@ data class SearchUiState(
 class SearchViewModel(
     account: AccountRepository,
     private val catalogs: CatalogRepository,
+    private val settings: SettingsRepository = InMemorySettingsRepository(),
 ) : AccountScopedViewModel(account) {
     private val _state = MutableStateFlow(SearchUiState())
     val state: StateFlow<SearchUiState> = _state.asStateFlow()
@@ -119,12 +122,31 @@ class SearchViewModel(
                 }
             if (id != requestId) return
             _state.update { it.copy(isSearching = false, sections = sections, hasSearched = true) }
+            rememberQuery(query)
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (error: Throwable) {
             if (id != requestId) return
             _state.update { it.copy(isSearching = false, error = error, hasSearched = true) }
         }
+    }
+
+    /**
+     * Keeps the term as the newest recent search.
+     *
+     * Only a search that actually ran is stored, so the debounce does not fill
+     * the list with every prefix the user typed.
+     */
+    private fun rememberQuery(query: String) {
+        val previous = settings.state.value.recentSearches
+        val updated = (listOf(query) + previous.filterNot { it.equals(query, ignoreCase = true) }).take(MAX_RECENT_SEARCHES)
+        if (updated == previous) return
+        viewModelScope.launch { settings.setRecentSearches(updated) }
+    }
+
+    /** Clears the recent searches offered under the empty field. */
+    fun clearHistory() {
+        viewModelScope.launch { settings.setRecentSearches(emptyList()) }
     }
 
     /** Searchable catalogs for the active profile, fetched once and cached. */
@@ -149,5 +171,6 @@ class SearchViewModel(
 
     private companion object {
         const val DEBOUNCE_MS = 300L
+        const val MAX_RECENT_SEARCHES = 10
     }
 }

@@ -65,6 +65,7 @@ fun SectionHost(
                     SearchViewModel(
                         account = services.account,
                         catalogs = services.catalogs,
+                        settings = services.settings,
                     )
                 }
             // The discover feed is embedded in Search, so both ViewModels live
@@ -74,6 +75,7 @@ fun SectionHost(
                     DiscoverViewModel(
                         account = services.account,
                         catalogs = services.catalogs,
+                        settings = services.settings,
                     )
                 }
             SearchScreen(

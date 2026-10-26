@@ -36,6 +36,8 @@ class NoopPlayerService(
 
     override fun setVolume(volume: Double) = Unit
 
+    override fun setSpeed(speed: Float) = Unit
+
     override fun selectAudioTrack(track: MediaTrack) = Unit
 
     override fun selectSubtitleTrack(track: MediaTrack?) = Unit

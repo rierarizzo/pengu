@@ -132,6 +132,14 @@ data class AppSettings(
      * or not at all.
      */
     val hardwareDecoding: Boolean = true,
+    /** Recent searches, newest first; the Search screen offers them while empty. */
+    val recentSearches: List<String> = emptyList(),
+    /** Discover type to reopen at, as its protocol token (`movie`, `series`, ...). */
+    val discoverType: String? = null,
+    /** Discover catalog to reopen at, as its `CatalogRef.key`. */
+    val discoverCatalogKey: String? = null,
+    /** Discover genre to reopen at; `null` is "all genres". */
+    val discoverGenre: String? = null,
 )
 
 /**
@@ -189,6 +197,16 @@ interface SettingsRepository {
     suspend fun setDeband(enabled: Boolean)
 
     suspend fun setHardwareDecoding(enabled: Boolean)
+
+    /** Replaces the recent searches, newest first. */
+    suspend fun setRecentSearches(searches: List<String>)
+
+    /** Remembers the discover pickers, so the feed reopens where it was left. */
+    suspend fun setDiscoverSelection(
+        type: String?,
+        catalogKey: String?,
+        genre: String?,
+    )
 }
 
 /**
@@ -243,6 +261,14 @@ class InMemorySettingsRepository(
     override suspend fun setDeband(enabled: Boolean) = update { it.copy(deband = enabled) }
 
     override suspend fun setHardwareDecoding(enabled: Boolean) = update { it.copy(hardwareDecoding = enabled) }
+
+    override suspend fun setRecentSearches(searches: List<String>) = update { it.copy(recentSearches = searches) }
+
+    override suspend fun setDiscoverSelection(
+        type: String?,
+        catalogKey: String?,
+        genre: String?,
+    ) = update { it.copy(discoverType = type, discoverCatalogKey = catalogKey, discoverGenre = genre) }
 
     private fun update(transform: (AppSettings) -> AppSettings) {
         _state.value = transform(_state.value)

@@ -36,7 +36,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
@@ -46,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.misgus.pengu.ui.components.AppChip
 import com.misgus.pengu.ui.components.AppSwitch
 import com.misgus.pengu.ui.components.clickableSurface
 import com.misgus.pengu.ui.components.focusRing
@@ -435,29 +435,15 @@ private fun SettingsChip(
     onClick: () -> Unit,
     family: FontFamily? = null,
 ) {
-    val interaction = rememberInteraction()
-    val base = AppType.buttonLabel()
-    val style = if (family == null) base else base.copy(fontFamily = family)
-    val fill = if (selected) AppColors.surfaceSelected else Color.Transparent
-    val borderColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-    Row(
-        modifier =
-            Modifier
-                .clip(MaterialTheme.shapes.small)
-                .background(interactionHighlight(interaction, fill))
-                .border(AppSizes.borderWidth, borderColor, MaterialTheme.shapes.small)
-                .focusRing(interaction)
-                .clickableSurface(interaction, onClick, role = Role.RadioButton)
-                .padding(horizontal = AppSpacing.md, vertical = AppSpacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            label,
-            style = style,
-            color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-        )
-    }
+    // One chip for the whole app: the settings choices read like the library's
+    // filters instead of like a second, private design.
+    AppChip(
+        text = label,
+        onClick = onClick,
+        selected = selected,
+        role = Role.RadioButton,
+        fontFamily = family,
+    )
 }
 
 /**

@@ -38,6 +38,26 @@ class AppChrome {
     private var requests = 0
 
     /**
+     * Bumped when the shell hands the keyboard to the search field.
+     *
+     * The search field lives two screens down, so the section asks for focus
+     * through this counter instead of plumbed callbacks: the screen remembers the
+     * value it saw and requests focus when it changes.
+     */
+    var searchFocusRequest by mutableStateOf(0)
+        private set
+
+    /** Asks the Search section to focus its field on the next composition. */
+    fun requestSearchFocus() {
+        searchFocusRequest++
+    }
+
+    /** Marks the request as served, so the section does not steal focus again. */
+    fun consumeSearchFocus() {
+        searchFocusRequest = 0
+    }
+
+    /**
      * Hides the chrome until the matching [exitImmersive].
      *
      * Counted, so when a player replaces another one (autoplay) the chrome does
